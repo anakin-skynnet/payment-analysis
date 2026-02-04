@@ -1,7 +1,7 @@
 from typing import Annotated, Generator
 
 from databricks.sdk import WorkspaceClient
-from fastapi import Depends, Header, Request
+from fastapi import Depends, Header, HTTPException, Request
 from sqlmodel import Session
 
 from .config import AppConfig
@@ -55,8 +55,9 @@ def get_obo_ws(
     """
 
     if not token:
-        raise ValueError(
-            "OBO token is not provided in the header X-Forwarded-Access-Token"
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required: X-Forwarded-Access-Token header is missing"
         )
 
     return WorkspaceClient(
