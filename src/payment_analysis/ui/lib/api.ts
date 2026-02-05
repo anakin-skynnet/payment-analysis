@@ -308,6 +308,42 @@ export interface RoutingPredictionOut {
   recommended_solution: string;
 }
 
+export interface RunJobIn {
+  catalog?: string | null;
+  duration_minutes?: string | null;
+  events_per_second?: string | null;
+  job_id: string;
+  schema?: string | null;
+  warehouse_id?: string | null;
+}
+
+export interface RunJobOut {
+  job_id: string;
+  message: string;
+  run_id: number;
+  run_page_url: string;
+}
+
+export interface RunPipelineIn {
+  pipeline_id: string;
+}
+
+export interface RunPipelineOut {
+  message: string;
+  pipeline_id: string;
+  pipeline_page_url: string;
+  update_id: string;
+}
+
+export interface SetupDefaultsOut {
+  catalog: string;
+  jobs: Record<string, string>;
+  pipelines: Record<string, string>;
+  schema: string;
+  warehouse_id: string;
+  workspace_host: string;
+}
+
 export interface SolutionPerformanceOut {
   approval_rate_pct: number;
   approved_count: number;
@@ -446,6 +482,14 @@ export interface GetNotebookParams {
 
 export interface GetNotebookUrlParams {
   notebook_id: string;
+}
+
+export interface RunSetupJobParams {
+  "X-Forwarded-Access-Token"?: string | null;
+}
+
+export interface RunSetupPipelineParams {
+  "X-Forwarded-Access-Token"?: string | null;
 }
 
 export class ApiError extends Error {
@@ -1292,6 +1336,59 @@ export function useGetNotebookUrl<TData = { data: Record<string, unknown> }>(opt
 
 export function useGetNotebookUrlSuspense<TData = { data: Record<string, unknown> }>(options: { params: GetNotebookUrlParams; query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getNotebookUrlKey(options.params), queryFn: () => getNotebookUrl(options.params), ...options?.query });
+}
+
+export const getSetupDefaults = async (options?: RequestInit): Promise<{ data: SetupDefaultsOut }> => {
+  const res = await fetch("/api/setup/defaults", { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getSetupDefaultsKey = () => {
+  return ["/api/setup/defaults"] as const;
+};
+
+export function useGetSetupDefaults<TData = { data: SetupDefaultsOut }>(options?: { query?: Omit<UseQueryOptions<{ data: SetupDefaultsOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getSetupDefaultsKey(), queryFn: () => getSetupDefaults(), ...options?.query });
+}
+
+export function useGetSetupDefaultsSuspense<TData = { data: SetupDefaultsOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: SetupDefaultsOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getSetupDefaultsKey(), queryFn: () => getSetupDefaults(), ...options?.query });
+}
+
+export const runSetupJob = async (data: RunJobIn, params?: RunSetupJobParams, options?: RequestInit): Promise<{ data: RunJobOut }> => {
+  const res = await fetch("/api/setup/run-job", { ...options, method: "POST", headers: { "Content-Type": "application/json", ...(params?.["X-Forwarded-Access-Token"] != null && { "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"] }), ...options?.headers }, body: JSON.stringify(data) });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export function useRunSetupJob(options?: { mutation?: UseMutationOptions<{ data: RunJobOut }, ApiError, { params: RunSetupJobParams; data: RunJobIn }> }) {
+  return useMutation({ mutationFn: (vars) => runSetupJob(vars.data, vars.params), ...options?.mutation });
+}
+
+export const runSetupPipeline = async (data: RunPipelineIn, params?: RunSetupPipelineParams, options?: RequestInit): Promise<{ data: RunPipelineOut }> => {
+  const res = await fetch("/api/setup/run-pipeline", { ...options, method: "POST", headers: { "Content-Type": "application/json", ...(params?.["X-Forwarded-Access-Token"] != null && { "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"] }), ...options?.headers }, body: JSON.stringify(data) });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export function useRunSetupPipeline(options?: { mutation?: UseMutationOptions<{ data: RunPipelineOut }, ApiError, { params: RunSetupPipelineParams; data: RunPipelineIn }> }) {
+  return useMutation({ mutationFn: (vars) => runSetupPipeline(vars.data, vars.params), ...options?.mutation });
 }
 
 export const version = async (options?: RequestInit): Promise<{ data: VersionOut }> => {

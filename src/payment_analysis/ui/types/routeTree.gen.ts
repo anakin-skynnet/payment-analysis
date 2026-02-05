@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './../routes/__root'
 import { Route as SidebarRouteRouteImport } from './../routes/_sidebar/route'
 import { Route as IndexRouteImport } from './../routes/index'
+import { Route as SidebarSetupRouteImport } from './../routes/_sidebar/setup'
 import { Route as SidebarProfileRouteImport } from './../routes/_sidebar/profile'
 import { Route as SidebarNotebooksRouteImport } from './../routes/_sidebar/notebooks'
 import { Route as SidebarModelsRouteImport } from './../routes/_sidebar/models'
@@ -30,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const SidebarSetupRoute = SidebarSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => SidebarRouteRoute,
 } as any)
 const SidebarProfileRoute = SidebarProfileRouteImport.update({
   id: '/profile',
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/models': typeof SidebarModelsRoute
   '/notebooks': typeof SidebarNotebooksRoute
   '/profile': typeof SidebarProfileRoute
+  '/setup': typeof SidebarSetupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/models': typeof SidebarModelsRoute
   '/notebooks': typeof SidebarNotebooksRoute
   '/profile': typeof SidebarProfileRoute
+  '/setup': typeof SidebarSetupRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/_sidebar/models': typeof SidebarModelsRoute
   '/_sidebar/notebooks': typeof SidebarNotebooksRoute
   '/_sidebar/profile': typeof SidebarProfileRoute
+  '/_sidebar/setup': typeof SidebarSetupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -137,6 +146,7 @@ export interface FileRouteTypes {
     | '/models'
     | '/notebooks'
     | '/profile'
+    | '/setup'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/models'
     | '/notebooks'
     | '/profile'
+    | '/setup'
   id:
     | '__root__'
     | '/'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/_sidebar/models'
     | '/_sidebar/notebooks'
     | '/_sidebar/profile'
+    | '/_sidebar/setup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -186,6 +198,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_sidebar/setup': {
+      id: '/_sidebar/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SidebarSetupRouteImport
+      parentRoute: typeof SidebarRouteRoute
     }
     '/_sidebar/profile': {
       id: '/_sidebar/profile'
@@ -271,6 +290,7 @@ interface SidebarRouteRouteChildren {
   SidebarModelsRoute: typeof SidebarModelsRoute
   SidebarNotebooksRoute: typeof SidebarNotebooksRoute
   SidebarProfileRoute: typeof SidebarProfileRoute
+  SidebarSetupRoute: typeof SidebarSetupRoute
 }
 
 const SidebarRouteRouteChildren: SidebarRouteRouteChildren = {
@@ -284,6 +304,7 @@ const SidebarRouteRouteChildren: SidebarRouteRouteChildren = {
   SidebarModelsRoute: SidebarModelsRoute,
   SidebarNotebooksRoute: SidebarNotebooksRoute,
   SidebarProfileRoute: SidebarProfileRoute,
+  SidebarSetupRoute: SidebarSetupRoute,
 }
 
 const SidebarRouteRouteWithChildren = SidebarRouteRoute._addFileChildren(

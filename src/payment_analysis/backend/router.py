@@ -13,6 +13,7 @@ from .routes.experiments import router as experiments_router
 from .routes.incidents import router as incidents_router
 from .routes.dashboards import router as dashboards_router
 from .routes.notebooks import router as notebooks_router
+from .routes.setup import router as setup_router
 
 try:
     from .._metadata import api_prefix as _api_prefix
@@ -27,6 +28,7 @@ api.include_router(experiments_router, prefix="/experiments")
 api.include_router(incidents_router, prefix="/incidents")
 api.include_router(dashboards_router, prefix="/dashboards")
 api.include_router(notebooks_router, prefix="/notebooks")
+api.include_router(setup_router)
 
 
 @api.get("/version", response_model=VersionOut, operation_id="version")

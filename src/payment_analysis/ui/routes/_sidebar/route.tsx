@@ -12,6 +12,7 @@ import {
   Code2,
   Brain,
   Bot,
+  Rocket,
 } from "lucide-react";
 import {
   SidebarGroup,
@@ -33,6 +34,12 @@ function Layout() {
       label: "Dashboard",
       icon: <BarChart3 size={16} />,
       match: (path: string) => path === "/dashboard",
+    },
+    {
+      to: "/setup",
+      label: "Setup & Run",
+      icon: <Rocket size={16} />,
+      match: (path: string) => path === "/setup",
     },
     {
       to: "/dashboards",
