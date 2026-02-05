@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS {target_table} (
     decline_code_raw STRING,
     processing_time_ms INT,
     event_timestamp TIMESTAMP NOT NULL,
-    _ingested_at TIMESTAMP
+    _ingested_at TIMESTAMP DEFAULT current_timestamp()
 )
 USING DELTA
 TBLPROPERTIES (
