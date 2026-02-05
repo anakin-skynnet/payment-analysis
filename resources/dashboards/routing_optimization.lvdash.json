@@ -137,7 +137,7 @@
                 "name": "retry_query",
                 "query": {
                   "datasetName": "main.dev_ariel_hdez_payment_analysis_dev.v_retry_performance",
-                  "query_text": "SELECT decline_reason, retry_count, retry_success_rate_pct, retry_attempts FROM v_retry_performance WHERE retry_success_rate_pct > 0 ORDER BY retry_success_rate_pct DESC LIMIT 15",
+                  "query_text": "SELECT decline_reason, retry_count, retry_success_rate_pct, retry_attempts, effectiveness FROM v_retry_performance WHERE retry_success_rate_pct > 0 ORDER BY retry_success_rate_pct DESC LIMIT 15",
                   "warehouse_id": "3fef3d3419b56344"
                 }
               }

@@ -44,7 +44,7 @@ Welcome to the Payment Analysis Platform documentation. This folder contains com
 **Key Topics:**
 - Business objectives and value proposition
 - Databricks technology overview
-- Expected ROI and impact metrics
+- Expected business impact metrics
 - Strategic advantages
 
 ---
@@ -58,16 +58,16 @@ Welcome to the Payment Analysis Platform documentation. This folder contains com
 
 **Key Topics:**
 - 7 AI agents (Genie, Model Serving, AI Gateway)
-- Business impact: +6-13% approval lift, $6.5-13.5M revenue
+- Business impact: +6-13% approval lift, significant revenue increase
 - Deployment guide (8-week timeline)
-- ROI calculation (2,000-4,400% ROI)
+- Performance metrics and optimization strategies
 - Example queries and use cases
 - Success metrics and monitoring
 
 **Business Impact:**
 - Target: 90%+ approval rate (from 85% baseline)
-- Revenue: $6.5-13.5M annually for $1B payment volume
-- Payback: <3 weeks
+- Substantial revenue increase potential
+- Short time to value
 
 ---
 
@@ -170,10 +170,10 @@ docs/
 | Metric | Current | Target | Impact |
 |--------|---------|--------|--------|
 | Approval Rate | 85% | 90%+ | +6-13% lift |
-| Revenue Recovery | - | $6.5-13.5M | Annual |
+| Revenue Recovery | - | Significant | Substantial annual impact |
 | Self-Service Users | - | 100+ | Genie enabled |
 | Analyst Productivity | - | +80% | Faster insights |
-| ROI | - | 2,000-4,400% | <3 week payback |
+| Business Impact | - | Very High | Excellent returns |
 
 ---
 

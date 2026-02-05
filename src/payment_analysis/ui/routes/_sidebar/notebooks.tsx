@@ -22,7 +22,7 @@ interface NotebookList {
 }
 
 const categoryIcons: Record<string, any> = {
-  intelligence: Bot,
+  agents: Bot,
   ml_training: Brain,
   streaming: Zap,
   transformation: Database,
