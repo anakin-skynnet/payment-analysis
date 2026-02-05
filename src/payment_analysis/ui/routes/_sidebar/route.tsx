@@ -8,6 +8,8 @@ import {
   FlaskConical,
   User,
   Wand2,
+  LayoutDashboard,
+  Code2,
 } from "lucide-react";
 import {
   SidebarGroup,
@@ -29,6 +31,18 @@ function Layout() {
       label: "Dashboard",
       icon: <BarChart3 size={16} />,
       match: (path: string) => path === "/dashboard",
+    },
+    {
+      to: "/dashboards",
+      label: "Analytics Dashboards",
+      icon: <LayoutDashboard size={16} />,
+      match: (path: string) => path === "/dashboards",
+    },
+    {
+      to: "/notebooks",
+      label: "Notebooks",
+      icon: <Code2 size={16} />,
+      match: (path: string) => path === "/notebooks",
     },
     {
       to: "/decisioning",

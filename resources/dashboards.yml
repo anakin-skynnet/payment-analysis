@@ -58,3 +58,27 @@ resources:
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
       file_path: ./dashboards/daily_trends.lvdash.json
+
+    # Dashboard 8: Authentication & Security (NEW)
+    authentication_security:
+      display_name: "[${var.environment}] 3DS Authentication & Security Analysis"
+      warehouse_id: ${var.warehouse_id}
+      parent_path: ${workspace.root_path}/dashboards
+      embed_credentials: true
+      file_path: ./dashboards/authentication_security.lvdash.json
+
+    # Dashboard 9: Financial Impact (NEW)
+    financial_impact:
+      display_name: "[${var.environment}] Financial Impact & ROI Analysis"
+      warehouse_id: ${var.warehouse_id}
+      parent_path: ${workspace.root_path}/dashboards
+      embed_credentials: true
+      file_path: ./dashboards/financial_impact.lvdash.json
+
+    # Dashboard 10: Performance & Latency (NEW)
+    performance_latency:
+      display_name: "[${var.environment}] Technical Performance & Latency Analysis"
+      warehouse_id: ${var.warehouse_id}
+      parent_path: ${workspace.root_path}/dashboards
+      embed_credentials: true
+      file_path: ./dashboards/performance_latency.lvdash.json

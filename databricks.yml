@@ -20,7 +20,7 @@ include:
   - resources/genie_spaces.yml
   # Enable dashboards after views are created and data exists:
   # - resources/dashboards.yml
-  # Enable after tables exist:
+  # Enable after ML models are trained:
   # - resources/model_serving.yml
 
 # Environment variables with validation
