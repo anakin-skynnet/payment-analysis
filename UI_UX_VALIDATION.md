@@ -38,7 +38,7 @@
   3. Real-Time Monitoring → `realtime_pipeline`, `gold_views_sql`
   4. Fraud & Risk Analysis → `train_models`, `gold_views_sql`
   5. Merchant Performance → `gold_views_sql`, `silver_transform`
-  6. Routing Optimization → `train_models`, `gold_views_sql`, `agent_framework`
+  6. Routing Optimization → `train_models`, `gold_views_sql`, `agent_framework` (intelligence)
   7. Daily Trends → `gold_views_sql`
   8. Authentication & Security → `silver_transform`, `gold_views_sql`
   9. Financial Impact → `gold_views_sql`
@@ -55,7 +55,7 @@
 - **Component:** `notebooks.tsx`
 - **Purpose:** Comprehensive registry of all Databricks notebooks
 - **Categories:**
-  - 🤖 Agents (1 notebook): `agent_framework`
+  - 🤖 Intelligence (1 notebook): `agent_framework`
   - 🧠 ML Training (1 notebook): `train_models`
   - ⚡ Streaming (3 notebooks): `realtime_pipeline`, `bronze_ingest`, `transaction_simulator`
   - 🔄 Transformation (3 notebooks): `silver_transform`, `gold_views_sql`, `create_views`
@@ -115,7 +115,7 @@
 - **Data Source:** Backend API `/api/decisioning/*` endpoints using trained models
 - **Linked Notebooks:**
   - ✅ `train_models` - ML Models notebook
-  - ✅ `agent_framework` - Agent logic notebook
+  - ✅ `agent_framework` - Intelligence framework notebook
 - **UX Features:**
   - Interactive form for transaction context input
   - Three decision API calls with real-time results
@@ -130,7 +130,7 @@
 - **Data Source:** Backend API `/api/experiments/*` with MLflow tracking
 - **Linked Notebooks:**
   - ✅ `train_models` - ML Training
-  - ✅ `agent_framework` - Agent Tests
+  - ✅ `agent_framework` - Intelligence framework
 - **UX Features:**
   - Create, start, stop experiments
   - Status badges (running/stopped)
@@ -210,8 +210,8 @@
 - ✅ Dashboards Gallery → Each dashboard linked to 1-3 source notebooks
 - ✅ Notebooks Browser → Self-referential with direct workspace links
 - ✅ ML Models → `train_models` (new dedicated page)
-- ✅ Decisioning → `train_models`, `agent_framework`
-- ✅ Experiments → `train_models`, `agent_framework`
+- ✅ Decisioning → `train_models`, `agent_framework` (intelligence)
+- ✅ Experiments → `train_models`, `agent_framework` (intelligence)
 - ✅ Incidents → `realtime_pipeline`
 - ✅ Declines → `gold_views_sql`
 

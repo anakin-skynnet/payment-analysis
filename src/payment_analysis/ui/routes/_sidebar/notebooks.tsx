@@ -22,7 +22,7 @@ interface NotebookList {
 }
 
 const categoryIcons: Record<string, any> = {
-  agents: Bot,
+  intelligence: Bot,
   ml_training: Brain,
   streaming: Zap,
   transformation: Database,
@@ -30,7 +30,7 @@ const categoryIcons: Record<string, any> = {
 };
 
 const categoryColors: Record<string, string> = {
-  agents: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800",
+  intelligence: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800",
   ml_training: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800",
   streaming: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800",
   transformation: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800",

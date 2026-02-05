@@ -22,7 +22,7 @@ router = APIRouter(tags=["notebooks"])
 
 class NotebookCategory(str, Enum):
     """Notebook categories."""
-    AGENTS = "agents"
+    INTELLIGENCE = "intelligence"
     ML_TRAINING = "ml_training"
     STREAMING = "streaming"
     TRANSFORMATION = "transformation"
@@ -53,15 +53,15 @@ class NotebookList(BaseModel):
 # =============================================================================
 
 NOTEBOOKS = [
-    # AI Agents
+    # Intelligence Layer
     NotebookInfo(
         id="agent_framework",
-        name="AI Agent Framework",
-        description="Multi-agent system with orchestrator, smart routing, smart retry, decline analyst, risk assessor, and performance recommender agents.",
-        category=NotebookCategory.AGENTS,
+        name="Intelligence Results Framework",
+        description="SQL-based intelligent decisioning system for smart routing, retry optimization, decline analysis, risk assessment, and performance recommendations.",
+        category=NotebookCategory.INTELLIGENCE,
         workspace_path="/Workspace/Users/ariel.hdez@databricks.com/getnet_approval_rates_v2/files/src/payment_analysis/agents/agent_framework.py",
-        job_name="Smart Routing Agent, Smart Retry Agent, Decline Analyst, Risk Assessor, Performance Recommender, Orchestrator Agent",
-        tags=["agents", "ai", "orchestrator", "multi-agent", "llm"],
+        job_name="Smart Routing, Smart Retry, Decline Analysis, Risk Assessment, Performance Recommendations",
+        tags=["intelligence", "decisioning", "routing", "retry", "analysis"],
     ),
     
     # ML Training

@@ -70,7 +70,7 @@ function Decisioning() {
               onClick={() => openNotebook("agent_framework")}
             >
               <Code2 className="w-4 h-4 mr-2" />
-              Agent Framework
+              Intelligence Framework
               <ExternalLink className="w-3 h-3 ml-2" />
             </Button>
           </div>
