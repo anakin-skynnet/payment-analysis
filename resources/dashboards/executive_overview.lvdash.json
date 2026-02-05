@@ -6,7 +6,7 @@
   "tags": ["executive", "kpi", "overview"],
   "pages": [
     {
-      "name": "Executive Summary",
+      "name": "executive_summary",
       "displayName": "Executive Summary",
       "layout": [
         {
@@ -23,8 +23,9 @@
               {
                 "name": "kpi_query",
                 "query": {
+                  "datasetName": "main.dev_ariel_hdez_payment_analysis_dev.v_executive_kpis",
                   "query_text": "SELECT total_transactions, approval_rate_pct, total_transaction_value FROM v_executive_kpis LIMIT 1",
-                  "warehouse_id": "{{ warehouse_id }}"
+                  "warehouse_id": "3fef3d3419b56344"
                 }
               }
             ],
@@ -48,8 +49,9 @@
               {
                 "name": "kpi_query",
                 "query": {
+                  "datasetName": "main.dev_ariel_hdez_payment_analysis_dev.v_executive_kpis",
                   "query_text": "SELECT approval_rate_pct FROM v_executive_kpis LIMIT 1",
-                  "warehouse_id": "{{ warehouse_id }}"
+                  "warehouse_id": "3fef3d3419b56344"
                 }
               }
             ],
@@ -74,8 +76,9 @@
               {
                 "name": "kpi_query",
                 "query": {
+                  "datasetName": "main.dev_ariel_hdez_payment_analysis_dev.v_executive_kpis",
                   "query_text": "SELECT total_transaction_value FROM v_executive_kpis LIMIT 1",
-                  "warehouse_id": "{{ warehouse_id }}"
+                  "warehouse_id": "3fef3d3419b56344"
                 }
               }
             ],
@@ -100,8 +103,9 @@
               {
                 "name": "kpi_query",
                 "query": {
+                  "datasetName": "main.dev_ariel_hdez_payment_analysis_dev.v_executive_kpis",
                   "query_text": "SELECT avg_fraud_score FROM v_executive_kpis LIMIT 1",
-                  "warehouse_id": "{{ warehouse_id }}"
+                  "warehouse_id": "3fef3d3419b56344"
                 }
               }
             ],
@@ -125,8 +129,9 @@
               {
                 "name": "trend_query",
                 "query": {
+                  "datasetName": "main.dev_ariel_hdez_payment_analysis_dev.v_approval_trends_hourly",
                   "query_text": "SELECT * FROM v_approval_trends_hourly ORDER BY hour LIMIT 168",
-                  "warehouse_id": "{{ warehouse_id }}"
+                  "warehouse_id": "3fef3d3419b56344"
                 }
               }
             ],
@@ -148,8 +153,9 @@
               {
                 "name": "geo_query",
                 "query": {
+                  "datasetName": "main.dev_ariel_hdez_payment_analysis_dev.v_performance_by_geography",
                   "query_text": "SELECT * FROM v_performance_by_geography ORDER BY transaction_count DESC LIMIT 15",
-                  "warehouse_id": "{{ warehouse_id }}"
+                  "warehouse_id": "3fef3d3419b56344"
                 }
               }
             ],
@@ -171,8 +177,9 @@
               {
                 "name": "decline_query",
                 "query": {
+                  "datasetName": "main.dev_ariel_hdez_payment_analysis_dev.v_top_decline_reasons",
                   "query_text": "SELECT * FROM v_top_decline_reasons LIMIT 10",
-                  "warehouse_id": "{{ warehouse_id }}"
+                  "warehouse_id": "3fef3d3419b56344"
                 }
               }
             ],
