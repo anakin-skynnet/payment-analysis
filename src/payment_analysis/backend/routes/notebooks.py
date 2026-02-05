@@ -22,7 +22,7 @@ router = APIRouter(tags=["notebooks"])
 
 class NotebookCategory(str, Enum):
     """Notebook categories."""
-    INTELLIGENCE = "intelligence"
+    AGENTS = "agents"
     ML_TRAINING = "ml_training"
     STREAMING = "streaming"
     TRANSFORMATION = "transformation"
@@ -53,7 +53,7 @@ class NotebookList(BaseModel):
 # =============================================================================
 
 NOTEBOOKS = [
-    # Intelligence Layer
+    # AI Agents
     NotebookInfo(
         id="agent_framework",
         name="Intelligence Results Framework",
