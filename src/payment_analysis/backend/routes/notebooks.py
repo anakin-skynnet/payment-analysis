@@ -3,10 +3,14 @@ Notebook Registry - Maps UI sections to Databricks notebooks.
 
 This module provides a centralized registry of all Databricks notebooks
 used in the payment analysis platform, organized by functional area.
+
+NOTE: Workspace paths are relative to the bundle deployment location.
+They will be constructed dynamically based on the actual deployment path.
 """
 
 from __future__ import annotations
 
+import os
 from enum import Enum
 from typing import Any
 
@@ -14,6 +18,34 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 router = APIRouter(tags=["notebooks"])
+
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+def get_workspace_base_path() -> str:
+    """
+    Get the workspace base path dynamically from environment or use default.
+    
+    The actual path is set during bundle deployment and available via:
+    - DATABRICKS_BUNDLE_ROOT environment variable
+    - Or falls back to pattern-based path
+    """
+    bundle_root = os.getenv("DATABRICKS_BUNDLE_ROOT")
+    if bundle_root:
+        return bundle_root
+    
+    # Fallback: construct from user email and folder name
+    user_email = os.getenv("DATABRICKS_USER", "user@company.com")
+    folder_name = os.getenv("BUNDLE_FOLDER", "getnet_approval_rates_v3")
+    return f"/Workspace/Users/{user_email}/{folder_name}/files"
+
+
+def get_notebook_path(relative_path: str) -> str:
+    """Construct full notebook path from relative path."""
+    base = get_workspace_base_path()
+    return f"{base}/{relative_path}"
 
 
 # =============================================================================
@@ -59,7 +91,7 @@ NOTEBOOKS = [
         name="Intelligence Results Framework",
         description="SQL-based intelligent decisioning system for smart routing, retry optimization, decline analysis, risk assessment, and performance recommendations.",
         category=NotebookCategory.INTELLIGENCE,
-        workspace_path="/Workspace/Users/ariel.hdez@databricks.com/getnet_approval_rates_v2/files/src/payment_analysis/agents/agent_framework.py",
+        workspace_path=get_notebook_path("src/payment_analysis/agents/agent_framework.py"),
         job_name="Smart Routing, Smart Retry, Decline Analysis, Risk Assessment, Performance Recommendations",
         tags=["intelligence", "decisioning", "routing", "retry", "analysis"],
     ),
@@ -70,7 +102,7 @@ NOTEBOOKS = [
         name="ML Model Training",
         description="Trains all 4 ML models: approval propensity, risk scoring, smart routing policy, and smart retry policy with MLflow tracking.",
         category=NotebookCategory.ML_TRAINING,
-        workspace_path="/Workspace/Users/ariel.hdez@databricks.com/getnet_approval_rates_v2/files/src/payment_analysis/ml/train_models.py",
+        workspace_path=get_notebook_path("src/payment_analysis/ml/train_models.py"),
         job_name="Train Payment Approval ML Models",
         tags=["ml", "training", "mlflow", "models", "propensity", "risk"],
     ),
@@ -81,7 +113,7 @@ NOTEBOOKS = [
         name="Transaction Stream Simulator",
         description="Generates realistic synthetic payment transaction events for testing and demonstration purposes.",
         category=NotebookCategory.STREAMING,
-        workspace_path="/Workspace/Users/ariel.hdez@databricks.com/getnet_approval_rates_v2/files/src/payment_analysis/streaming/transaction_simulator.py",
+        workspace_path=get_notebook_path("src/payment_analysis/streaming/transaction_simulator.py"),
         job_name="Payment Transaction Stream Simulator",
         tags=["streaming", "simulator", "synthetic-data", "testing"],
     ),
@@ -90,7 +122,7 @@ NOTEBOOKS = [
         name="Bronze Layer Ingestion",
         description="Delta Live Tables pipeline for ingesting raw payment events into the bronze layer with data quality checks.",
         category=NotebookCategory.STREAMING,
-        workspace_path="/Workspace/Users/ariel.hdez@databricks.com/getnet_approval_rates_v2/files/src/payment_analysis/streaming/bronze_ingest.py",
+        workspace_path=get_notebook_path("src/payment_analysis/streaming/bronze_ingest.py"),
         job_name="Payment Analysis DLT Pipeline",
         tags=["dlt", "bronze", "ingestion", "data-quality"],
     ),
@@ -99,7 +131,7 @@ NOTEBOOKS = [
         name="Real-Time Streaming Pipeline",
         description="Delta Live Tables continuous streaming pipeline for real-time payment processing (Bronze → Silver → Gold).",
         category=NotebookCategory.STREAMING,
-        workspace_path="/Workspace/Users/ariel.hdez@databricks.com/getnet_approval_rates_v2/files/src/payment_analysis/streaming/realtime_pipeline.py",
+        workspace_path=get_notebook_path("src/payment_analysis/streaming/realtime_pipeline.py"),
         job_name="Payment Analysis DLT Pipeline",
         tags=["dlt", "streaming", "realtime", "cdc", "continuous"],
     ),
@@ -108,7 +140,7 @@ NOTEBOOKS = [
         name="Continuous Stream Processor",
         description="Structured streaming processor for continuous payment event processing with windowed aggregations.",
         category=NotebookCategory.STREAMING,
-        workspace_path="/Workspace/Users/ariel.hdez@databricks.com/getnet_approval_rates_v2/files/src/payment_analysis/streaming/continuous_processor.py",
+        workspace_path=get_notebook_path("src/payment_analysis/streaming/continuous_processor.py"),
         job_name=None,
         tags=["streaming", "continuous", "aggregations", "windows"],
     ),
@@ -119,7 +151,7 @@ NOTEBOOKS = [
         name="Silver Layer Transformations",
         description="Delta Live Tables transformations for cleaning, enriching, and validating payment data in the silver layer.",
         category=NotebookCategory.TRANSFORMATION,
-        workspace_path="/Workspace/Users/ariel.hdez@databricks.com/getnet_approval_rates_v2/files/src/payment_analysis/transform/silver_transform.py",
+        workspace_path=get_notebook_path("src/payment_analysis/transform/silver_transform.py"),
         job_name="Payment Analysis DLT Pipeline",
         tags=["dlt", "silver", "transformation", "enrichment", "validation"],
     ),
@@ -128,7 +160,7 @@ NOTEBOOKS = [
         name="Gold Analytics Views",
         description="Creates aggregated gold-layer views optimized for dashboards and analytics (12+ views including KPIs, trends, and performance metrics).",
         category=NotebookCategory.TRANSFORMATION,
-        workspace_path="/Workspace/Users/ariel.hdez@databricks.com/getnet_approval_rates_v2/files/src/payment_analysis/transform/gold_views.py",
+        workspace_path=get_notebook_path("src/payment_analysis/transform/gold_views.py"),
         job_name="Create Payment Analysis Gold Views",
         tags=["dlt", "gold", "views", "aggregations", "analytics"],
     ),
@@ -137,7 +169,7 @@ NOTEBOOKS = [
         name="Gold Views SQL Definitions",
         description="SQL definitions for all gold-layer analytics views (v_executive_kpis, v_decline_patterns, v_routing_performance, etc.).",
         category=NotebookCategory.TRANSFORMATION,
-        workspace_path="/Workspace/Users/ariel.hdez@databricks.com/getnet_approval_rates_v2/files/src/payment_analysis/transform/gold_views.sql",
+        workspace_path=get_notebook_path("src/payment_analysis/transform/gold_views.sql"),
         job_name="Create Payment Analysis Gold Views",
         tags=["sql", "gold", "views", "definitions"],
     ),
@@ -199,12 +231,10 @@ async def get_notebook_url(notebook_id: str) -> dict[str, Any]:
     """
     notebook = await get_notebook(notebook_id)
     
-    # Construct full Databricks URL
-    # In production, get from environment or config
-    base_url = "https://adb-984752964297111.11.azuredatabricks.net"
+    # Construct full Databricks URL from environment
+    base_url = os.getenv("DATABRICKS_HOST", "https://your-workspace.cloud.databricks.com")
     
-    # Replace workspace path template with actual username
-    # This will be replaced dynamically in production
+    # Use workspace path from notebook definition
     workspace_path = notebook.workspace_path
     
     full_url = f"{base_url}/workspace{workspace_path}"

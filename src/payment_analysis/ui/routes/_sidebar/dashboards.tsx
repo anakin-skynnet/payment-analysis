@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3, TrendingUp, Shield, DollarSign, Gauge, Users, Calendar, Lock, Award, Zap, ExternalLink, Code2 } from "lucide-react";
+import { getWorkspaceUrl } from "@/config/workspace";
 
 export const Route = createFileRoute("/_sidebar/dashboards")({
   component: Component,
@@ -87,7 +88,7 @@ export function Component() {
   const handleDashboardClick = (dashboard: Dashboard) => {
     if (dashboard.url_path) {
       // Open in new tab pointing to Databricks workspace
-      const databricksUrl = `https://adb-984752964297111.11.azuredatabricks.net${dashboard.url_path}`;
+      const databricksUrl = `${getWorkspaceUrl()}${dashboard.url_path}`;
       window.open(databricksUrl, "_blank");
     }
   };

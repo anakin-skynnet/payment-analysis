@@ -6,10 +6,13 @@ This module provides AI agents powered by Databricks features:
 - Model Serving: ML-powered recommendations
 - AI Gateway: LLM routing and prompt engineering
 - Custom Agents: Domain-specific payment intelligence
+
+NOTE: Workspace URLs are constructed dynamically based on environment variables.
 """
 
 from __future__ import annotations
 
+import os
 from enum import Enum
 from typing import Any
 
@@ -17,6 +20,24 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 router = APIRouter(tags=["agents"])
+
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+def get_workspace_url() -> str:
+    """Get Databricks workspace URL from environment."""
+    return os.getenv("DATABRICKS_HOST", "https://your-workspace.cloud.databricks.com")
+
+
+def get_notebook_workspace_url(relative_path: str) -> str:
+    """Construct full workspace URL for a notebook."""
+    workspace_url = get_workspace_url()
+    user_email = os.getenv("DATABRICKS_USER", "user@company.com")
+    folder_name = os.getenv("BUNDLE_FOLDER", "getnet_approval_rates_v3")
+    full_path = f"/Users/{user_email}/{folder_name}/files/{relative_path}"
+    return f"{workspace_url}/workspace{full_path}"
 
 
 # =============================================================================
@@ -78,7 +99,7 @@ AGENTS = [
         ],
         use_case="Query payment data using natural language to discover approval optimization opportunities. Example: 'Which merchants have declining approval rates?' or 'Show me high-value transactions that are getting declined'",
         databricks_resource="Genie Space: Payment Approval Analytics",
-        workspace_url="https://adb-984752964297111.11.azuredatabricks.net/genie",
+        workspace_url=f"{get_workspace_url()}/genie",
         tags=["genie", "analytics", "approval-optimization", "natural-language"],
         example_queries=[
             "Which payment solutions have the highest approval rates?",
@@ -100,7 +121,7 @@ AGENTS = [
         ],
         use_case="Deep-dive into decline patterns to identify recoverable transactions and optimal retry strategies. Ask about specific decline codes, merchant segments, or geographic patterns.",
         databricks_resource="Genie Space: Decline Analysis",
-        workspace_url="https://adb-984752964297111.11.azuredatabricks.net/genie",
+        workspace_url=f"{get_workspace_url()}/genie",
         tags=["genie", "declines", "recovery", "analytics"],
         example_queries=[
             "What are the top 5 decline reasons this month?",
@@ -123,7 +144,7 @@ AGENTS = [
         ],
         use_case="Real-time approval probability scoring for intelligent routing decisions. Route high-propensity transactions to optimal payment solutions and flag low-propensity transactions for review.",
         databricks_resource="Model: main.payment_analysis_dev.approval_propensity_model",
-        workspace_url="https://adb-984752964297111.11.azuredatabricks.net/ml/models/main.payment_analysis_dev.approval_propensity_model",
+        workspace_url=f"{get_workspace_url()}/ml/models/main.payment_analysis_dev.approval_propensity_model",
         tags=["model-serving", "ml", "propensity", "real-time"],
         example_queries=[
             "What's the approval probability for this transaction?",
@@ -144,7 +165,7 @@ AGENTS = [
         ],
         use_case="Automatically select the best payment solution (standard, 3DS, network token, passkey) to maximize approval rates while balancing fraud risk and processing costs.",
         databricks_resource="Model: main.payment_analysis_dev.smart_routing_policy",
-        workspace_url="https://adb-984752964297111.11.azuredatabricks.net/ml/models/main.payment_analysis_dev.smart_routing_policy",
+        workspace_url=f"{get_workspace_url()}/ml/models/main.payment_analysis_dev.smart_routing_policy",
         tags=["model-serving", "routing", "optimization", "decisioning"],
         example_queries=[
             "What's the best payment solution for this merchant?",
@@ -164,7 +185,7 @@ AGENTS = [
         ],
         use_case="Increase revenue recovery by 15-25% through intelligent retry strategies. Predicts retry success probability and suggests optimal retry timing for different decline types.",
         databricks_resource="Model: main.payment_analysis_dev.smart_retry_policy",
-        workspace_url="https://adb-984752964297111.11.azuredatabricks.net/ml/models/main.payment_analysis_dev.smart_retry_policy",
+        workspace_url=f"{get_workspace_url()}/ml/models/main.payment_analysis_dev.smart_retry_policy",
         tags=["model-serving", "retry", "recovery", "revenue"],
         example_queries=[
             "Should we retry this declined transaction?",
@@ -186,7 +207,7 @@ AGENTS = [
         ],
         use_case="Ask complex questions about payment performance, get AI-generated insights, and receive personalized recommendations for improving approval rates based on your specific merchant portfolio.",
         databricks_resource="AI Gateway: databricks-meta-llama-3-1-70b-instruct",
-        workspace_url="https://adb-984752964297111.11.azuredatabricks.net/serving-endpoints/databricks-meta-llama-3-1-70b-instruct",
+        workspace_url=f"{get_workspace_url()}/serving-endpoints/databricks-meta-llama-3-1-70b-instruct",
         tags=["ai-gateway", "llm", "conversational", "insights"],
         example_queries=[
             "Explain why our approval rate dropped last week",
@@ -209,7 +230,7 @@ AGENTS = [
         ],
         use_case="Real-time risk consultation for high-value or suspicious transactions. Get natural language explanations of risk factors and specific recommendations for fraud prevention.",
         databricks_resource="AI Gateway: databricks-meta-llama-3-1-70b-instruct",
-        workspace_url="https://adb-984752964297111.11.azuredatabricks.net/serving-endpoints/databricks-meta-llama-3-1-70b-instruct",
+        workspace_url=f"{get_workspace_url()}/serving-endpoints/databricks-meta-llama-3-1-70b-instruct",
         tags=["ai-gateway", "risk", "fraud", "aml"],
         example_queries=[
             "Is this transaction risky? Explain the risk factors.",
@@ -231,7 +252,7 @@ AGENTS = [
         ],
         use_case="Weekly/monthly performance reviews with AI-generated insights. Automatically identifies underperforming segments and generates prioritized action plans for approval rate improvement.",
         databricks_resource="Custom Agent: Performance Analysis & Recommendations",
-        workspace_url="https://adb-984752964297111.11.azuredatabricks.net/workspace/Users/ariel.hdez@databricks.com/getnet_approval_rates_v2/files/src/payment_analysis/agents/agent_framework.py",
+        workspace_url=get_notebook_workspace_url("src/payment_analysis/agents/agent_framework.py"),
         tags=["custom", "recommendations", "performance", "optimization"],
         example_queries=[
             "Generate my weekly performance report",
@@ -301,7 +322,7 @@ async def get_agent_url(agent_id: str) -> dict[str, Any]:
     return {
         "agent_id": agent_id,
         "name": agent.name,
-        "url": agent.workspace_url or "https://adb-984752964297111.11.azuredatabricks.net",
+        "url": agent.workspace_url or get_workspace_url(),
         "agent_type": agent.agent_type.value,
         "databricks_resource": agent.databricks_resource,
     }

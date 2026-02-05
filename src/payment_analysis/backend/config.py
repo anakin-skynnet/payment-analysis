@@ -1,6 +1,7 @@
 from importlib import resources
 from pathlib import Path
 from typing import ClassVar
+import os
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -24,6 +25,32 @@ if env_file.exists():
         load_dotenv(dotenv_path=env_file)
     except Exception:
         pass
+
+
+class DatabricksConfig(BaseSettings):
+    """Databricks workspace configuration."""
+    model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
+        extra="ignore",
+    )
+    workspace_url: str = Field(
+        description="Databricks workspace URL",
+        validation_alias="DATABRICKS_HOST"
+    )
+    workspace_path: str = Field(
+        description="Workspace deployment path",
+        default="/Workspace/Users/${workspace.current_user.userName}/getnet_approval_rates_v3"
+    )
+    
+    def get_notebook_path(self, relative_path: str) -> str:
+        """Construct full notebook workspace path dynamically."""
+        # Get current user from env or use placeholder
+        user_email = os.getenv("DATABRICKS_USER", "${workspace.current_user.userName}")
+        base_path = f"/Workspace/Users/{user_email}/getnet_approval_rates_v3/files"
+        return f"{base_path}/{relative_path}"
+    
+    def get_workspace_url(self, path: str) -> str:
+        """Construct full workspace URL dynamically."""
+        return f"{self.workspace_url}/workspace{path}"
 
 
 class DatabaseConfig(BaseSettings):
@@ -50,6 +77,7 @@ class AppConfig(BaseSettings):
     )
     app_name: str = Field(default=app_name)
     db: DatabaseConfig = DatabaseConfig()  # type: ignore
+    databricks: DatabricksConfig = DatabricksConfig()  # type: ignore
 
     @property
     def static_assets_path(self) -> Path:

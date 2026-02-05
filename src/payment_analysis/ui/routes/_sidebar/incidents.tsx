@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Code2, AlertTriangle } from "lucide-react";
+import { getDashboardUrl } from "@/config/workspace";
 
 export const Route = createFileRoute("/_sidebar/incidents")({
   component: () => <Incidents />,
@@ -28,7 +29,7 @@ const openNotebook = async (notebookId: string) => {
 };
 
 const openDashboard = () => {
-  const dashboardUrl = "https://adb-984752964297111.11.azuredatabricks.net/sql/dashboards/realtime_monitoring";
+  const dashboardUrl = getDashboardUrl("/sql/dashboards/realtime_monitoring");
   window.open(dashboardUrl, "_blank");
 };
 

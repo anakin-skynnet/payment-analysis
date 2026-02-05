@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useGetKpisSuspense } from "@/lib/api";
 import selector from "@/lib/selector";
 import { ExternalLink, Code2, TrendingUp, Database } from "lucide-react";
+import { getDashboardUrl } from "@/config/workspace";
 
 export const Route = createFileRoute("/_sidebar/dashboard")({
   component: () => <Dashboard />,
@@ -20,7 +21,7 @@ const openNotebook = async (notebookId: string) => {
 };
 
 const openDashboard = () => {
-  const dashboardUrl = "https://adb-984752964297111.11.azuredatabricks.net/sql/dashboards/executive_overview";
+  const dashboardUrl = getDashboardUrl("/sql/dashboards/executive_overview");
   window.open(dashboardUrl, "_blank");
 };
 

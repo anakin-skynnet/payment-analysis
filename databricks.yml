@@ -32,8 +32,9 @@ variables:
     description: Deployment environment identifier
     default: dev
   warehouse_id:
-    description: SQL Warehouse ID for queries (optional)
-    default: "3fef3d3419b56344"
+    description: SQL Warehouse ID for queries (set via warehouse lookup or environment variable)
+    # Use the deployed warehouse from resources/sql_warehouse.yml
+    # The warehouse is created by the bundle deployment
   schema:
     description: Unity Catalog schema name (computed from environment and user)
     default: payment_analysis_${var.environment}

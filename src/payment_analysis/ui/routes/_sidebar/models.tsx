@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Code2, Brain, TrendingUp, Shield, Waypoints, RotateCcw } from "lucide-react";
+import { getMLflowUrl } from "@/config/workspace";
 
 export const Route = createFileRoute("/_sidebar/models")({
   component: () => <Models />,
@@ -19,7 +20,7 @@ const openNotebook = async (notebookId: string) => {
 };
 
 const openMLflow = () => {
-  const mlflowUrl = "https://adb-984752964297111.11.azuredatabricks.net/ml/experiments";
+  const mlflowUrl = getMLflowUrl();
   window.open(mlflowUrl, "_blank");
 };
 

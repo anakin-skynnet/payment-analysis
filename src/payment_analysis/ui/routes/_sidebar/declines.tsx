@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Code2, TrendingUp } from "lucide-react";
+import { getDashboardUrl } from "@/config/workspace";
 
 export const Route = createFileRoute("/_sidebar/declines")({
   component: () => <Declines />,
@@ -22,7 +23,7 @@ const openNotebook = async (notebookId: string) => {
 };
 
 const openDashboard = () => {
-  const dashboardUrl = "https://adb-984752964297111.11.azuredatabricks.net/sql/dashboards/decline_analysis";
+  const dashboardUrl = getDashboardUrl("/sql/dashboards/decline_analysis");
   window.open(dashboardUrl, "_blank");
 };
 
