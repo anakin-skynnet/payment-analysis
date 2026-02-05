@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Code2,
   Brain,
+  Bot,
 } from "lucide-react";
 import {
   SidebarGroup,
@@ -50,6 +51,12 @@ function Layout() {
       label: "ML Models",
       icon: <Brain size={16} />,
       match: (path: string) => path === "/models",
+    },
+    {
+      to: "/ai-agents",
+      label: "AI Agents",
+      icon: <Bot size={16} />,
+      match: (path: string) => path === "/ai-agents",
     },
     {
       to: "/decisioning",

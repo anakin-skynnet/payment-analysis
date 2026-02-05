@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 
 from .dependencies import get_obo_ws
 from .models import VersionOut
+from .routes.agents import router as agents_router
 from .routes.analytics import router as analytics_router
 from .routes.decision import router as decision_router
 from .routes.experiments import router as experiments_router
@@ -20,6 +21,7 @@ except Exception:
 
 api = APIRouter(prefix=_api_prefix)
 api.include_router(decision_router, prefix="/decision")
+api.include_router(agents_router, prefix="/agents")
 api.include_router(analytics_router, prefix="/analytics")
 api.include_router(experiments_router, prefix="/experiments")
 api.include_router(incidents_router, prefix="/incidents")
