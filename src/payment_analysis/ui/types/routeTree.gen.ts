@@ -12,11 +12,15 @@ import { Route as rootRouteImport } from './../routes/__root'
 import { Route as SidebarRouteRouteImport } from './../routes/_sidebar/route'
 import { Route as IndexRouteImport } from './../routes/index'
 import { Route as SidebarProfileRouteImport } from './../routes/_sidebar/profile'
+import { Route as SidebarNotebooksRouteImport } from './../routes/_sidebar/notebooks'
+import { Route as SidebarModelsRouteImport } from './../routes/_sidebar/models'
 import { Route as SidebarIncidentsRouteImport } from './../routes/_sidebar/incidents'
 import { Route as SidebarExperimentsRouteImport } from './../routes/_sidebar/experiments'
 import { Route as SidebarDeclinesRouteImport } from './../routes/_sidebar/declines'
 import { Route as SidebarDecisioningRouteImport } from './../routes/_sidebar/decisioning'
+import { Route as SidebarDashboardsRouteImport } from './../routes/_sidebar/dashboards'
 import { Route as SidebarDashboardRouteImport } from './../routes/_sidebar/dashboard'
+import { Route as SidebarAiAgentsRouteImport } from './../routes/_sidebar/ai-agents'
 
 const SidebarRouteRoute = SidebarRouteRouteImport.update({
   id: '/_sidebar',
@@ -30,6 +34,16 @@ const IndexRoute = IndexRouteImport.update({
 const SidebarProfileRoute = SidebarProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => SidebarRouteRoute,
+} as any)
+const SidebarNotebooksRoute = SidebarNotebooksRouteImport.update({
+  id: '/notebooks',
+  path: '/notebooks',
+  getParentRoute: () => SidebarRouteRoute,
+} as any)
+const SidebarModelsRoute = SidebarModelsRouteImport.update({
+  id: '/models',
+  path: '/models',
   getParentRoute: () => SidebarRouteRoute,
 } as any)
 const SidebarIncidentsRoute = SidebarIncidentsRouteImport.update({
@@ -52,69 +66,103 @@ const SidebarDecisioningRoute = SidebarDecisioningRouteImport.update({
   path: '/decisioning',
   getParentRoute: () => SidebarRouteRoute,
 } as any)
+const SidebarDashboardsRoute = SidebarDashboardsRouteImport.update({
+  id: '/dashboards',
+  path: '/dashboards',
+  getParentRoute: () => SidebarRouteRoute,
+} as any)
 const SidebarDashboardRoute = SidebarDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => SidebarRouteRoute,
 } as any)
+const SidebarAiAgentsRoute = SidebarAiAgentsRouteImport.update({
+  id: '/ai-agents',
+  path: '/ai-agents',
+  getParentRoute: () => SidebarRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ai-agents': typeof SidebarAiAgentsRoute
   '/dashboard': typeof SidebarDashboardRoute
+  '/dashboards': typeof SidebarDashboardsRoute
   '/decisioning': typeof SidebarDecisioningRoute
   '/declines': typeof SidebarDeclinesRoute
   '/experiments': typeof SidebarExperimentsRoute
   '/incidents': typeof SidebarIncidentsRoute
+  '/models': typeof SidebarModelsRoute
+  '/notebooks': typeof SidebarNotebooksRoute
   '/profile': typeof SidebarProfileRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ai-agents': typeof SidebarAiAgentsRoute
   '/dashboard': typeof SidebarDashboardRoute
+  '/dashboards': typeof SidebarDashboardsRoute
   '/decisioning': typeof SidebarDecisioningRoute
   '/declines': typeof SidebarDeclinesRoute
   '/experiments': typeof SidebarExperimentsRoute
   '/incidents': typeof SidebarIncidentsRoute
+  '/models': typeof SidebarModelsRoute
+  '/notebooks': typeof SidebarNotebooksRoute
   '/profile': typeof SidebarProfileRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_sidebar': typeof SidebarRouteRouteWithChildren
+  '/_sidebar/ai-agents': typeof SidebarAiAgentsRoute
   '/_sidebar/dashboard': typeof SidebarDashboardRoute
+  '/_sidebar/dashboards': typeof SidebarDashboardsRoute
   '/_sidebar/decisioning': typeof SidebarDecisioningRoute
   '/_sidebar/declines': typeof SidebarDeclinesRoute
   '/_sidebar/experiments': typeof SidebarExperimentsRoute
   '/_sidebar/incidents': typeof SidebarIncidentsRoute
+  '/_sidebar/models': typeof SidebarModelsRoute
+  '/_sidebar/notebooks': typeof SidebarNotebooksRoute
   '/_sidebar/profile': typeof SidebarProfileRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/ai-agents'
     | '/dashboard'
+    | '/dashboards'
     | '/decisioning'
     | '/declines'
     | '/experiments'
     | '/incidents'
+    | '/models'
+    | '/notebooks'
     | '/profile'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/ai-agents'
     | '/dashboard'
+    | '/dashboards'
     | '/decisioning'
     | '/declines'
     | '/experiments'
     | '/incidents'
+    | '/models'
+    | '/notebooks'
     | '/profile'
   id:
     | '__root__'
     | '/'
     | '/_sidebar'
+    | '/_sidebar/ai-agents'
     | '/_sidebar/dashboard'
+    | '/_sidebar/dashboards'
     | '/_sidebar/decisioning'
     | '/_sidebar/declines'
     | '/_sidebar/experiments'
     | '/_sidebar/incidents'
+    | '/_sidebar/models'
+    | '/_sidebar/notebooks'
     | '/_sidebar/profile'
   fileRoutesById: FileRoutesById
 }
@@ -146,6 +194,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SidebarProfileRouteImport
       parentRoute: typeof SidebarRouteRoute
     }
+    '/_sidebar/notebooks': {
+      id: '/_sidebar/notebooks'
+      path: '/notebooks'
+      fullPath: '/notebooks'
+      preLoaderRoute: typeof SidebarNotebooksRouteImport
+      parentRoute: typeof SidebarRouteRoute
+    }
+    '/_sidebar/models': {
+      id: '/_sidebar/models'
+      path: '/models'
+      fullPath: '/models'
+      preLoaderRoute: typeof SidebarModelsRouteImport
+      parentRoute: typeof SidebarRouteRoute
+    }
     '/_sidebar/incidents': {
       id: '/_sidebar/incidents'
       path: '/incidents'
@@ -174,6 +236,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SidebarDecisioningRouteImport
       parentRoute: typeof SidebarRouteRoute
     }
+    '/_sidebar/dashboards': {
+      id: '/_sidebar/dashboards'
+      path: '/dashboards'
+      fullPath: '/dashboards'
+      preLoaderRoute: typeof SidebarDashboardsRouteImport
+      parentRoute: typeof SidebarRouteRoute
+    }
     '/_sidebar/dashboard': {
       id: '/_sidebar/dashboard'
       path: '/dashboard'
@@ -181,24 +250,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SidebarDashboardRouteImport
       parentRoute: typeof SidebarRouteRoute
     }
+    '/_sidebar/ai-agents': {
+      id: '/_sidebar/ai-agents'
+      path: '/ai-agents'
+      fullPath: '/ai-agents'
+      preLoaderRoute: typeof SidebarAiAgentsRouteImport
+      parentRoute: typeof SidebarRouteRoute
+    }
   }
 }
 
 interface SidebarRouteRouteChildren {
+  SidebarAiAgentsRoute: typeof SidebarAiAgentsRoute
   SidebarDashboardRoute: typeof SidebarDashboardRoute
+  SidebarDashboardsRoute: typeof SidebarDashboardsRoute
   SidebarDecisioningRoute: typeof SidebarDecisioningRoute
   SidebarDeclinesRoute: typeof SidebarDeclinesRoute
   SidebarExperimentsRoute: typeof SidebarExperimentsRoute
   SidebarIncidentsRoute: typeof SidebarIncidentsRoute
+  SidebarModelsRoute: typeof SidebarModelsRoute
+  SidebarNotebooksRoute: typeof SidebarNotebooksRoute
   SidebarProfileRoute: typeof SidebarProfileRoute
 }
 
 const SidebarRouteRouteChildren: SidebarRouteRouteChildren = {
+  SidebarAiAgentsRoute: SidebarAiAgentsRoute,
   SidebarDashboardRoute: SidebarDashboardRoute,
+  SidebarDashboardsRoute: SidebarDashboardsRoute,
   SidebarDecisioningRoute: SidebarDecisioningRoute,
   SidebarDeclinesRoute: SidebarDeclinesRoute,
   SidebarExperimentsRoute: SidebarExperimentsRoute,
   SidebarIncidentsRoute: SidebarIncidentsRoute,
+  SidebarModelsRoute: SidebarModelsRoute,
+  SidebarNotebooksRoute: SidebarNotebooksRoute,
   SidebarProfileRoute: SidebarProfileRoute,
 }
 

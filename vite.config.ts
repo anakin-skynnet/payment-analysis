@@ -12,7 +12,13 @@ import path from "node:path";
  */
 export default defineConfig({
   root: "src/payment_analysis/ui",
-  plugins: [TanStackRouterVite(), react()],
+  plugins: [
+    TanStackRouterVite({
+      routesDirectory: "./routes",
+      generatedRouteTree: "./types/routeTree.gen.ts",
+    }),
+    react(),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src/payment_analysis/ui"),

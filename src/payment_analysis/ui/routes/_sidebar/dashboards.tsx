@@ -1,9 +1,14 @@
 import { useState, useEffect } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3, TrendingUp, Shield, DollarSign, Gauge, Users, Calendar, Lock, Award, Zap, ExternalLink, Code2 } from "lucide-react";
+
+export const Route = createFileRoute("/_sidebar/dashboards")({
+  component: Component,
+});
 
 interface Dashboard {
   id: string;

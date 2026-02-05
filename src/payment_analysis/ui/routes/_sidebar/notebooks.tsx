@@ -1,9 +1,14 @@
 import { useState, useEffect } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Code2, Bot, Brain, Zap, Database, BarChart3, ExternalLink, PlayCircle } from "lucide-react";
+
+export const Route = createFileRoute("/_sidebar/notebooks")({
+  component: Component,
+});
 
 interface Notebook {
   id: string;
