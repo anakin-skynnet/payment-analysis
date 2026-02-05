@@ -33,6 +33,7 @@ class DatabricksConfig(BaseSettings):
         extra="ignore",
     )
     workspace_url: str = Field(
+        default="https://example.databricks.com",
         description="Databricks workspace URL",
         validation_alias="DATABRICKS_HOST"
     )
