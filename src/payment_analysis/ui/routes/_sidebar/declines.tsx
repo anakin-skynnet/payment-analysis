@@ -4,10 +4,27 @@ import { useQuery } from "@tanstack/react-query";
 import { declineSummary } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ExternalLink, Code2, TrendingUp } from "lucide-react";
 
 export const Route = createFileRoute("/_sidebar/declines")({
   component: () => <Declines />,
 });
+
+const openNotebook = async (notebookId: string) => {
+  try {
+    const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
+    const data = await response.json();
+    window.open(data.url, "_blank");
+  } catch (error) {
+    console.error("Failed to open notebook:", error);
+  }
+};
+
+const openDashboard = () => {
+  const dashboardUrl = "https://adb-984752964297111.11.azuredatabricks.net/sql/dashboards/decline_analysis";
+  window.open(dashboardUrl, "_blank");
+};
 
 function Declines() {
   const q = useQuery({
@@ -19,7 +36,35 @@ function Declines() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Declines & remediation</h1>
+      {/* Header with Links */}
+      <div>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">Declines & remediation</h1>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openDashboard}
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Decline Dashboard
+              <ExternalLink className="w-3 h-3 ml-2" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openNotebook("gold_views_sql")}
+            >
+              <Code2 className="w-4 h-4 mr-2" />
+              SQL Views
+              <ExternalLink className="w-3 h-3 ml-2" />
+            </Button>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground mt-2">
+          Analyze decline patterns from Unity Catalog views
+        </p>
+      </div>
 
       <Card>
         <CardHeader>

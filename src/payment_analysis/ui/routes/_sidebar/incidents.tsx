@@ -11,10 +11,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ExternalLink, Code2, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_sidebar/incidents")({
   component: () => <Incidents />,
 });
+
+const openNotebook = async (notebookId: string) => {
+  try {
+    const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
+    const data = await response.json();
+    window.open(data.url, "_blank");
+  } catch (error) {
+    console.error("Failed to open notebook:", error);
+  }
+};
+
+const openDashboard = () => {
+  const dashboardUrl = "https://adb-984752964297111.11.azuredatabricks.net/sql/dashboards/realtime_monitoring";
+  window.open(dashboardUrl, "_blank");
+};
 
 function Incidents() {
   const qc = useQueryClient();
@@ -35,7 +51,35 @@ function Incidents() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Incidents</h1>
+      {/* Header with Links */}
+      <div>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">Incidents</h1>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openDashboard}
+            >
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Monitoring Dashboard
+              <ExternalLink className="w-3 h-3 ml-2" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openNotebook("realtime_pipeline")}
+            >
+              <Code2 className="w-4 h-4 mr-2" />
+              Alert Pipeline
+              <ExternalLink className="w-3 h-3 ml-2" />
+            </Button>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground mt-2">
+          Track and manage payment processing incidents and alerts
+        </p>
+      </div>
 
       <Card>
         <CardHeader>

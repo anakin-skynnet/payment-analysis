@@ -11,10 +11,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ExternalLink, Code2, Brain } from "lucide-react";
 
 export const Route = createFileRoute("/_sidebar/decisioning")({
   component: () => <Decisioning />,
 });
+
+const openNotebook = async (notebookId: string) => {
+  try {
+    const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
+    const data = await response.json();
+    window.open(data.url, "_blank");
+  } catch (error) {
+    console.error("Failed to open notebook:", error);
+  }
+};
 
 function Decisioning() {
   const [ctx, setCtx] = useState<DecisionContext>({
@@ -39,7 +50,35 @@ function Decisioning() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Decisioning playground</h1>
+      {/* Header with Notebook Links */}
+      <div>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">Decisioning playground</h1>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openNotebook("train_models")}
+            >
+              <Brain className="w-4 h-4 mr-2" />
+              ML Models
+              <ExternalLink className="w-3 h-3 ml-2" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openNotebook("agent_framework")}
+            >
+              <Code2 className="w-4 h-4 mr-2" />
+              Agent Framework
+              <ExternalLink className="w-3 h-3 ml-2" />
+            </Button>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground mt-2">
+          Test ML-powered decision policies for authentication, retry, and routing
+        </p>
+      </div>
 
       <Card>
         <CardHeader>

@@ -10,6 +10,7 @@ import {
   Wand2,
   LayoutDashboard,
   Code2,
+  Brain,
 } from "lucide-react";
 import {
   SidebarGroup,
@@ -43,6 +44,12 @@ function Layout() {
       label: "Notebooks",
       icon: <Code2 size={16} />,
       match: (path: string) => path === "/notebooks",
+    },
+    {
+      to: "/models",
+      label: "ML Models",
+      icon: <Brain size={16} />,
+      match: (path: string) => path === "/models",
     },
     {
       to: "/decisioning",

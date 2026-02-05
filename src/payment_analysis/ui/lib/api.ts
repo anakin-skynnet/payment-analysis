@@ -62,6 +62,31 @@ export interface ComplexValue {
   value?: string | null;
 }
 
+export const DashboardCategory = {
+  executive: "executive",
+  operations: "operations",
+  analytics: "analytics",
+  technical: "technical",
+} as const;
+
+export type DashboardCategory = (typeof DashboardCategory)[keyof typeof DashboardCategory];
+
+export interface DashboardInfo {
+  category: DashboardCategory;
+  description: string;
+  embed_url?: string | null;
+  id: string;
+  name: string;
+  tags?: string[];
+  url_path?: string | null;
+}
+
+export interface DashboardList {
+  categories: Record<string, number>;
+  dashboards: DashboardInfo[];
+  total: number;
+}
+
 export interface DatabricksKPIOut {
   approval_rate: number;
   avg_fraud_score: number;
@@ -170,6 +195,33 @@ export interface MLPredictionInput {
 export interface Name {
   family_name?: string | null;
   given_name?: string | null;
+}
+
+export const NotebookCategory = {
+  agents: "agents",
+  ml_training: "ml_training",
+  streaming: "streaming",
+  transformation: "transformation",
+  analytics: "analytics",
+} as const;
+
+export type NotebookCategory = (typeof NotebookCategory)[keyof typeof NotebookCategory];
+
+export interface NotebookInfo {
+  category: NotebookCategory;
+  description: string;
+  documentation_url?: string | null;
+  id: string;
+  job_name?: string | null;
+  name: string;
+  tags?: string[];
+  workspace_path: string;
+}
+
+export interface NotebookList {
+  by_category: Record<string, number>;
+  notebooks: NotebookInfo[];
+  total: number;
 }
 
 export interface RemediationTask {
@@ -281,6 +333,20 @@ export interface CurrentUserParams {
   "X-Forwarded-Access-Token"?: string | null;
 }
 
+export interface ListDashboardsParams {
+  category?: DashboardCategory | null;
+  tag?: string | null;
+}
+
+export interface GetDashboardParams {
+  dashboard_id: string;
+}
+
+export interface GetDashboardUrlParams {
+  dashboard_id: string;
+  embed?: boolean;
+}
+
 export interface ListExperimentsParams {
   limit?: number;
 }
@@ -318,6 +384,18 @@ export interface ListRemediationTasksParams {
 
 export interface CreateRemediationTaskParams {
   incident_id: string;
+}
+
+export interface ListNotebooksParams {
+  category?: NotebookCategory | null;
+}
+
+export interface GetNotebookParams {
+  notebook_id: string;
+}
+
+export interface GetNotebookUrlParams {
+  notebook_id: string;
 }
 
 export class ApiError extends Error {
@@ -544,6 +622,130 @@ export function useCurrentUser<TData = { data: User }>(options?: { params?: Curr
 
 export function useCurrentUserSuspense<TData = { data: User }>(options?: { params?: CurrentUserParams; query?: Omit<UseSuspenseQueryOptions<{ data: User }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: currentUserKey(options?.params), queryFn: () => currentUser(options?.params), ...options?.query });
+}
+
+export const listDashboards = async (params?: ListDashboardsParams, options?: RequestInit): Promise<{ data: DashboardList }> => {
+  const searchParams = new URLSearchParams();
+  if (params?.category != null) searchParams.set("category", String(params?.category));
+  if (params?.tag != null) searchParams.set("tag", String(params?.tag));
+  const queryString = searchParams.toString();
+  const url = queryString ? `/api/dashboards/dashboards?${queryString}` : `/api/dashboards/dashboards`;
+  const res = await fetch(url, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const listDashboardsKey = (params?: ListDashboardsParams) => {
+  return ["/api/dashboards/dashboards", params] as const;
+};
+
+export function useListDashboards<TData = { data: DashboardList }>(options?: { params?: ListDashboardsParams; query?: Omit<UseQueryOptions<{ data: DashboardList }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: listDashboardsKey(options?.params), queryFn: () => listDashboards(options?.params), ...options?.query });
+}
+
+export function useListDashboardsSuspense<TData = { data: DashboardList }>(options?: { params?: ListDashboardsParams; query?: Omit<UseSuspenseQueryOptions<{ data: DashboardList }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: listDashboardsKey(options?.params), queryFn: () => listDashboards(options?.params), ...options?.query });
+}
+
+export const listDashboardCategories = async (options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+  const res = await fetch("/api/dashboards/dashboards/categories/list", { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const listDashboardCategoriesKey = () => {
+  return ["/api/dashboards/dashboards/categories/list"] as const;
+};
+
+export function useListDashboardCategories<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: listDashboardCategoriesKey(), queryFn: () => listDashboardCategories(), ...options?.query });
+}
+
+export function useListDashboardCategoriesSuspense<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: listDashboardCategoriesKey(), queryFn: () => listDashboardCategories(), ...options?.query });
+}
+
+export const listDashboardTags = async (options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+  const res = await fetch("/api/dashboards/dashboards/tags/list", { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const listDashboardTagsKey = () => {
+  return ["/api/dashboards/dashboards/tags/list"] as const;
+};
+
+export function useListDashboardTags<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: listDashboardTagsKey(), queryFn: () => listDashboardTags(), ...options?.query });
+}
+
+export function useListDashboardTagsSuspense<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: listDashboardTagsKey(), queryFn: () => listDashboardTags(), ...options?.query });
+}
+
+export const getDashboard = async (params: GetDashboardParams, options?: RequestInit): Promise<{ data: DashboardInfo }> => {
+  const res = await fetch(`/api/dashboards/dashboards/${params.dashboard_id}`, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getDashboardKey = (params?: GetDashboardParams) => {
+  return ["/api/dashboards/dashboards/{dashboard_id}", params] as const;
+};
+
+export function useGetDashboard<TData = { data: DashboardInfo }>(options: { params: GetDashboardParams; query?: Omit<UseQueryOptions<{ data: DashboardInfo }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getDashboardKey(options.params), queryFn: () => getDashboard(options.params), ...options?.query });
+}
+
+export function useGetDashboardSuspense<TData = { data: DashboardInfo }>(options: { params: GetDashboardParams; query?: Omit<UseSuspenseQueryOptions<{ data: DashboardInfo }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getDashboardKey(options.params), queryFn: () => getDashboard(options.params), ...options?.query });
+}
+
+export const getDashboardUrl = async (params: GetDashboardUrlParams, options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+  const searchParams = new URLSearchParams();
+  if (params?.embed != null) searchParams.set("embed", String(params?.embed));
+  const queryString = searchParams.toString();
+  const url = queryString ? `/api/dashboards/dashboards/${params.dashboard_id}/url?${queryString}` : `/api/dashboards/dashboards/${params.dashboard_id}/url`;
+  const res = await fetch(url, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getDashboardUrlKey = (params?: GetDashboardUrlParams) => {
+  return ["/api/dashboards/dashboards/{dashboard_id}/url", params] as const;
+};
+
+export function useGetDashboardUrl<TData = { data: Record<string, unknown> }>(options: { params: GetDashboardUrlParams; query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getDashboardUrlKey(options.params), queryFn: () => getDashboardUrl(options.params), ...options?.query });
+}
+
+export function useGetDashboardUrlSuspense<TData = { data: Record<string, unknown> }>(options: { params: GetDashboardUrlParams; query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getDashboardUrlKey(options.params), queryFn: () => getDashboardUrl(options.params), ...options?.query });
 }
 
 export const decideAuthentication = async (data: DecisionContext, options?: RequestInit): Promise<{ data: AuthDecisionOut }> => {
@@ -848,6 +1050,102 @@ export const createRemediationTask = async (params: CreateRemediationTaskParams,
 
 export function useCreateRemediationTask(options?: { mutation?: UseMutationOptions<{ data: RemediationTask }, ApiError, { params: CreateRemediationTaskParams; data: TaskIn }> }) {
   return useMutation({ mutationFn: (vars) => createRemediationTask(vars.params, vars.data), ...options?.mutation });
+}
+
+export const listNotebooks = async (params?: ListNotebooksParams, options?: RequestInit): Promise<{ data: NotebookList }> => {
+  const searchParams = new URLSearchParams();
+  if (params?.category != null) searchParams.set("category", String(params?.category));
+  const queryString = searchParams.toString();
+  const url = queryString ? `/api/notebooks/notebooks?${queryString}` : `/api/notebooks/notebooks`;
+  const res = await fetch(url, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const listNotebooksKey = (params?: ListNotebooksParams) => {
+  return ["/api/notebooks/notebooks", params] as const;
+};
+
+export function useListNotebooks<TData = { data: NotebookList }>(options?: { params?: ListNotebooksParams; query?: Omit<UseQueryOptions<{ data: NotebookList }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: listNotebooksKey(options?.params), queryFn: () => listNotebooks(options?.params), ...options?.query });
+}
+
+export function useListNotebooksSuspense<TData = { data: NotebookList }>(options?: { params?: ListNotebooksParams; query?: Omit<UseSuspenseQueryOptions<{ data: NotebookList }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: listNotebooksKey(options?.params), queryFn: () => listNotebooks(options?.params), ...options?.query });
+}
+
+export const getNotebookCategorySummary = async (options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+  const res = await fetch("/api/notebooks/notebooks/categories/summary", { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getNotebookCategorySummaryKey = () => {
+  return ["/api/notebooks/notebooks/categories/summary"] as const;
+};
+
+export function useGetNotebookCategorySummary<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getNotebookCategorySummaryKey(), queryFn: () => getNotebookCategorySummary(), ...options?.query });
+}
+
+export function useGetNotebookCategorySummarySuspense<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getNotebookCategorySummaryKey(), queryFn: () => getNotebookCategorySummary(), ...options?.query });
+}
+
+export const getNotebook = async (params: GetNotebookParams, options?: RequestInit): Promise<{ data: NotebookInfo }> => {
+  const res = await fetch(`/api/notebooks/notebooks/${params.notebook_id}`, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getNotebookKey = (params?: GetNotebookParams) => {
+  return ["/api/notebooks/notebooks/{notebook_id}", params] as const;
+};
+
+export function useGetNotebook<TData = { data: NotebookInfo }>(options: { params: GetNotebookParams; query?: Omit<UseQueryOptions<{ data: NotebookInfo }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getNotebookKey(options.params), queryFn: () => getNotebook(options.params), ...options?.query });
+}
+
+export function useGetNotebookSuspense<TData = { data: NotebookInfo }>(options: { params: GetNotebookParams; query?: Omit<UseSuspenseQueryOptions<{ data: NotebookInfo }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getNotebookKey(options.params), queryFn: () => getNotebook(options.params), ...options?.query });
+}
+
+export const getNotebookUrl = async (params: GetNotebookUrlParams, options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+  const res = await fetch(`/api/notebooks/notebooks/${params.notebook_id}/url`, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getNotebookUrlKey = (params?: GetNotebookUrlParams) => {
+  return ["/api/notebooks/notebooks/{notebook_id}/url", params] as const;
+};
+
+export function useGetNotebookUrl<TData = { data: Record<string, unknown> }>(options: { params: GetNotebookUrlParams; query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getNotebookUrlKey(options.params), queryFn: () => getNotebookUrl(options.params), ...options?.query });
+}
+
+export function useGetNotebookUrlSuspense<TData = { data: Record<string, unknown> }>(options: { params: GetNotebookUrlParams; query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getNotebookUrlKey(options.params), queryFn: () => getNotebookUrl(options.params), ...options?.query });
 }
 
 export const version = async (options?: RequestInit): Promise<{ data: VersionOut }> => {

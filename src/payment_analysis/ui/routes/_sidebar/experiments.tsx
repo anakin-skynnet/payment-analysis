@@ -13,10 +13,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ExternalLink, Code2, FlaskConical } from "lucide-react";
 
 export const Route = createFileRoute("/_sidebar/experiments")({
   component: () => <Experiments />,
 });
+
+const openNotebook = async (notebookId: string) => {
+  try {
+    const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
+    const data = await response.json();
+    window.open(data.url, "_blank");
+  } catch (error) {
+    console.error("Failed to open notebook:", error);
+  }
+};
 
 function Experiments() {
   const qc = useQueryClient();
@@ -44,7 +55,35 @@ function Experiments() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Experiments</h1>
+      {/* Header with Links */}
+      <div>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">Experiments</h1>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openNotebook("train_models")}
+            >
+              <FlaskConical className="w-4 h-4 mr-2" />
+              ML Training
+              <ExternalLink className="w-3 h-3 ml-2" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openNotebook("agent_framework")}
+            >
+              <Code2 className="w-4 h-4 mr-2" />
+              Agent Tests
+              <ExternalLink className="w-3 h-3 ml-2" />
+            </Button>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground mt-2">
+          A/B testing and routing experiments with MLflow tracking
+        </p>
+      </div>
 
       <Card>
         <CardHeader>
