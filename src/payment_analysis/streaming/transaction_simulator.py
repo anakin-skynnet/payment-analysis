@@ -1,4 +1,5 @@
 # Databricks notebook source
+# pyright: reportUndefinedVariable=none
 # MAGIC %md
 # MAGIC # Transaction Stream Simulator
 # MAGIC 
@@ -11,11 +12,18 @@ import random
 import uuid
 import builtins
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
-from pyspark.sql.functions import *
-from pyspark.sql.types import *
 
-# Save Python's built-in round before PySpark functions shadow it
+from pyspark.sql.functions import col, current_timestamp, to_timestamp  # type: ignore[import-untyped]
+from pyspark.sql.types import (  # type: ignore[import-untyped]
+    BooleanType,
+    DoubleType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
+)
+
+# Save Python's built-in round before any PySpark shadowing
 python_round = builtins.round
 
 # COMMAND ----------
@@ -176,7 +184,7 @@ CREATE TABLE IF NOT EXISTS {target_table} (
     decline_code_raw STRING,
     processing_time_ms INT,
     event_timestamp TIMESTAMP NOT NULL,
-    _ingested_at TIMESTAMP DEFAULT current_timestamp()
+    _ingested_at TIMESTAMP
 )
 USING DELTA
 TBLPROPERTIES (
@@ -198,7 +206,7 @@ print(f"Target table: {target_table}")
 
 # Simulation parameters
 BATCH_SIZE = 100  # Events per batch
-BATCHES_PER_SECOND = EVENTS_PER_SECOND // BATCH_SIZE
+BATCHES_PER_SECOND = max(1, EVENTS_PER_SECOND // BATCH_SIZE)
 SLEEP_TIME = 1.0 / BATCHES_PER_SECOND
 TOTAL_SECONDS = DURATION_MINUTES * 60
 
@@ -228,7 +236,8 @@ try:
         
         # Progress update every 10 seconds
         elapsed = time.time() - start_time
-        if batch_count % (BATCHES_PER_SECOND * 10) == 0:
+        progress_interval = max(1, BATCHES_PER_SECOND * 10)
+        if batch_count % progress_interval == 0:
             rate = total_events / elapsed
             print(f"Progress: {total_events:,} events in {elapsed:.1f}s ({rate:.0f} events/sec)")
         
