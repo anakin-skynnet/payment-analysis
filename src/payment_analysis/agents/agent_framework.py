@@ -618,7 +618,13 @@ Recommendations should include:
             WHERE approval_rate_pct < 85
               AND transaction_count > 100
             
-            ORDER BY priority, approval_rate_pct
+            ORDER BY 
+                CASE priority 
+                    WHEN 'HIGH' THEN 1 
+                    WHEN 'MEDIUM' THEN 2 
+                    WHEN 'LOW' THEN 3 
+                END,
+                approval_rate_pct
             """
             return self._execute_sql(query)
 
@@ -794,15 +800,33 @@ if __name__ == "__main__":
     except:
         pass
     
-    # Initialize framework
-    orchestrator = setup_agent_framework(catalog, schema)
-    
     print(f"\nAgent Role: {agent_role}")
     print(f"Query: {query}")
     print("=" * 70)
     
-    # Run query
-    result = orchestrator.handle_query(query)
-    
-    print(f"\nAgents Used: {result['agents_used']}")
-    print(f"\nSynthesis:\n{result['synthesis']}")
+    # Select and run the appropriate agent based on role
+    if agent_role == AgentRole.ORCHESTRATOR.value or agent_role == "orchestrator":
+        # Use orchestrator for multi-agent coordination
+        orchestrator = setup_agent_framework(catalog, schema)
+        result = orchestrator.handle_query(query)
+        print(f"\nAgents Used: {result['agents_used']}")
+        print(f"\nSynthesis:\n{result['synthesis']}")
+    else:
+        # Run specific agent based on role
+        agent_map = {
+            AgentRole.SMART_ROUTING.value: SmartRoutingAgent,
+            AgentRole.SMART_RETRY.value: SmartRetryAgent,
+            AgentRole.DECLINE_ANALYST.value: DeclineAnalystAgent,
+            AgentRole.RISK_ASSESSOR.value: RiskAssessorAgent,
+            AgentRole.PERFORMANCE_RECOMMENDER.value: PerformanceRecommenderAgent,
+        }
+        
+        agent_class = agent_map.get(agent_role)
+        if agent_class:
+            print(f"Running dedicated {agent_class.__name__}...")
+            agent = agent_class(catalog, schema)
+            response = agent.think(query)
+            print(f"\nAgent Response:\n{response}")
+        else:
+            print(f"Unknown agent role: {agent_role}")
+            print(f"Valid roles: {[r.value for r in AgentRole]}")
