@@ -22,7 +22,7 @@ router = APIRouter(tags=["notebooks"])
 
 class NotebookCategory(str, Enum):
     """Notebook categories."""
-    AGENTS = "agents"
+    INTELLIGENCE = "intelligence"
     ML_TRAINING = "ml_training"
     STREAMING = "streaming"
     TRANSFORMATION = "transformation"

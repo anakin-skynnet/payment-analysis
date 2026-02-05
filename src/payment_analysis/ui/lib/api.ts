@@ -1,6 +1,44 @@
 import { useQuery, useSuspenseQuery, useMutation } from "@tanstack/react-query";
 import type { UseQueryOptions, UseSuspenseQueryOptions, UseMutationOptions } from "@tanstack/react-query";
 
+export const AgentCapability = {
+  natural_language_analytics: "natural_language_analytics",
+  predictive_scoring: "predictive_scoring",
+  conversational_insights: "conversational_insights",
+  automated_recommendations: "automated_recommendations",
+  real_time_decisioning: "real_time_decisioning",
+} as const;
+
+export type AgentCapability = (typeof AgentCapability)[keyof typeof AgentCapability];
+
+export interface AgentInfo {
+  agent_type: AgentType;
+  capabilities: AgentCapability[];
+  databricks_resource: string;
+  description: string;
+  example_queries?: string[];
+  id: string;
+  name: string;
+  tags?: string[];
+  use_case: string;
+  workspace_url?: string | null;
+}
+
+export interface AgentList {
+  agents: AgentInfo[];
+  by_type: Record<string, number>;
+  total: number;
+}
+
+export const AgentType = {
+  genie: "genie",
+  model_serving: "model_serving",
+  custom_llm: "custom_llm",
+  ai_gateway: "ai_gateway",
+} as const;
+
+export type AgentType = (typeof AgentType)[keyof typeof AgentType];
+
 export interface ApprovalPredictionOut {
   approval_probability: number;
   model_version: string;
@@ -198,7 +236,7 @@ export interface Name {
 }
 
 export const NotebookCategory = {
-  agents: "agents",
+  intelligence: "intelligence",
   ml_training: "ml_training",
   streaming: "streaming",
   transformation: "transformation",
@@ -316,6 +354,18 @@ export interface VersionOut {
   version: string;
 }
 
+export interface ListAgentsParams {
+  agent_type?: AgentType | null;
+}
+
+export interface GetAgentParams {
+  agent_id: string;
+}
+
+export interface GetAgentUrlParams {
+  agent_id: string;
+}
+
 export interface RecentDecisionsParams {
   limit?: number;
   decision_type?: string | null;
@@ -410,6 +460,102 @@ export class ApiError extends Error {
     this.statusText = statusText;
     this.body = body;
   }
+}
+
+export const listAgents = async (params?: ListAgentsParams, options?: RequestInit): Promise<{ data: AgentList }> => {
+  const searchParams = new URLSearchParams();
+  if (params?.agent_type != null) searchParams.set("agent_type", String(params?.agent_type));
+  const queryString = searchParams.toString();
+  const url = queryString ? `/api/agents/agents?${queryString}` : `/api/agents/agents`;
+  const res = await fetch(url, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const listAgentsKey = (params?: ListAgentsParams) => {
+  return ["/api/agents/agents", params] as const;
+};
+
+export function useListAgents<TData = { data: AgentList }>(options?: { params?: ListAgentsParams; query?: Omit<UseQueryOptions<{ data: AgentList }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: listAgentsKey(options?.params), queryFn: () => listAgents(options?.params), ...options?.query });
+}
+
+export function useListAgentsSuspense<TData = { data: AgentList }>(options?: { params?: ListAgentsParams; query?: Omit<UseSuspenseQueryOptions<{ data: AgentList }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: listAgentsKey(options?.params), queryFn: () => listAgents(options?.params), ...options?.query });
+}
+
+export const getAgentTypeSummary = async (options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+  const res = await fetch("/api/agents/agents/types/summary", { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getAgentTypeSummaryKey = () => {
+  return ["/api/agents/agents/types/summary"] as const;
+};
+
+export function useGetAgentTypeSummary<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getAgentTypeSummaryKey(), queryFn: () => getAgentTypeSummary(), ...options?.query });
+}
+
+export function useGetAgentTypeSummarySuspense<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getAgentTypeSummaryKey(), queryFn: () => getAgentTypeSummary(), ...options?.query });
+}
+
+export const getAgent = async (params: GetAgentParams, options?: RequestInit): Promise<{ data: AgentInfo }> => {
+  const res = await fetch(`/api/agents/agents/${params.agent_id}`, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getAgentKey = (params?: GetAgentParams) => {
+  return ["/api/agents/agents/{agent_id}", params] as const;
+};
+
+export function useGetAgent<TData = { data: AgentInfo }>(options: { params: GetAgentParams; query?: Omit<UseQueryOptions<{ data: AgentInfo }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getAgentKey(options.params), queryFn: () => getAgent(options.params), ...options?.query });
+}
+
+export function useGetAgentSuspense<TData = { data: AgentInfo }>(options: { params: GetAgentParams; query?: Omit<UseSuspenseQueryOptions<{ data: AgentInfo }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getAgentKey(options.params), queryFn: () => getAgent(options.params), ...options?.query });
+}
+
+export const getAgentUrl = async (params: GetAgentUrlParams, options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+  const res = await fetch(`/api/agents/agents/${params.agent_id}/url`, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getAgentUrlKey = (params?: GetAgentUrlParams) => {
+  return ["/api/agents/agents/{agent_id}/url", params] as const;
+};
+
+export function useGetAgentUrl<TData = { data: Record<string, unknown> }>(options: { params: GetAgentUrlParams; query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getAgentUrlKey(options.params), queryFn: () => getAgentUrl(options.params), ...options?.query });
+}
+
+export function useGetAgentUrlSuspense<TData = { data: Record<string, unknown> }>(options: { params: GetAgentUrlParams; query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getAgentUrlKey(options.params), queryFn: () => getAgentUrl(options.params), ...options?.query });
 }
 
 export const recentDecisions = async (params?: RecentDecisionsParams, options?: RequestInit): Promise<{ data: DecisionLog[] }> => {

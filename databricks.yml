@@ -7,7 +7,7 @@ bundle:
 
 # Workspace configuration with dynamic path
 workspace:
-  root_path: /Workspace/Users/${workspace.current_user.userName}/getnet_approval_rates_v2
+  root_path: /Workspace/Users/${workspace.current_user.userName}/getnet_approval_rates_v3
 
 # Modular resource definitions
 include:
