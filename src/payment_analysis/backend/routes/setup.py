@@ -10,11 +10,12 @@ from __future__ import annotations
 import os
 from typing import Any, TypedDict
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from ..config import AppConfig
 from ..dependencies import get_obo_ws
+from ..services.databricks_service import DatabricksConfig, DatabricksService
 from databricks.sdk import WorkspaceClient
 
 router = APIRouter(prefix="/setup", tags=["setup"])
@@ -113,33 +114,77 @@ class RunPipelineOut(BaseModel):
     message: str = Field(..., description="Human-readable status")
 
 
+class SetupConfigIn(BaseModel):
+    """Request to update effective catalog/schema (persisted in app_config table)."""
+    catalog: str = Field(..., description="Unity Catalog name")
+    schema_name: str = Field(..., description="Schema name", alias="schema")
+
+    model_config = {"populate_by_name": True}
+
+
+class SetupConfigOut(BaseModel):
+    """Effective catalog/schema after update."""
+    catalog: str = Field(..., description="Unity Catalog name")
+    schema_name: str = Field(..., description="Schema name", serialization_alias="schema")
+
+    model_config = {"populate_by_name": True}
+
+
 # =============================================================================
 # Endpoints
 # =============================================================================
 
+def _effective_uc_config(request: Request) -> tuple[str, str]:
+    """Return (catalog, schema) from app state (set at startup from app_config table)."""
+    catalog, schema = getattr(request.app.state, "uc_config", (None, None))
+    if catalog and schema:
+        return (catalog, schema)
+    return (DEFAULT_IDS["catalog"], DEFAULT_IDS["schema"])
+
+
 @router.get("/defaults", response_model=SetupDefaultsOut, operation_id="getSetupDefaults")
-def get_setup_defaults() -> SetupDefaultsOut:
-    """Return default resource IDs and parameters for the Setup & Run form."""
+def get_setup_defaults(request: Request) -> SetupDefaultsOut:
+    """Return default resource IDs and parameters for the Setup & Run form (catalog/schema from app_config)."""
     host = _get_workspace_host().rstrip("/")
+    catalog, schema = _effective_uc_config(request)
     return SetupDefaultsOut(
         warehouse_id=DEFAULT_IDS["warehouse_id"],
-        catalog=DEFAULT_IDS["catalog"],
-        schema_name=DEFAULT_IDS["schema"],
+        catalog=catalog,
+        schema_name=schema,
         jobs=DEFAULT_IDS["jobs"],
         pipelines=DEFAULT_IDS["pipelines"],
         workspace_host=host,
     )
 
 
+@router.patch("/config", response_model=SetupConfigOut, operation_id="updateSetupConfig")
+async def update_setup_config(request: Request, body: SetupConfigIn) -> SetupConfigOut:
+    """Update effective catalog and schema in app_config table and app state."""
+    bootstrap = DatabricksConfig.from_environment()
+    if not (bootstrap.host and bootstrap.token and bootstrap.warehouse_id):
+        raise HTTPException(
+            status_code=503,
+            detail="Databricks credentials not configured; cannot update app_config.",
+        )
+    svc = DatabricksService(config=bootstrap)
+    ok = await svc.write_app_config(body.catalog, body.schema_name)
+    if not ok:
+        raise HTTPException(status_code=500, detail="Failed to write app_config.")
+    request.app.state.uc_config = (body.catalog, body.schema_name)
+    return SetupConfigOut(catalog=body.catalog, schema_name=body.schema_name)
+
+
 @router.post("/run-job", response_model=RunJobOut, operation_id="runSetupJob")
 def run_setup_job(
+    request: Request,
     body: RunJobIn,
     obo_ws: WorkspaceClient = Depends(get_obo_ws),
 ) -> RunJobOut:
     """Run a Databricks job with optional notebook/SQL parameters."""
     host = _get_workspace_host().rstrip("/")
-    catalog = body.catalog or DEFAULT_IDS["catalog"]
-    schema = body.schema_name or DEFAULT_IDS["schema"]
+    eff_catalog, eff_schema = _effective_uc_config(request)
+    catalog = body.catalog or eff_catalog
+    schema = body.schema_name or eff_schema
     warehouse_id = body.warehouse_id or DEFAULT_IDS["warehouse_id"]
 
     notebook_params: dict[str, str] = {

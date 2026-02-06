@@ -87,6 +87,21 @@ async function runPipeline(body: { pipeline_id: string }): Promise<RunPipelineRe
   return res.json();
 }
 
+type SetupConfigResult = { catalog: string; schema: string };
+
+async function updateConfig(body: { catalog: string; schema: string }): Promise<SetupConfigResult> {
+  const res = await fetch(`${API_BASE}/config`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || res.statusText);
+  }
+  return res.json();
+}
+
 function SetupRun() {
   const qc = useQueryClient();
   const { data: defaults, isLoading: loadingDefaults } = useQuery({
@@ -98,8 +113,8 @@ function SetupRun() {
   const [catalog, setCatalog] = useState("");
   const [schema, setSchema] = useState("");
   const [lastResult, setLastResult] = useState<{
-    type: "job" | "pipeline";
-    url: string;
+    type: "job" | "pipeline" | "config";
+    url?: string;
     message: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -146,6 +161,22 @@ function SetupRun() {
     },
   });
 
+  const updateConfigMutation = useMutation({
+    mutationFn: updateConfig,
+    onSuccess: () => {
+      setLastResult({
+        type: "config",
+        message: "Catalog and schema saved. They will be used for all Lakehouse operations.",
+      });
+      setError(null);
+      qc.invalidateQueries({ queryKey: ["setup", "defaults"] });
+    },
+    onError: (e: Error) => {
+      setError(e.message);
+      setLastResult(null);
+    },
+  });
+
   const params = {
     catalog,
     schema,
@@ -162,6 +193,10 @@ function SetupRun() {
     const pipelineId = defaults?.pipelines?.[pipelineKey];
     if (!pipelineId) return;
     runPipelineMutation.mutate({ pipeline_id: pipelineId });
+  };
+
+  const saveConfig = () => {
+    updateConfigMutation.mutate({ catalog, schema });
   };
 
   const pending = runJobMutation.isPending || runPipelineMutation.isPending;
@@ -192,7 +227,7 @@ function SetupRun() {
         </p>
       </div>
 
-      {/* Parameters */}
+      {/* Parameters — catalog/schema are persisted in app_config; Save updates the table and app-wide config */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -200,7 +235,7 @@ function SetupRun() {
             Parameters
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            These values are sent when running jobs (catalog, schema) or used for SQL warehouse.
+            Catalog and schema are used for all Lakehouse operations (analytics, rules, ML). Save to persist them in the Lakehouse config table.
           </p>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-3">
@@ -237,6 +272,17 @@ function SetupRun() {
               placeholder="ahs_demo_payment_analysis_dev"
             />
           </div>
+          <div className="sm:col-span-3 flex justify-end">
+            <Button
+              onClick={saveConfig}
+              disabled={updateConfigMutation.isPending}
+            >
+              {updateConfigMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Save catalog & schema
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -251,14 +297,16 @@ function SetupRun() {
         <div className="flex items-center gap-2 rounded-lg border border-green-500/50 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>{lastResult.message}</span>
-          <Button
-            variant="link"
-            size="sm"
-            className="ml-auto"
-            onClick={() => window.open(lastResult!.url, "_blank")}
-          >
-            Open <ExternalLink className="ml-1 h-3 w-3" />
-          </Button>
+          {lastResult.type !== "config" && lastResult.url && (
+            <Button
+              variant="link"
+              size="sm"
+              className="ml-auto"
+              onClick={() => window.open(lastResult!.url, "_blank")}
+            >
+              Open <ExternalLink className="ml-1 h-3 w-3" />
+            </Button>
+          )}
         </div>
       )}
 

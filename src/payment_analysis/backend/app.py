@@ -31,6 +31,25 @@ async def lifespan(app: FastAPI):
     runtime.validate_db()
     runtime.initialize_models()
 
+    # Load effective Unity Catalog config from app_config table (bootstrap = env)
+    from .services.databricks_service import DatabricksConfig, DatabricksService
+    bootstrap = DatabricksConfig.from_environment()
+    if bootstrap.host and bootstrap.token and bootstrap.warehouse_id:
+        try:
+            svc = DatabricksService(config=bootstrap)
+            row = await svc.read_app_config()
+            if row and row[0] and row[1]:
+                app.state.uc_config = row
+                logger.info("Using catalog/schema from app_config: %s.%s", row[0], row[1])
+            else:
+                app.state.uc_config = (bootstrap.catalog, bootstrap.schema)
+                logger.info("Using catalog/schema from env: %s.%s", bootstrap.catalog, bootstrap.schema)
+        except Exception as e:
+            logger.warning("Could not load app_config, using env defaults: %s", e)
+            app.state.uc_config = (bootstrap.catalog, bootstrap.schema)
+    else:
+        app.state.uc_config = (bootstrap.catalog, bootstrap.schema)
+
     # Store in app.state for access via dependencies
     app.state.config = config
     app.state.runtime = runtime

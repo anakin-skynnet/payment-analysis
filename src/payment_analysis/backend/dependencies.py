@@ -6,6 +6,7 @@ from sqlmodel import Session
 
 from .config import AppConfig
 from .runtime import Runtime
+from .services.databricks_service import DatabricksConfig, DatabricksService
 
 
 def get_config(request: Request) -> AppConfig:
@@ -67,3 +68,26 @@ def get_session(rt: RuntimeDep) -> Generator[Session, None, None]:
 
 
 SessionDep = Annotated[Session, Depends(get_session)]
+
+
+def get_databricks_service(request: Request) -> DatabricksService:
+    """
+    Returns a DatabricksService using effective catalog/schema from app_config table.
+    Effective config is loaded at startup (lifespan) and stored in request.app.state.uc_config.
+    """
+    catalog, schema = getattr(request.app.state, "uc_config", (None, None))
+    if catalog is None or schema is None:
+        bootstrap = DatabricksConfig.from_environment()
+        catalog, schema = bootstrap.catalog, bootstrap.schema
+    bootstrap = DatabricksConfig.from_environment()
+    config = DatabricksConfig(
+        host=bootstrap.host,
+        token=bootstrap.token,
+        warehouse_id=bootstrap.warehouse_id,
+        catalog=catalog,
+        schema=schema,
+    )
+    return DatabricksService(config=config)
+
+
+DatabricksServiceDep = Annotated[DatabricksService, Depends(get_databricks_service)]

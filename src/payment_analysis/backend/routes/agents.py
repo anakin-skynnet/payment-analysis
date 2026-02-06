@@ -16,7 +16,7 @@ import os
 from enum import Enum
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from ..config import AppConfig
@@ -24,6 +24,9 @@ from ..config import AppConfig
 router = APIRouter(tags=["agents"])
 
 _databricks_config = AppConfig().databricks
+
+# Default catalog.schema used in AGENTS; replaced with effective config when returning.
+_DEFAULT_UC_PREFIX = "ahs_demos_catalog.ahs_demo_payment_analysis_dev"
 
 
 # =============================================================================
@@ -268,12 +271,36 @@ AGENTS = [
 ]
 
 
+def _apply_uc_config(agent: AgentInfo, catalog: str, schema: str) -> AgentInfo:
+    """Replace default catalog.schema with effective config in resource and URL."""
+    full = f"{catalog}.{schema}"
+    resource = (agent.databricks_resource or "").replace(_DEFAULT_UC_PREFIX, full)
+    url = (agent.workspace_url or "").replace(_DEFAULT_UC_PREFIX, full)
+    if resource == (agent.databricks_resource or "") and url == (agent.workspace_url or ""):
+        return agent
+    return agent.model_copy(
+        update={
+            "databricks_resource": resource or agent.databricks_resource,
+            "workspace_url": url or agent.workspace_url,
+        }
+    )
+
+
+def _effective_uc(request: Request) -> tuple[str, str]:
+    """Return (catalog, schema) from app state or default."""
+    uc = getattr(request.app.state, "uc_config", None)
+    if uc and len(uc) == 2 and uc[0] and uc[1]:
+        return (uc[0], uc[1])
+    return ("ahs_demos_catalog", "ahs_demo_payment_analysis_dev")
+
+
 # =============================================================================
 # Endpoints
 # =============================================================================
 
 @router.get("/agents", response_model=AgentList, operation_id="listAgents")
 async def list_agents(
+    request: Request,
     agent_type: AgentType | None = None,
 ) -> AgentList:
     """
@@ -285,7 +312,8 @@ async def list_agents(
     Returns:
         List of agents with metadata
     """
-    filtered = AGENTS
+    catalog, schema = _effective_uc(request)
+    filtered = [_apply_uc_config(a, catalog, schema) for a in AGENTS]
     
     if agent_type:
         filtered = [a for a in filtered if a.agent_type == agent_type]
@@ -304,11 +332,12 @@ async def list_agents(
 
 
 @router.get("/agents/{agent_id}", response_model=AgentInfo, operation_id="getAgent")
-async def get_agent(agent_id: str) -> AgentInfo:
+async def get_agent(request: Request, agent_id: str) -> AgentInfo:
     """Get details for a specific AI agent."""
+    catalog, schema = _effective_uc(request)
     for agent in AGENTS:
         if agent.id == agent_id:
-            return agent
+            return _apply_uc_config(agent, catalog, schema)
     
     raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
 
@@ -322,9 +351,9 @@ class AgentUrlOut(BaseModel):
 
 
 @router.get("/agents/{agent_id}/url", response_model=AgentUrlOut, operation_id="getAgentUrl")
-async def get_agent_url(agent_id: str) -> AgentUrlOut:
+async def get_agent_url(request: Request, agent_id: str) -> AgentUrlOut:
     """Get the Databricks workspace URL for an agent."""
-    agent = await get_agent(agent_id)
+    agent = await get_agent(request, agent_id)
     
     return AgentUrlOut(
         agent_id=agent_id,

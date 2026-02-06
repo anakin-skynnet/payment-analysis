@@ -8,7 +8,7 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from ..services.databricks_service import get_databricks_service
+from ..dependencies import DatabricksServiceDep
 
 router = APIRouter(tags=["rules"])
 
@@ -62,20 +62,19 @@ def _rule_row_to_out(row: dict) -> ApprovalRuleOut:
 
 @router.get("", response_model=list[ApprovalRuleOut], operation_id="listApprovalRules")
 async def list_approval_rules(
+    service: DatabricksServiceDep,
     rule_type: Optional[str] = Query(None, description="Filter by rule_type: authentication, retry, or routing"),
     active_only: bool = Query(False, description="Return only active rules"),
     limit: int = Query(200, ge=1, le=500, description="Max number of rules to return"),
 ) -> list[ApprovalRuleOut]:
     """List approval rules from the Lakehouse. ML and AI agents read these to accelerate approval rates."""
-    service = get_databricks_service()
     rows = await service.get_approval_rules(rule_type=rule_type, active_only=active_only, limit=limit)
     return [_rule_row_to_out(r) for r in rows]
 
 
 @router.post("", response_model=ApprovalRuleOut, operation_id="createApprovalRule")
-async def create_approval_rule(payload: ApprovalRuleIn) -> ApprovalRuleOut:
+async def create_approval_rule(service: DatabricksServiceDep, payload: ApprovalRuleIn) -> ApprovalRuleOut:
     """Create an approval rule in the Lakehouse. It will be used by decisioning and AI agents."""
-    service = get_databricks_service()
     if not service.is_available:
         raise HTTPException(status_code=503, detail="Databricks Lakehouse unavailable; cannot write rules.")
     rule_id = uuid4().hex
@@ -108,9 +107,12 @@ async def create_approval_rule(payload: ApprovalRuleIn) -> ApprovalRuleOut:
 
 
 @router.patch("/{rule_id}", response_model=ApprovalRuleOut, operation_id="updateApprovalRule")
-async def update_approval_rule(rule_id: str, payload: ApprovalRuleUpdate) -> ApprovalRuleOut:
+async def update_approval_rule(
+    service: DatabricksServiceDep,
+    rule_id: str,
+    payload: ApprovalRuleUpdate,
+) -> ApprovalRuleOut:
     """Update an approval rule in the Lakehouse."""
-    service = get_databricks_service()
     if not service.is_available:
         raise HTTPException(status_code=503, detail="Databricks Lakehouse unavailable; cannot update rules.")
     ok = await service.update_approval_rule(
@@ -132,9 +134,8 @@ async def update_approval_rule(rule_id: str, payload: ApprovalRuleUpdate) -> App
 
 
 @router.delete("/{rule_id}", status_code=204, operation_id="deleteApprovalRule")
-async def delete_approval_rule(rule_id: str) -> None:
+async def delete_approval_rule(service: DatabricksServiceDep, rule_id: str) -> None:
     """Delete an approval rule from the Lakehouse."""
-    service = get_databricks_service()
     if not service.is_available:
         raise HTTPException(status_code=503, detail="Databricks Lakehouse unavailable; cannot delete rules.")
     ok = await service.delete_approval_rule(rule_id)

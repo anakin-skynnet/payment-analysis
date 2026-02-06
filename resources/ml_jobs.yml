@@ -43,14 +43,14 @@ resources:
 
     create_gold_views_job:
       name: "[${var.environment}] Create Payment Analysis Gold Views"
-      description: "Execute SQL to create all gold-layer analytical views for dashboards and Genie"
+      description: "Execute SQL to create all gold-layer analytical views for dashboards and Genie. Uses .build/transform/gold_views.sql (run prepare_dashboards.py first) so views are created in var.catalog.var.schema."
       tasks:
         - task_key: create_views
           description: "Create gold views for dashboards and analytics"
           sql_task:
             warehouse_id: ${resources.sql_warehouses.payment_analysis_warehouse.id}
             file:
-              path: ${workspace.file_path}/src/payment_analysis/transform/gold_views.sql
+              path: ${workspace.file_path}/.build/transform/gold_views.sql
           timeout_seconds: 600
           max_retries: 2
       schedule:

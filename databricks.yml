@@ -25,9 +25,9 @@ include:
   - resources/genie_spaces.yml
   - resources/vector_search.yml
   - resources/dashboards.yml
-  # Uncomment after freeing app slots (workspace limit 200): - resources/app.yml
-  # Uncomment after "Train Payment Approval ML Models" job has run (4 models in UC)
-  # - resources/model_serving.yml
+  - resources/app.yml
+  # Model serving: deploy after running "Train Payment Approval ML Models" job (registers 4 models in UC)
+  - resources/model_serving.yml
 
 # -----------------------------------------------------------------------------
 # Bundle variables (override via --var, BUNDLE_VAR_*, or target variables)

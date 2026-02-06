@@ -1,9 +1,12 @@
 # =============================================================================
 # AI/BI Dashboards - Payment Approval Analytics
 # =============================================================================
-# Dashboard JSONs are in src/payment_analysis/dashboards/ (in git). For prod
-# catalog/schema substitution, run scripts/prepare_dashboards.py and point
-# file_path at .build/dashboards/ or use BUNDLE_VAR_*. warehouse_id from var.
+# Deployed dashboards use catalog/schema from bundle vars. Run before deploy:
+#   uv run python scripts/prepare_dashboards.py   (dev: uses var defaults)
+#   uv run python scripts/prepare_dashboards.py --catalog X --schema Y   (prod/custom)
+# Or: ./scripts/validate_bundle.sh [dev|prod]
+# Dashboards read from ../.build/dashboards/*.lvdash.json (same catalog.schema
+# as where Create Gold Views job runs). warehouse_id from var.
 # =============================================================================
 
 resources:
@@ -13,74 +16,74 @@ resources:
       warehouse_id: ${var.warehouse_id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
-      file_path: ../src/payment_analysis/dashboards/executive_overview.lvdash.json
+      file_path: ../.build/dashboards/executive_overview.lvdash.json
 
     decline_analysis:
       display_name: "[${var.environment}] Decline Analysis & Recovery"
       warehouse_id: ${var.warehouse_id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
-      file_path: ../src/payment_analysis/dashboards/decline_analysis.lvdash.json
+      file_path: ../.build/dashboards/decline_analysis.lvdash.json
 
     realtime_monitoring:
       display_name: "[${var.environment}] Real-Time Payment Monitoring"
       warehouse_id: ${var.warehouse_id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
-      file_path: ../src/payment_analysis/dashboards/realtime_monitoring.lvdash.json
+      file_path: ../.build/dashboards/realtime_monitoring.lvdash.json
 
     fraud_risk_analysis:
       display_name: "[${var.environment}] Fraud & Risk Analysis"
       warehouse_id: ${var.warehouse_id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
-      file_path: ../src/payment_analysis/dashboards/fraud_risk_analysis.lvdash.json
+      file_path: ../.build/dashboards/fraud_risk_analysis.lvdash.json
 
     merchant_performance:
       display_name: "[${var.environment}] Merchant Performance & Segmentation"
       warehouse_id: ${var.warehouse_id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
-      file_path: ../src/payment_analysis/dashboards/merchant_performance.lvdash.json
+      file_path: ../.build/dashboards/merchant_performance.lvdash.json
 
     routing_optimization:
       display_name: "[${var.environment}] Smart Routing & Optimization"
       warehouse_id: ${var.warehouse_id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
-      file_path: ../src/payment_analysis/dashboards/routing_optimization.lvdash.json
+      file_path: ../.build/dashboards/routing_optimization.lvdash.json
 
     daily_trends:
       display_name: "[${var.environment}] Daily Trends & Historical Analysis"
       warehouse_id: ${var.warehouse_id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
-      file_path: ../src/payment_analysis/dashboards/daily_trends.lvdash.json
+      file_path: ../.build/dashboards/daily_trends.lvdash.json
 
     authentication_security:
       display_name: "[${var.environment}] 3DS Authentication & Security Analysis"
       warehouse_id: ${var.warehouse_id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
-      file_path: ../src/payment_analysis/dashboards/authentication_security.lvdash.json
+      file_path: ../.build/dashboards/authentication_security.lvdash.json
 
     financial_impact:
       display_name: "[${var.environment}] Financial Impact & ROI Analysis"
       warehouse_id: ${var.warehouse_id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
-      file_path: ../src/payment_analysis/dashboards/financial_impact.lvdash.json
+      file_path: ../.build/dashboards/financial_impact.lvdash.json
 
     performance_latency:
       display_name: "[${var.environment}] Technical Performance & Latency Analysis"
       warehouse_id: ${var.warehouse_id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
-      file_path: ../src/payment_analysis/dashboards/performance_latency.lvdash.json
+      file_path: ../.build/dashboards/performance_latency.lvdash.json
 
     streaming_data_quality:
       display_name: "[${var.environment}] Streaming & Data Quality"
       warehouse_id: ${var.warehouse_id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
-      file_path: ../src/payment_analysis/dashboards/streaming_data_quality.lvdash.json
+      file_path: ../.build/dashboards/streaming_data_quality.lvdash.json

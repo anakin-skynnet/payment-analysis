@@ -8,12 +8,15 @@ Databricks workspace (Unity Catalog), SQL Warehouse, CLI configured. Python 3.10
 
 ## Quick Start
 
+**Before every deploy** (so dashboards and the Gold Views job use the same catalog/schema):
+
 ```bash
-databricks bundle validate -t dev
+./scripts/validate_bundle.sh dev    # dev: prepares .build/dashboards and .build/transform, then validates
+# or: uv run python scripts/prepare_dashboards.py   then  databricks bundle validate -t dev
 databricks bundle deploy -t dev
 ```
 
-For prod with different catalog/schema in dashboards, run `./scripts/validate_bundle.sh prod` (uses `prepare_dashboards.py`). Then run jobs/pipelines per [5_DEMO_SETUP](5_DEMO_SETUP.md).
+For prod with different catalog/schema, run `./scripts/validate_bundle.sh prod` (prepares with prod catalog/schema). Then run jobs/pipelines per [5_DEMO_SETUP](5_DEMO_SETUP.md). Dashboards read from `.build/dashboards/`; the **Create Gold Views** job runs `.build/transform/gold_views.sql` (with `USE CATALOG`/`USE SCHEMA`) so views are created in the same catalog.schema and dashboards find them.
 
 ## Steps at a glance
 
@@ -23,7 +26,7 @@ For prod with different catalog/schema in dashboards, run `./scripts/validate_bu
 | 2 | Data ingestion | App **Setup & Run** or Workflows | Run **Transaction Stream Simulator**; output `raw_payment_events` |
 | 3 | ETL (Lakeflow) | App **Setup & Run** or Lakeflow | Start **Payment Analysis ETL** pipeline; Bronze → Silver → Gold |
 | 4 | Gold views | App **Setup & Run** or Workflows | Run **Create Payment Analysis Gold Views**; verify `v_executive_kpis` |
-| 5 | Lakehouse tables (SQL) | SQL Warehouse / Notebook | Run in order: `vector_search_and_recommendations.sql`, `approval_rules.sql`, `online_features.sql` (same catalog/schema) |
+| 5 | Lakehouse tables (SQL) | SQL Warehouse / Notebook | Run in order: `app_config.sql`, `vector_search_and_recommendations.sql`, `approval_rules.sql`, `online_features.sql` (same catalog/schema) |
 | 6 | Train ML models | App **Setup & Run** or Workflows | Run **Train Payment Approval ML Models** (~10–15 min); 4 models in UC |
 | 7 | Dashboards & app | — | 11 dashboards in bundle; app: `.env` + `uv run apx dev` or deploy |
 | 8 | Model serving | After step 6 | Redeploy bundle (model_serving.yml) or already included |
@@ -38,9 +41,9 @@ For prod with different catalog/schema in dashboards, run `./scripts/validate_bu
 | **2** | Generate data | **Setup & Run** → “Run simulator” or Workflows → “Transaction Stream Simulator”; output `raw_payment_events`. |
 | **3** | Lakeflow ETL | **Setup & Run** → “Start ETL pipeline” or Lakeflow → “Payment Analysis ETL” → Start; Bronze → Silver → Gold. |
 | **4** | Gold views | **Setup & Run** → “Run gold views job” or Workflows → “Create Payment Analysis Gold Views”; verify `v_executive_kpis` etc. |
-| **5** | Lakehouse (SQL) | In SQL Warehouse or a notebook (same catalog/schema), run in order: (a) `vector_search_and_recommendations.sql` — Vector Search source + recommendations; (b) `approval_rules.sql` — Rules table for app + agents; (c) `online_features.sql` — Online features for ML/AI in the app. Scripts live in `src/payment_analysis/transform/`. |
+| **5** | Lakehouse (SQL) | In SQL Warehouse or a notebook (same catalog/schema), run in order: (a) `app_config.sql` — single-row table for app catalog/schema (used by UI and all Lakehouse operations); (b) `vector_search_and_recommendations.sql` — Vector Search source + recommendations; (c) `approval_rules.sql` — Rules table for app + agents; (d) `online_features.sql` — Online features for ML/AI in the app. Scripts live in `src/payment_analysis/transform/`. |
 | **6** | ML models | **Setup & Run** → “Run ML training” or Workflows → “Train Payment Approval ML Models”; ~10–15 min; registers 4 models in UC. |
-| **7** | Dashboards & app | Bundle deploys 11 dashboards; warehouse from `var.warehouse_id`. App: set `.env` (DATABRICKS_HOST, TOKEN, WAREHOUSE_ID, CATALOG, SCHEMA); run locally with `uv run apx dev`, or deploy as a Databricks App (see **Deploy app as a Databricks App** below). |
+| **7** | Dashboards & app | Bundle deploys 11 dashboards; warehouse from `var.warehouse_id`. App: set `.env` (DATABRICKS_HOST, TOKEN, WAREHOUSE_ID, and optionally DATABRICKS_CATALOG, DATABRICKS_SCHEMA for bootstrap); run locally with `uv run apx dev`, or deploy as a Databricks App (see **Deploy app as a Databricks App** below). Effective catalog/schema can be set in the UI via **Setup & Run** → **Save catalog & schema**. |
 | **8** | Model serving | After step 6, model serving deploys with bundle (or redeploy). **ML Models** page in app shows catalog/schema models. |
 | **9** | Genie / AI agents | Optional: Genie Spaces; run **Orchestrator** or other agent jobs from **Setup & Run** or Workflows. |
 | **10** | Verify | **Dashboard**: KPIs, online features, decisions. **Rules**: add/edit rules (Lakehouse). **Decisioning**: recommendations + policy test. **ML Models**: list and links to Registry/MLflow. Workspace: bronze/silver data; 4 models in UC. |
@@ -59,11 +62,11 @@ The same app you run at **http://localhost:8000** (FastAPI + React UI) can be de
    - Or in the workspace: **Apps** → find **payment-analysis** → open and start the app.
 4. **App URL** is shown after starting (e.g. `https://<workspace-host>/apps/payment-analysis?o=...`). You can also run `databricks bundle summary -t dev` to see the app and its URL.
 
-The app resource is defined in `resources/app.yml`; runtime is configured in `app.yml` / `app.yaml` (uvicorn, PYTHONPATH=src).
+The app resource is defined in `resources/app.yml`; runtime is configured in `app.yaml` (uvicorn, PYTHONPATH=src).
 
 ## Schema Consistency
 
-Use one catalog/schema everywhere (defaults: `ahs_demos_catalog`, `ahs_demo_payment_analysis_dev`). Bundle: `var.catalog`, `var.schema`; backend: `DATABRICKS_CATALOG`, `DATABRICKS_SCHEMA`.
+Use one catalog/schema everywhere (defaults: `ahs_demos_catalog`, `ahs_demo_payment_analysis_dev`). Bundle: `var.catalog`, `var.schema`; backend: bootstrap from `DATABRICKS_CATALOG`, `DATABRICKS_SCHEMA` (used to locate the `app_config` table). The **effective** catalog/schema for all app operations (analytics, rules, ML, agents) is read from the Lakehouse `app_config` table at startup; you can change it via **Setup & Run** → **Save catalog & schema** (`PATCH /api/setup/config`). See [4_TECHNICAL](4_TECHNICAL.md) (“Catalog and schema (app_config)”).
 
 ## Will I see all resources in my workspace?
 
@@ -97,6 +100,8 @@ After a **successful** `databricks bundle deploy -t dev`, look for:
 - **Dashboards:** **SQL** → **Dashboards** (or under the workspace folder above).
 
 If deploy **failed** (e.g. at model serving), some resources will be missing. Comment out `model_serving.yml` in `databricks.yml` and run `databricks bundle deploy -t dev` again. Confirm workspace/user with `databricks bundle validate -t dev`. **Vector Search** deploy can fail if the source table `transaction_summaries_for_search` does not exist (run `vector_search_and_recommendations.sql` first) or if the embedding model `databricks-bge-large-en` is not available in the workspace; you can comment out `resources/vector_search.yml` in `databricks.yml` to skip it.
+
+**Dashboard TABLE_OR_VIEW_NOT_FOUND:** Dashboards use tables/views in the catalog.schema chosen when you ran `prepare_dashboards.py`. Run **Create Payment Analysis Gold Views** in that same catalog.schema (the job uses `.build/transform/gold_views.sql`, which sets `USE CATALOG`/`USE SCHEMA`). List required assets: `uv run python scripts/validate_dashboard_assets.py --catalog X --schema Y`.
 
 ## Troubleshooting
 

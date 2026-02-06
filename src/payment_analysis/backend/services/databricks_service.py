@@ -20,7 +20,6 @@ import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from functools import lru_cache
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
@@ -496,6 +495,37 @@ class DatabricksService:
     def _escape_sql_string(self, s: str) -> str:
         """Escape single quotes for SQL string literals."""
         return (s or "").replace("'", "''")
+
+    async def read_app_config(self) -> tuple[str, str] | None:
+        """
+        Read effective catalog and schema from app_config table.
+        Table lives at self.config.full_schema_name (bootstrap from env).
+        Returns (catalog, schema) or None if table/row missing.
+        """
+        table = self.config.full_schema_name + ".app_config"
+        query = f"SELECT catalog, schema FROM {table} LIMIT 1"
+        try:
+            rows = await self.execute_query(query)
+            if rows and len(rows) > 0:
+                return (str(rows[0].get("catalog", "")).strip(), str(rows[0].get("schema", "")).strip())
+        except Exception as e:
+            logger.warning("Could not read app_config table: %s", e)
+        return None
+
+    async def write_app_config(self, catalog: str, schema: str) -> bool:
+        """
+        Write catalog and schema to app_config table (single row id=1).
+        Table lives at self.config.full_schema_name (bootstrap from env).
+        """
+        table = self.config.full_schema_name + ".app_config"
+        c, s = self._escape_sql_string(catalog), self._escape_sql_string(schema)
+        stmt = f"""
+            MERGE INTO {table} AS t
+            USING (SELECT 1 AS id, '{c}' AS catalog, '{s}' AS schema) AS s ON t.id = s.id
+            WHEN MATCHED THEN UPDATE SET t.catalog = s.catalog, t.schema = s.schema, t.updated_at = current_timestamp()
+            WHEN NOT MATCHED THEN INSERT (id, catalog, schema, updated_at) VALUES (1, s.catalog, s.schema, current_timestamp())
+        """
+        return await self.execute_non_query(stmt)
 
     async def get_approval_rules(
         self,
@@ -1165,15 +1195,5 @@ class MockDataGenerator:
         }
 
 
-# =============================================================================
-# Singleton Access
-# =============================================================================
-
-@lru_cache(maxsize=1)
-def get_databricks_service() -> DatabricksService:
-    """
-    Get or create the Databricks service singleton.
-    
-    Uses lru_cache for thread-safe singleton pattern.
-    """
-    return DatabricksService.create()
+# Singleton access is via dependencies.get_databricks_service(Request), which
+# uses effective catalog/schema from app_config table (see dependencies.py).

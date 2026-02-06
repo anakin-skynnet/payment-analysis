@@ -10,7 +10,7 @@ One-click links and steps. **Base URL:** Replace `<WORKSPACE_URL>` with your Dat
 | 2 | Data ingestion | Run Transaction Stream Simulator |
 | 3 | ETL (Lakeflow) | Start Payment Analysis ETL pipeline (Bronze → Silver → Gold) |
 | 4 | Gold views | Run Create Payment Analysis Gold Views job |
-| 5 | Lakehouse (SQL) | In SQL Warehouse run: `vector_search_and_recommendations.sql`, `approval_rules.sql`, `online_features.sql` (see `src/payment_analysis/transform/`) |
+| 5 | Lakehouse (SQL) | In SQL Warehouse run in order: `app_config.sql`, `vector_search_and_recommendations.sql`, `approval_rules.sql`, `online_features.sql` (see `src/payment_analysis/transform/`) |
 | 6 | Train ML models | Run Train Payment Approval ML Models (~10–15 min) |
 | 7 | (Optional) Real-time | Start real-time Lakeflow pipeline or stream processor |
 | 8 | (Optional) AI agents | Run Orchestrator or other agent jobs |

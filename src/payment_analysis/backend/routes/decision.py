@@ -20,8 +20,7 @@ from ..decisioning.schemas import (
     RetryDecisionOut,
     RoutingDecisionOut,
 )
-from ..dependencies import SessionDep
-from ..services.databricks_service import get_databricks_service
+from ..dependencies import SessionDep, DatabricksServiceDep
 
 router = APIRouter(tags=["decisioning"])
 
@@ -166,9 +165,11 @@ def routing(ctx: DecisionContext, session: SessionDep) -> RoutingDecisionOut:
     response_model=ApprovalPredictionOut,
     operation_id="predictApproval",
 )
-async def predict_approval(features: MLPredictionInput) -> ApprovalPredictionOut:
+async def predict_approval(
+    service: DatabricksServiceDep,
+    features: MLPredictionInput,
+) -> ApprovalPredictionOut:
     """Get approval probability from ML model serving endpoint."""
-    service = get_databricks_service()
     result = await service.call_approval_model(features.model_dump())
     return ApprovalPredictionOut(**result)
 
@@ -178,9 +179,11 @@ async def predict_approval(features: MLPredictionInput) -> ApprovalPredictionOut
     response_model=RiskPredictionOut,
     operation_id="predictRisk",
 )
-async def predict_risk(features: MLPredictionInput) -> RiskPredictionOut:
+async def predict_risk(
+    service: DatabricksServiceDep,
+    features: MLPredictionInput,
+) -> RiskPredictionOut:
     """Get risk score from ML model serving endpoint."""
-    service = get_databricks_service()
     result = await service.call_risk_model(features.model_dump())
     return RiskPredictionOut(**result)
 
@@ -190,9 +193,11 @@ async def predict_risk(features: MLPredictionInput) -> RiskPredictionOut:
     response_model=RoutingPredictionOut,
     operation_id="predictRouting",
 )
-async def predict_routing(features: MLPredictionInput) -> RoutingPredictionOut:
+async def predict_routing(
+    service: DatabricksServiceDep,
+    features: MLPredictionInput,
+) -> RoutingPredictionOut:
     """Get optimal routing recommendation from ML model."""
-    service = get_databricks_service()
     result = await service.call_routing_model(features.model_dump())
     return RoutingPredictionOut(**result)
 

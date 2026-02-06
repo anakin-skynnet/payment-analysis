@@ -9,8 +9,7 @@ from pydantic import BaseModel
 
 from ..db_models import AuthorizationEvent, DecisionLog
 from ..decisioning.schemas import KPIOut
-from ..dependencies import SessionDep
-from ..services.databricks_service import get_databricks_service
+from ..dependencies import SessionDep, DatabricksServiceDep
 
 router = APIRouter(tags=["analytics"])
 
@@ -203,11 +202,11 @@ class OnlineFeatureOut(BaseModel):
 
 @router.get("/online-features", response_model=list[OnlineFeatureOut], operation_id="getOnlineFeatures")
 async def get_online_features(
+    service: DatabricksServiceDep,
     source: Optional[str] = Query(None, description="Filter by source: ml or agent"),
     limit: int = Query(100, ge=1, le=500, description="Max number of features to return"),
 ) -> list[OnlineFeatureOut]:
     """Get online features from the Lakehouse (ML and AI processes). Presented in the UI."""
-    service = get_databricks_service()
     rows = await service.get_online_features(source=source, limit=limit)
     return [
         OnlineFeatureOut(
@@ -226,10 +225,10 @@ async def get_online_features(
 
 @router.get("/recommendations", response_model=list[RecommendationOut], operation_id="getRecommendations")
 async def get_recommendations(
+    service: DatabricksServiceDep,
     limit: int = Query(20, ge=1, le=100, description="Max number of recommendations to return"),
 ) -> list[RecommendationOut]:
     """Get approval recommendations from Lakehouse (UC) and Vector Search–backed similar cases."""
-    service = get_databricks_service()
     rows = await service.get_recommendations_from_lakehouse(limit=limit)
     return [
         RecommendationOut(
@@ -245,9 +244,8 @@ async def get_recommendations(
 
 
 @router.get("/models", response_model=list[ModelOut], operation_id="getModels")
-async def list_models() -> list[ModelOut]:
+async def list_models(service: DatabricksServiceDep) -> list[ModelOut]:
     """List ML models with catalog path and optional metrics from backend (catalog/schema from config)."""
-    service = get_databricks_service()
     data = await service.get_ml_models()
     return [
         ModelOut(
@@ -280,26 +278,23 @@ def kpis(session: SessionDep) -> KPIOut:
 
 
 @router.get("/kpis/databricks", response_model=DatabricksKPIOut, operation_id="getDatabricksKpis")
-async def databricks_kpis() -> DatabricksKPIOut:
+async def databricks_kpis(service: DatabricksServiceDep) -> DatabricksKPIOut:
     """Get KPIs from Databricks Unity Catalog."""
-    service = get_databricks_service()
     data = await service.get_kpis()
     return DatabricksKPIOut(**data)
 
 
 @router.get("/trends", response_model=list[ApprovalTrendOut], operation_id="getApprovalTrends")
-async def approval_trends(hours: int = 168) -> list[ApprovalTrendOut]:
+async def approval_trends(service: DatabricksServiceDep, hours: int = 168) -> list[ApprovalTrendOut]:
     """Get approval rate trends from Databricks."""
     hours = max(1, min(hours, 720))  # Limit to 30 days
-    service = get_databricks_service()
     data = await service.get_approval_trends(hours)
     return [ApprovalTrendOut(**row) for row in data]
 
 
 @router.get("/solutions", response_model=list[SolutionPerformanceOut], operation_id="getSolutionPerformance")
-async def solution_performance() -> list[SolutionPerformanceOut]:
+async def solution_performance(service: DatabricksServiceDep) -> list[SolutionPerformanceOut]:
     """Get payment solution performance from Databricks."""
-    service = get_databricks_service()
     data = await service.get_solution_performance()
     return [SolutionPerformanceOut(**row) for row in data]
 
@@ -309,10 +304,12 @@ async def solution_performance() -> list[SolutionPerformanceOut]:
     response_model=list[SmartCheckoutServicePathOut],
     operation_id="getSmartCheckoutServicePathsBr",
 )
-async def smart_checkout_service_paths_br(limit: int = 25) -> list[SmartCheckoutServicePathOut]:
+async def smart_checkout_service_paths_br(
+    service: DatabricksServiceDep,
+    limit: int = 25,
+) -> list[SmartCheckoutServicePathOut]:
     """Brazil payment-link performance by Smart Checkout service path."""
     limit = max(1, min(limit, 100))
-    service = get_databricks_service()
     data = await service.get_smart_checkout_service_paths_br(limit=limit)
     return [SmartCheckoutServicePathOut(**row) for row in data]
 
@@ -323,11 +320,11 @@ async def smart_checkout_service_paths_br(limit: int = 25) -> list[SmartCheckout
     operation_id="getSmartCheckoutPathPerformanceBr",
 )
 async def smart_checkout_path_performance_br(
+    service: DatabricksServiceDep,
     limit: int = 20,
 ) -> list[SmartCheckoutPathPerformanceOut]:
     """Brazil payment-link performance by recommended Smart Checkout path."""
     limit = max(1, min(limit, 50))
-    service = get_databricks_service()
     data = await service.get_smart_checkout_path_performance_br(limit=limit)
     return [SmartCheckoutPathPerformanceOut(**row) for row in data]
 
@@ -337,10 +334,9 @@ async def smart_checkout_path_performance_br(
     response_model=list[ThreeDSFunnelOut],
     operation_id="getThreeDsFunnelBr",
 )
-async def three_ds_funnel_br(days: int = 30) -> list[ThreeDSFunnelOut]:
+async def three_ds_funnel_br(service: DatabricksServiceDep, days: int = 30) -> list[ThreeDSFunnelOut]:
     """Brazil payment-link 3DS funnel metrics by day."""
     days = max(1, min(days, 90))
-    service = get_databricks_service()
     data = await service.get_3ds_funnel_br(days=days)
     return [ThreeDSFunnelOut(**row) for row in data]
 
@@ -350,10 +346,9 @@ async def three_ds_funnel_br(days: int = 30) -> list[ThreeDSFunnelOut]:
     response_model=list[ReasonCodeOut],
     operation_id="getReasonCodesBr",
 )
-async def reason_codes_br(limit: int = 50) -> list[ReasonCodeOut]:
+async def reason_codes_br(service: DatabricksServiceDep, limit: int = 50) -> list[ReasonCodeOut]:
     """Brazil declines consolidated into unified reason-code taxonomy."""
     limit = max(1, min(limit, 200))
-    service = get_databricks_service()
     data = await service.get_reason_codes_br(limit=limit)
     return [ReasonCodeOut(**row) for row in data]
 
@@ -363,10 +358,9 @@ async def reason_codes_br(limit: int = 50) -> list[ReasonCodeOut]:
     response_model=list[ReasonCodeInsightOut],
     operation_id="getReasonCodeInsightsBr",
 )
-async def reason_code_insights_br(limit: int = 50) -> list[ReasonCodeInsightOut]:
+async def reason_code_insights_br(service: DatabricksServiceDep, limit: int = 50) -> list[ReasonCodeInsightOut]:
     """Brazil reason-code insights with estimated recoverability (demo heuristic)."""
     limit = max(1, min(limit, 200))
-    service = get_databricks_service()
     data = await service.get_reason_code_insights_br(limit=limit)
     return [ReasonCodeInsightOut(**row) for row in data]
 
@@ -376,9 +370,8 @@ async def reason_code_insights_br(limit: int = 50) -> list[ReasonCodeInsightOut]
     response_model=list[EntrySystemDistributionOut],
     operation_id="getEntrySystemDistributionBr",
 )
-async def entry_system_distribution_br() -> list[EntrySystemDistributionOut]:
+async def entry_system_distribution_br(service: DatabricksServiceDep) -> list[EntrySystemDistributionOut]:
     """Brazil transaction distribution by entry system (coverage check)."""
-    service = get_databricks_service()
     data = await service.get_entry_system_distribution_br()
     return [EntrySystemDistributionOut(**row) for row in data]
 
@@ -388,9 +381,8 @@ async def entry_system_distribution_br() -> list[EntrySystemDistributionOut]:
     response_model=DedupCollisionStatsOut,
     operation_id="getDedupCollisionStats",
 )
-async def dedup_collision_stats() -> DedupCollisionStatsOut:
+async def dedup_collision_stats(service: DatabricksServiceDep) -> DedupCollisionStatsOut:
     """Dedup collision stats (double-counting guardrail)."""
-    service = get_databricks_service()
     data = await service.get_dedup_collision_stats()
     return DedupCollisionStatsOut(**data)
 
@@ -400,10 +392,9 @@ async def dedup_collision_stats() -> DedupCollisionStatsOut:
     response_model=list[FalseInsightsMetricOut],
     operation_id="getFalseInsightsMetric",
 )
-async def false_insights_metric(days: int = 30) -> list[FalseInsightsMetricOut]:
+async def false_insights_metric(service: DatabricksServiceDep, days: int = 30) -> list[FalseInsightsMetricOut]:
     """False Insights counter-metric time series (expert review invalid/non-actionable)."""
     days = max(1, min(days, 180))
-    service = get_databricks_service()
     data = await service.get_false_insights_metric(days=days)
     return [FalseInsightsMetricOut(**row) for row in data]
 
@@ -413,10 +404,9 @@ async def false_insights_metric(days: int = 30) -> list[FalseInsightsMetricOut]:
     response_model=list[RetryPerformanceOut],
     operation_id="getRetryPerformance",
 )
-async def retry_performance(limit: int = 50) -> list[RetryPerformanceOut]:
+async def retry_performance(service: DatabricksServiceDep, limit: int = 50) -> list[RetryPerformanceOut]:
     """Smart Retry performance with scenario split."""
     limit = max(1, min(limit, 200))
-    service = get_databricks_service()
     data = await service.get_retry_performance(limit=limit)
     return [RetryPerformanceOut(**row) for row in data]
 
@@ -426,13 +416,15 @@ async def retry_performance(limit: int = 50) -> list[RetryPerformanceOut]:
     response_model=InsightFeedbackOut,
     operation_id="submitInsightFeedback",
 )
-async def submit_insight_feedback(payload: InsightFeedbackIn) -> InsightFeedbackOut:
+async def submit_insight_feedback(
+    service: DatabricksServiceDep,
+    payload: InsightFeedbackIn,
+) -> InsightFeedbackOut:
     """
     Submit domain feedback on an insight (learning loop scaffold).
 
     When Databricks is unavailable, this returns accepted=false.
     """
-    service = get_databricks_service()
     ok = await service.submit_insight_feedback(
         insight_id=payload.insight_id,
         insight_type=payload.insight_type,
@@ -497,9 +489,8 @@ def decline_summary(session: SessionDep, limit: int = 20) -> list[DeclineBucketO
     response_model=list[DeclineBucketOut],
     operation_id="getDatabricksDeclines",
 )
-async def databricks_decline_summary() -> list[DeclineBucketOut]:
+async def databricks_decline_summary(service: DatabricksServiceDep) -> list[DeclineBucketOut]:
     """Get decline summary from Databricks Unity Catalog with recovery insights."""
-    service = get_databricks_service()
     data = await service.get_decline_summary()
     return [
         DeclineBucketOut(

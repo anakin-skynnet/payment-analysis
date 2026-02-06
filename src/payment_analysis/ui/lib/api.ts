@@ -508,6 +508,16 @@ export interface RunPipelineOut {
   update_id: string;
 }
 
+export interface SetupConfigIn {
+  catalog: string;
+  schema: string;
+}
+
+export interface SetupConfigOut {
+  catalog: string;
+  schema: string;
+}
+
 export interface SetupDefaultsOut {
   catalog: string;
   jobs: Record<string, string>;
@@ -2020,6 +2030,21 @@ export const deleteApprovalRule = async (params: DeleteApprovalRuleParams, optio
 
 export function useDeleteApprovalRule(options?: { mutation?: UseMutationOptions<void, ApiError, { params: DeleteApprovalRuleParams }> }) {
   return useMutation({ mutationFn: (vars) => deleteApprovalRule(vars.params), ...options?.mutation });
+}
+
+export const updateSetupConfig = async (data: SetupConfigIn, options?: RequestInit): Promise<{ data: SetupConfigOut }> => {
+  const res = await fetch("/api/setup/config", { ...options, method: "PATCH", headers: { "Content-Type": "application/json", ...options?.headers }, body: JSON.stringify(data) });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export function useUpdateSetupConfig(options?: { mutation?: UseMutationOptions<{ data: SetupConfigOut }, ApiError, SetupConfigIn> }) {
+  return useMutation({ mutationFn: (data) => updateSetupConfig(data), ...options?.mutation });
 }
 
 export const getSetupDefaults = async (options?: RequestInit): Promise<{ data: SetupDefaultsOut }> => {
