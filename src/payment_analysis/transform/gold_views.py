@@ -67,20 +67,21 @@ def v_approval_kpis():
     }
 )
 def v_decline_patterns():
-    """Decline patterns for analysis and recovery."""
+    """Reason-code-first decline patterns with entry system and flow type segmentation."""
     
     payments = dlt.read("payments_enriched_silver")
     
     return (
         payments
         .filter(~col("is_approved"))
-        .groupBy("decline_reason", "merchant_segment")
+        .groupBy("decline_reason_standard", "decline_reason_group", "entry_system", "flow_type", "merchant_segment")
         .agg(
             count("*").alias("decline_count"),
             round(avg("fraud_score"), 3).alias("avg_fraud_score"),
             round(avg("device_trust_score"), 3).alias("avg_device_trust"),
             round(sum("amount"), 2).alias("total_declined_value"),
-            countDistinct("merchant_id").alias("affected_merchants")
+            countDistinct("merchant_id").alias("affected_merchants"),
+            round(avg("composite_risk_score"), 3).alias("avg_composite_risk"),
         )
         .withColumn("recovery_potential",
             when((col("avg_fraud_score") < 0.3) & (col("avg_device_trust") > 0.6), "HIGH")

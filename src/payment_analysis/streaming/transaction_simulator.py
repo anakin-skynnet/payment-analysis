@@ -177,7 +177,7 @@ def generate_event():
         "merchant_segment": random.choice(MERCHANT_SEGMENTS),
         "entry_system": entry_system,
         "flow_type": flow_type,
-        "transaction_stage": "entry_response",
+        "transaction_stage": random.choice(["entry_response", "downstream_response"]) if flow_type in ("payment_link", "recurring", "payment_link_sep") else "entry_response",
         "merchant_response_code": merchant_response_code,
         "payment_method_type": payment_method_type,
         "payment_solution": random.choice(PAYMENT_SOLUTIONS),
