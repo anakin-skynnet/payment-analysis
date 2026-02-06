@@ -75,11 +75,10 @@ def get_databricks_service(request: Request) -> DatabricksService:
     Returns a DatabricksService using effective catalog/schema from app_config table.
     Effective config is loaded at startup (lifespan) and stored in request.app.state.uc_config.
     """
-    catalog, schema = getattr(request.app.state, "uc_config", (None, None))
-    if catalog is None or schema is None:
-        bootstrap = DatabricksConfig.from_environment()
-        catalog, schema = bootstrap.catalog, bootstrap.schema
     bootstrap = DatabricksConfig.from_environment()
+    catalog, schema = getattr(request.app.state, "uc_config", (None, None))
+    if not catalog or not schema:
+        catalog, schema = bootstrap.catalog, bootstrap.schema
     config = DatabricksConfig(
         host=bootstrap.host,
         token=bootstrap.token,

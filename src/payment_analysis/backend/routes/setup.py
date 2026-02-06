@@ -116,8 +116,8 @@ class RunPipelineOut(BaseModel):
 
 class SetupConfigIn(BaseModel):
     """Request to update effective catalog/schema (persisted in app_config table)."""
-    catalog: str = Field(..., description="Unity Catalog name")
-    schema_name: str = Field(..., description="Schema name", alias="schema")
+    catalog: str = Field(..., min_length=1, max_length=255, description="Unity Catalog name")
+    schema_name: str = Field(..., min_length=1, max_length=255, description="Schema name", alias="schema")
 
     model_config = {"populate_by_name": True}
 
@@ -160,6 +160,13 @@ def get_setup_defaults(request: Request) -> SetupDefaultsOut:
 @router.patch("/config", response_model=SetupConfigOut, operation_id="updateSetupConfig")
 async def update_setup_config(request: Request, body: SetupConfigIn) -> SetupConfigOut:
     """Update effective catalog and schema in app_config table and app state."""
+    catalog = (body.catalog or "").strip()
+    schema = (body.schema_name or "").strip()
+    if not catalog or not schema:
+        raise HTTPException(
+            status_code=400,
+            detail="catalog and schema are required and must be non-empty.",
+        )
     bootstrap = DatabricksConfig.from_environment()
     if not (bootstrap.host and bootstrap.token and bootstrap.warehouse_id):
         raise HTTPException(
@@ -167,11 +174,11 @@ async def update_setup_config(request: Request, body: SetupConfigIn) -> SetupCon
             detail="Databricks credentials not configured; cannot update app_config.",
         )
     svc = DatabricksService(config=bootstrap)
-    ok = await svc.write_app_config(body.catalog, body.schema_name)
+    ok = await svc.write_app_config(catalog, schema)
     if not ok:
         raise HTTPException(status_code=500, detail="Failed to write app_config.")
-    request.app.state.uc_config = (body.catalog, body.schema_name)
-    return SetupConfigOut(catalog=body.catalog, schema_name=body.schema_name)
+    request.app.state.uc_config = (catalog, schema)
+    return SetupConfigOut(catalog=catalog, schema_name=schema)
 
 
 @router.post("/run-job", response_model=RunJobOut, operation_id="runSetupJob")

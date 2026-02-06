@@ -142,6 +142,14 @@ DASHBOARDS = [
         tags=["streaming", "ingestion", "data-quality", "bronze", "silver", "unity-catalog"],
         url_path="/sql/dashboards/streaming_data_quality",
     ),
+    DashboardInfo(
+        id="global_coverage",
+        name="Global Coverage - World Map by Country",
+        description="World map and metrics aggregated by country. Transaction volume, approval rates, and value across issuer countries.",
+        category=DashboardCategory.ANALYTICS,
+        tags=["geography", "world-map", "countries", "global", "analytics"],
+        url_path="/sql/dashboards/global_coverage",
+    ),
 ]
 
 

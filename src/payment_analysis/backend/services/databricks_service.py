@@ -507,7 +507,10 @@ class DatabricksService:
         try:
             rows = await self.execute_query(query)
             if rows and len(rows) > 0:
-                return (str(rows[0].get("catalog", "")).strip(), str(rows[0].get("schema", "")).strip())
+                row_catalog = (str(rows[0].get("catalog", "") or "").strip())
+                row_schema = (str(rows[0].get("schema", "") or "").strip())
+                if row_catalog and row_schema:
+                    return (row_catalog, row_schema)
         except Exception as e:
             logger.warning("Could not read app_config table: %s", e)
         return None

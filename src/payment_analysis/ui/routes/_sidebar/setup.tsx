@@ -227,6 +227,79 @@ function SetupRun() {
         </p>
       </div>
 
+      {/* Databricks resources overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Databricks resources & approval-rate impact</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Resources used in this solution, why they are added, and how they help accelerate approval rates.
+          </p>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left py-2 pr-4 font-medium">Resource</th>
+                <th className="text-left py-2 pr-4 font-medium">Purpose</th>
+                <th className="text-left py-2 font-medium">How it accelerates approval rates</th>
+              </tr>
+            </thead>
+            <tbody className="[&_tr]:border-b [&_tr]:border-border">
+              <tr>
+                <td className="py-2 pr-4 align-top">Transaction Stream Simulator</td>
+                <td className="py-2 pr-4 align-top">Generate synthetic payment events at scale.</td>
+                <td className="py-2 align-top">Stress-tests pipelines and decisioning; feeds analytics and ML training data.</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-4 align-top">Lakeflow ETL pipeline</td>
+                <td className="py-2 pr-4 align-top">Bronze → Silver → Gold data processing.</td>
+                <td className="py-2 align-top">Clean, enriched data for KPIs, dashboards, and model training.</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-4 align-top">Gold views (SQL)</td>
+                <td className="py-2 pr-4 align-top">Analytical views for dashboards and Genie.</td>
+                <td className="py-2 align-top">Visibility into approval rates, declines, and recovery opportunities.</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-4 align-top">Lakehouse tables (approval_rules, recommendations, online_features)</td>
+                <td className="py-2 pr-4 align-top">Store rules and ML/agent outputs in Unity Catalog.</td>
+                <td className="py-2 align-top">Rules and similar-case recommendations feed real-time decisioning.</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-4 align-top">ML models (approval propensity, risk, routing, retry)</td>
+                <td className="py-2 pr-4 align-top">Train and register models in Unity Catalog.</td>
+                <td className="py-2 align-top">Real-time scoring and routing to maximize approvals and reduce fraud.</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-4 align-top">Model Serving</td>
+                <td className="py-2 pr-4 align-top">Serve ML models with low-latency inference.</td>
+                <td className="py-2 align-top">Sub-50ms approval/risk/routing predictions for live transactions.</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-4 align-top">AI agents (Orchestrator, Smart Routing, Retry, Decline Analyst, etc.)</td>
+                <td className="py-2 pr-4 align-top">Automate recommendations using ML and rules.</td>
+                <td className="py-2 align-top">Suggest retries, routing, and 3DS use to recover declines and optimize flow.</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-4 align-top">Vector Search</td>
+                <td className="py-2 pr-4 align-top">Similar-transaction search over payment data.</td>
+                <td className="py-2 align-top">“Similar cases” recommendations for retry and routing in the Decisioning UI.</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-4 align-top">Dashboards (11 Lakeview)</td>
+                <td className="py-2 pr-4 align-top">Monitor KPIs, declines, fraud, and performance.</td>
+                <td className="py-2 align-top">Identify underperforming segments and act on recovery opportunities.</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-4 align-top">Unity Catalog</td>
+                <td className="py-2 pr-4 align-top">Governance, lineage, and schema for tables and models.</td>
+                <td className="py-2 align-top">Secure, auditable data and models for compliance and trust.</td>
+              </tr>
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+
       {/* Parameters — catalog/schema are persisted in app_config; Save updates the table and app-wide config */}
       <Card>
         <CardHeader>

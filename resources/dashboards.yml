@@ -87,3 +87,10 @@ resources:
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
       file_path: ../.build/dashboards/streaming_data_quality.lvdash.json
+
+    global_coverage:
+      display_name: "[${var.environment}] Global Coverage - World Map by Country"
+      warehouse_id: ${var.warehouse_id}
+      parent_path: ${workspace.root_path}/dashboards
+      embed_credentials: true
+      file_path: ../.build/dashboards/global_coverage.lvdash.json

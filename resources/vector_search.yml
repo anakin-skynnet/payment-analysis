@@ -4,6 +4,11 @@
 # Endpoint + index for finding similar past transactions (by embedding summary_text).
 # Source table: transaction_summaries_for_search (create via vector_search_and_recommendations.sql).
 # Requires: embedding model endpoint "databricks-bge-large-en" in workspace (Foundation Model API).
+#
+# NOTE: vector_search_endpoints and vector_search_indexes are not yet in the
+# Databricks Asset Bundle schema; including this file causes "unknown field" warnings.
+# Uncomment in databricks.yml when the CLI supports them, or create the endpoint
+# and index manually in the workspace (Vector Search UI) using this spec as reference.
 # =============================================================================
 
 resources:

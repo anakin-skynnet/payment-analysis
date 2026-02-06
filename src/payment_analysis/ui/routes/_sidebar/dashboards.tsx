@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, TrendingUp, Shield, DollarSign, Gauge, Users, Calendar, Lock, Award, Zap, ExternalLink, Code2, Activity, MessageSquareText, ArrowRight } from "lucide-react";
+import { BarChart3, TrendingUp, Shield, DollarSign, Gauge, Users, Calendar, Lock, Award, Zap, ExternalLink, Code2, Activity, MessageSquareText, ArrowRight, Globe } from "lucide-react";
 import { getWorkspaceUrl, getGenieUrl } from "@/config/workspace";
 import { friendlyReason } from "@/lib/reasoning";
 import { useListDashboards, useRecentDecisions, getNotebookUrl, type DashboardCategory, type DashboardInfo } from "@/lib/api";
@@ -35,6 +35,7 @@ const dashboardIcons: Record<string, React.ComponentType<{ className?: string }>
   financial_impact: DollarSign,
   performance_latency: Gauge,
   streaming_data_quality: Activity,
+  global_coverage: Globe,
 };
 
 // Map dashboards to their underlying notebooks
@@ -50,6 +51,7 @@ const dashboardNotebooks: Record<string, string[]> = {
   financial_impact: ["gold_views_sql"],
   performance_latency: ["gold_views_sql"],
   streaming_data_quality: ["bronze_ingest", "silver_transform", "gold_views_sql"],
+  global_coverage: ["gold_views_sql"],
 };
 
 export function Component() {
@@ -97,7 +99,7 @@ export function Component() {
       <div>
         <h1 className="text-3xl font-bold">Dashboards</h1>
         <p className="text-muted-foreground mt-2">
-          11 AI/BI dashboards (Executive, Decline, Real-Time, Fraud, Merchant, Routing, Daily Trends, 3DS, Financial, Performance, Data Quality). After Setup steps 1–4, open any card to load data from your workspace.
+          12 AI/BI dashboards (Executive, Decline, Real-Time, Fraud, Merchant, Routing, Daily Trends, 3DS, Financial, Performance, Data Quality, Global Coverage world map). After Setup steps 1–4, open any card to load data from your workspace.
         </p>
       </div>
 

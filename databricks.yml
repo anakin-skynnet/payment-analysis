@@ -23,11 +23,12 @@ include:
   - resources/ai_gateway.yml
   - resources/streaming_simulator.yml
   - resources/genie_spaces.yml
-  - resources/vector_search.yml
+  # Vector Search: not in bundle schema yet (causes "unknown field" warnings). Create endpoint/index via UI or API; see resources/vector_search.yml and docs.
+  # - resources/vector_search.yml
   - resources/dashboards.yml
   - resources/app.yml
-  # Model serving: deploy after running "Train Payment Approval ML Models" job (registers 4 models in UC)
-  - resources/model_serving.yml
+  # Model serving: uncomment after running "[dev] Train Payment Approval ML Models" job once (registers 4 models in UC)
+  # - resources/model_serving.yml
 
 # -----------------------------------------------------------------------------
 # Bundle variables (override via --var, BUNDLE_VAR_*, or target variables)

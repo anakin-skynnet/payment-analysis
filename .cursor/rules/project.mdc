@@ -75,6 +75,13 @@ uv run apx dev stop
 uv run apx build
 ```
 
+**Deploy to Databricks** (run from repo root; prepares dashboards then deploys):
+```bash
+./scripts/deploy.sh [dev|prod]
+# Or: ./scripts/validate_bundle.sh dev && databricks bundle deploy -t dev
+```
+Never run `databricks bundle validate` or `databricks bundle deploy` without running `uv run python scripts/prepare_dashboards.py` first (or use the scripts above), or dashboard file_path errors will occur.
+
 **Note:** OpenAPI client is automatically regenerated on every code change when dev servers are running. No manual regeneration needed.
 
 ## MCP Tools Reference
