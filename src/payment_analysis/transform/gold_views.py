@@ -173,11 +173,22 @@ def v_routing_performance():
     }
 )
 def v_retry_performance():
-    """Retry success metrics by decline reason."""
+    """Retry success metrics by decline reason with incremental lift vs baseline."""
     
     payments = dlt.read("payments_enriched_silver")
     
-    return (
+    # Baseline: overall approval rate for non-retry transactions
+    baseline = (
+        payments
+        .filter(col("is_retry") == False)
+        .agg(
+            round(sum(when(col("is_approved"), 1).otherwise(0)) * 100.0 / count("*"), 2).alias("baseline_approval_pct")
+        )
+    )
+    baseline_rate = baseline.collect()[0]["baseline_approval_pct"]  # scalar for broadcast
+
+    # Retry cohorts with features
+    retry_cohorts = (
         payments
         .filter(col("is_retry") == True)
         .groupBy("retry_scenario", "decline_reason_standard", "retry_count")
@@ -185,7 +196,13 @@ def v_retry_performance():
             count("*").alias("retry_attempts"),
             round(sum(when(col("is_approved"), 1).otherwise(0)) * 100.0 / count("*"), 2).alias("success_rate_pct"),
             round(sum(when(col("is_approved"), col("amount")).otherwise(0)), 2).alias("recovered_value"),
-            round(avg("fraud_score"), 3).alias("avg_fraud_score")
+            round(avg("fraud_score"), 3).alias("avg_fraud_score"),
+            round(avg("time_since_last_attempt_seconds"), 0).alias("avg_time_since_last_attempt_s"),
+            round(avg("prior_approved_count"), 1).alias("avg_prior_approvals"),
+        )
+        .withColumn("baseline_approval_pct", lit(baseline_rate))
+        .withColumn("incremental_lift_pct",
+            round(col("success_rate_pct") - col("baseline_approval_pct"), 2)
         )
         .withColumn("effectiveness",
             when(col("success_rate_pct") > 40, "Effective")
@@ -194,6 +211,7 @@ def v_retry_performance():
         )
         .orderBy("retry_scenario", "decline_reason_standard", "retry_count")
     )
+    return retry_cohorts
 
 # COMMAND ----------
 

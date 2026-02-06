@@ -53,11 +53,27 @@ function SmartRetry() {
                     </span>
                     <Badge variant="outline">attempt {r.retry_count}</Badge>
                     <Badge>{r.success_rate_pct}%</Badge>
+                    {r.incremental_lift_pct != null && (
+                      <Badge
+                        variant={
+                          r.incremental_lift_pct > 0
+                            ? "default"
+                            : "destructive"
+                        }
+                      >
+                        {r.incremental_lift_pct > 0 ? "+" : ""}
+                        {r.incremental_lift_pct}% vs baseline
+                      </Badge>
+                    )}
                     <Badge variant="outline">{r.effectiveness}</Badge>
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
                     recovered ${r.recovered_value.toFixed(2)} · avg fraud{" "}
                     {r.avg_fraud_score.toFixed(3)}
+                    {r.avg_time_since_last_attempt_s != null &&
+                      ` · avg wait ${Math.round(r.avg_time_since_last_attempt_s)}s`}
+                    {r.avg_prior_approvals != null &&
+                      ` · prior approvals ${r.avg_prior_approvals.toFixed(1)}`}
                   </div>
                 </div>
                 <Badge variant="secondary">{r.retry_attempts}</Badge>

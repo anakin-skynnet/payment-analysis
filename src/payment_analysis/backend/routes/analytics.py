@@ -126,6 +126,10 @@ class RetryPerformanceOut(BaseModel):
     success_rate_pct: float
     recovered_value: float
     avg_fraud_score: float
+    avg_time_since_last_attempt_s: Optional[float] = None
+    avg_prior_approvals: Optional[float] = None
+    baseline_approval_pct: Optional[float] = None
+    incremental_lift_pct: Optional[float] = None
     effectiveness: str
 
 

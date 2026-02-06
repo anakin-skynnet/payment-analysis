@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   useGetReasonCodeInsightsBr,
   useGetEntrySystemDistributionBr,
+  useGetFalseInsightsMetric,
 } from "@/lib/api";
 
 export const Route = createFileRoute("/_sidebar/reason-codes")({
@@ -13,11 +14,12 @@ export const Route = createFileRoute("/_sidebar/reason-codes")({
 
 function ReasonCodes() {
   const entryQ = useGetEntrySystemDistributionBr();
-
   const q = useGetReasonCodeInsightsBr({ params: { limit: 30 } });
+  const falseQ = useGetFalseInsightsMetric({ params: { days: 30 } });
 
   const rows = q.data?.data ?? [];
   const entryRows = entryQ.data?.data ?? [];
+  const falseRows = falseQ.data?.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -54,6 +56,48 @@ function ReasonCodes() {
                   </span>
                 </div>
                 <Badge variant="secondary">{r.transaction_count}</Badge>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Counter-metric: False Insights</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {falseQ.isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : falseQ.isError ? (
+            <p className="text-sm text-muted-foreground">
+              Failed to load false insights metric.
+            </p>
+          ) : falseRows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No feedback data yet. Expert reviews populate this metric.
+            </p>
+          ) : (
+            falseRows.map((r) => (
+              <div
+                key={r.event_date}
+                className="flex items-center justify-between"
+              >
+                <span className="text-sm font-mono">{r.event_date}</span>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant={
+                      (r.false_insights_pct ?? 0) > 20
+                        ? "destructive"
+                        : "secondary"
+                    }
+                  >
+                    {r.false_insights_pct ?? 0}% false
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {r.false_insights}/{r.reviewed_insights} reviewed
+                  </span>
+                </div>
               </div>
             ))
           )}
