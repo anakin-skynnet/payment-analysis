@@ -86,7 +86,7 @@ function Models() {
           <div>
             <h1 className="text-2xl font-semibold">ML Models</h1>
             <p className="text-sm text-muted-foreground mt-2">
-              Production ML models trained on Unity Catalog data and tracked with MLflow
+              Four models (approval propensity, risk, routing, retry) from Setup step 6. Trained on UC data; use in Decisioning and with Rules.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

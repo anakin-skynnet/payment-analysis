@@ -39,6 +39,7 @@ def _get_workspace_host() -> str:
     return _app_config.databricks.workspace_url
 
 
+# Job/pipeline IDs are from bundle deploy (target workspace). Override via env if needed.
 DEFAULT_IDS: _DefaultIds = {
     "warehouse_id": os.getenv("DATABRICKS_WAREHOUSE_ID", "bf12ee0011ea4ced") or "",
     "catalog": os.getenv("DATABRICKS_CATALOG", "ahs_demos_catalog") or "",
@@ -54,6 +55,7 @@ DEFAULT_IDS: _DefaultIds = {
         "decline_analyst_agent": "102676008371002",
         "performance_recommender_agent": "560263049146932",
         "continuous_stream_processor": "1124715161556931",
+        "test_agent_framework": os.getenv("DATABRICKS_JOB_ID_TEST_AGENT_FRAMEWORK", "0") or "0",
     },
     "pipelines": {
         "payment_analysis_etl": "eb4edb4a-0069-4208-9261-2151f4bf33d9",

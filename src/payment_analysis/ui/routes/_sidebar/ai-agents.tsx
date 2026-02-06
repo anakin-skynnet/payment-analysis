@@ -121,8 +121,7 @@ function AIAgents() {
             <div>
               <h1 className="text-3xl font-bold">Databricks AI Agents</h1>
               <p className="text-muted-foreground mt-1">
-                AI-powered agents to accelerate payment approval rates using
-                Genie, Model Serving, and LLM intelligence
+                Genie, Model Serving, and AI Gateway agents. Run Orchestrator from Setup step 6; agents use Lakehouse Rules to accelerate approvals.
               </p>
             </div>
           </div>

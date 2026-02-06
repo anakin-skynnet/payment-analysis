@@ -188,7 +188,7 @@ function SetupRun() {
       <div>
         <h1 className="text-2xl font-semibold">Setup & Run</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Configure parameters and run data ingestion, ETL, gold views, ML training, and AI agents from the UI.
+          Follow steps 1–6 in order: deploy bundle first, then data ingestion, ETL, gold views, Lakehouse SQL, ML training, and optional AI agents. See docs for full guide.
         </p>
       </div>
 
@@ -262,9 +262,12 @@ function SetupRun() {
         </div>
       )}
 
-      {/* Steps */}
+      {/* Steps — order matches docs 1_DEPLOYMENTS and 5_DEMO_SETUP */}
       <div className="space-y-4">
-        <h2 className="text-lg font-medium">Execution steps</h2>
+        <h2 className="text-lg font-medium">Execution steps (1–7)</h2>
+        <p className="text-sm text-muted-foreground">
+          Run in order. Step 4 is SQL in the warehouse; steps 5–6 register models and agents.
+        </p>
 
         {/* Step 1: Data ingestion — click opens job run in Databricks */}
         <Card
@@ -378,7 +381,7 @@ function SetupRun() {
               <Badge variant="secondary">Job</Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Create 20+ analytical views for dashboards. Uses warehouse and schema.
+              Create 12+ analytical views for dashboards (v_executive_kpis, decline patterns, etc.). Uses warehouse and schema.
             </p>
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -408,7 +411,66 @@ function SetupRun() {
           </CardContent>
         </Card>
 
-        {/* Step 4: Train ML models — click opens job run in Databricks */}
+        {/* Step 4: Lakehouse tables (SQL) — open SQL Warehouse to run scripts */}
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() =>
+            window.open(
+              `${defaults?.workspace_host || ""}/sql/warehouses/${warehouseId || defaults?.warehouse_id}`,
+              "_blank"
+            )
+          }
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) =>
+            e.key === "Enter" &&
+            window.open(
+              `${defaults?.workspace_host || ""}/sql/warehouses/${warehouseId || defaults?.warehouse_id}`,
+              "_blank"
+            )
+          }
+        >
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                4. Lakehouse tables (SQL)
+              </CardTitle>
+              <Badge variant="outline">SQL</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              In SQL Warehouse run in order: vector_search_and_recommendations.sql, approval_rules.sql, online_features.sql (same catalog/schema). Enables Rules, recommendations, and Dashboard features.
+            </p>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                window.open(
+                  `${defaults?.workspace_host || ""}/sql/warehouses/${warehouseId || defaults?.warehouse_id}`,
+                  "_blank"
+                )
+              }
+            >
+              Open SQL Warehouse <ExternalLink className="ml-1 h-3 w-3" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                window.open(
+                  `${defaults?.workspace_host || ""}/explore/data/${catalog || defaults?.catalog}/${schema || defaults?.schema}`,
+                  "_blank"
+                )
+              }
+            >
+              Explore schema
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Step 5: Train ML models — click opens job run in Databricks */}
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => openJobRun("train_ml_models")}
@@ -420,7 +482,7 @@ function SetupRun() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <Brain className="h-4 w-4" />
-                4. Train ML models
+                5. Train ML models
               </CardTitle>
               <Badge variant="secondary">Job</Badge>
             </div>
@@ -467,7 +529,7 @@ function SetupRun() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <Bot className="h-4 w-4" />
-                5. Run AI orchestrator
+                6. Run AI orchestrator
               </CardTitle>
               <Badge variant="secondary">Job</Badge>
             </div>
@@ -502,7 +564,53 @@ function SetupRun() {
           </CardContent>
         </Card>
 
-        {/* Step 6: Real-time Lakeflow pipeline (optional) — click opens pipeline in Databricks */}
+        {/* Step 6b: Run specialist agents (one-click each) */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Bot className="h-4 w-4" />
+                6b. Run specialist agents
+              </CardTitle>
+              <Badge variant="secondary">Jobs</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Run individual AI agents: Smart Routing, Smart Retry, Decline Analyst, Risk Assessor, Performance Recommender. Each uses the Lakehouse Rules when configured.
+            </p>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            {[
+              { key: "smart_routing_agent", label: "Smart Routing" },
+              { key: "smart_retry_agent", label: "Smart Retry" },
+              { key: "decline_analyst_agent", label: "Decline Analyst" },
+              { key: "risk_assessor_agent", label: "Risk Assessor" },
+              { key: "performance_recommender_agent", label: "Performance Recommender" },
+            ].map(({ key, label }) => (
+              <div key={key} className="flex gap-1 items-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => triggerJob(key)}
+                  disabled={pending || !defaults?.jobs?.[key]}
+                >
+                  {runJobMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Play className="h-3 w-3 mr-1" />}
+                  {label}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2"
+                  onClick={() => defaults?.jobs?.[key] && window.open(`${defaults?.workspace_host || ""}/#job/${defaults.jobs[key]}/run`, "_blank")}
+                  disabled={!defaults?.jobs?.[key]}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Step 7: Real-time Lakeflow pipeline (optional) — click opens pipeline in Databricks */}
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => openPipeline("payment_realtime_pipeline")}
@@ -514,7 +622,7 @@ function SetupRun() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <GitBranch className="h-4 w-4" />
-                6. Real-time streaming (Lakeflow pipeline, optional)
+                7. Real-time streaming (Lakeflow pipeline, optional)
               </CardTitle>
               <Badge variant="outline">Pipeline</Badge>
             </div>
@@ -631,6 +739,27 @@ function SetupRun() {
             }
           >
             Stream processor (run)
+          </Button>
+          {defaults?.jobs?.test_agent_framework && defaults.jobs.test_agent_framework !== "0" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                window.open(
+                  `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.test_agent_framework}/run`,
+                  "_blank"
+                )
+              }
+            >
+              Test Agent Framework <ExternalLink className="ml-1 h-3 w-3" />
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(`${defaults?.workspace_host || ""}/#job`, "_blank")}
+          >
+            All jobs
           </Button>
         </CardContent>
       </Card>

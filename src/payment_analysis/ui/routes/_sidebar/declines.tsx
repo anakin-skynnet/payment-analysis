@@ -63,7 +63,7 @@ function Declines() {
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2">
-          Analyze decline patterns from Unity Catalog views
+          Decline patterns from gold views (Setup steps 3–4). Use with Rules and Smart Retry to improve recovery.
         </p>
       </div>
 

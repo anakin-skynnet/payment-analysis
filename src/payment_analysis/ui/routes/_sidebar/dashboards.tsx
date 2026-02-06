@@ -97,7 +97,7 @@ export function Component() {
       <div>
         <h1 className="text-3xl font-bold">Dashboards</h1>
         <p className="text-muted-foreground mt-2">
-          Stream ingestion (Real-Time Monitoring), data quality (Streaming & Data Quality), analytics (Executive, Decline, Fraud, Merchant, Routing, Daily Trends, 3DS, Financial, Performance, Latency), and technical dashboards. Data is loaded from your Databricks workspace when you open each dashboard. Click any card to open in a new tab and verify connectivity and data access.
+          11 AI/BI dashboards (Executive, Decline, Real-Time, Fraud, Merchant, Routing, Daily Trends, 3DS, Financial, Performance, Data Quality). After Setup steps 1–4, open any card to load data from your workspace.
         </p>
       </div>
 

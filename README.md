@@ -15,13 +15,11 @@ Databricks-powered solution to maximize payment approval rates via real-time ana
 
 ## Quick Start
 
-```bash
-uv sync && bun install
-databricks bundle validate -t dev && databricks bundle deploy -t dev
-uv run apx dev
-```
+1. **Deploy:** `databricks bundle validate -t dev && databricks bundle deploy -t dev`
+2. **Run pipeline:** Use app **Setup & Run** (steps 2–6) or [5_DEMO_SETUP](docs/5_DEMO_SETUP.md): data ingestion → ETL → gold views → Lakehouse SQL → ML training → agents.
+3. **App:** `uv sync && bun install` then `uv run apx dev` (set `.env` for Databricks).
 
-See [1_DEPLOYMENTS](docs/1_DEPLOYMENTS.md) and [5_DEMO_SETUP](docs/5_DEMO_SETUP.md) for full steps and one-click runs.
+See [1_DEPLOYMENTS](docs/1_DEPLOYMENTS.md) for the full step guide and [5_DEMO_SETUP](docs/5_DEMO_SETUP.md) for one-click links.
 
 ## App URL
 

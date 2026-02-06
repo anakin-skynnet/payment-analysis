@@ -15,25 +15,35 @@ databricks bundle deploy -t dev
 
 For prod with different catalog/schema in dashboards, run `./scripts/validate_bundle.sh prod` (uses `prepare_dashboards.py`). Then run jobs/pipelines per [5_DEMO_SETUP](5_DEMO_SETUP.md).
 
-## Steps
+## Steps at a glance
+
+| # | Step | Where | Action |
+|---|------|--------|--------|
+| 1 | Deploy bundle | CLI | `databricks bundle validate -t dev` then `databricks bundle deploy -t dev` |
+| 2 | Data ingestion | App **Setup & Run** or Workflows | Run **Transaction Stream Simulator**; output `raw_payment_events` |
+| 3 | ETL (Lakeflow) | App **Setup & Run** or Lakeflow | Start **Payment Analysis ETL** pipeline; Bronze → Silver → Gold |
+| 4 | Gold views | App **Setup & Run** or Workflows | Run **Create Payment Analysis Gold Views**; verify `v_executive_kpis` |
+| 5 | Lakehouse tables (SQL) | SQL Warehouse / Notebook | Run in order: `vector_search_and_recommendations.sql`, `approval_rules.sql`, `online_features.sql` (same catalog/schema) |
+| 6 | Train ML models | App **Setup & Run** or Workflows | Run **Train Payment Approval ML Models** (~10–15 min); 4 models in UC |
+| 7 | Dashboards & app | — | 11 dashboards in bundle; app: `.env` + `uv run apx dev` or deploy |
+| 8 | Model serving | After step 6 | Redeploy bundle (model_serving.yml) or already included |
+| 9 | AI agents (optional) | Workflows | Run **Orchestrator** or other agents in `ai_gateway.yml`; Genie optional |
+| 10 | Verify | App + Workspace | KPIs on **Dashboard**; **Rules**, **Decisioning**, **ML Models**; 4 models in UC. All jobs/pipelines have one-click Run and Open in **Setup & Run** (steps 1–7 and 6b; Quick links for Stream processor and Test Agent Framework). |
+
+## Steps (detail)
 
 | Step | Purpose | Action |
 |------|---------|--------|
-| **1** | Prepare dashboards | `uv run python scripts/prepare_dashboards.py` (for prod add `--catalog prod_catalog --schema ahs_demo_payment_analysis_prod`) |
-| **1** | Deploy bundle | `databricks bundle validate -t dev` then `databricks bundle deploy -t dev` |
-| **2** | Generate data | Workflows → “Transaction Stream Simulator” or run `transaction_simulator.py`; output `raw_payment_events` |
-| **3** | Lakeflow | Lakeflow → “Payment Analysis ETL” → Start; Bronze → Silver → Gold |
-| **4** | Gold views | Workflows → “Create Payment Analysis Gold Views”; verify `v_executive_kpis` etc. |
-| **4b** | Vector Search + Lakehouse | Run `vector_search_and_recommendations.sql` (same schema) to create `transaction_summaries_for_search`, `approval_recommendations`, and `v_recommendations_from_lakehouse`. Bundle includes `resources/vector_search.yml` (endpoint + DELTA_SYNC index on the search table). Populate the tables (e.g. from gold/silver) so the index and app recommendations are useful. |
-| **4c** | Approval rules (Lakehouse) | Run `approval_rules.sql` (same schema) to create `approval_rules` and `v_approval_rules_active`. The app **Rules** page writes rules here; ML and AI agents read them to accelerate approval rates. |
-| **4d** | Online features (Lakehouse) | Run `online_features.sql` (same schema) to create `online_features` and `v_online_features_latest`. ML and AI jobs can write features here; the app **Dashboard** shows them in the "Online features (Lakehouse)" card. |
-| **5** | ML models | Workflows → “Train Payment Approval ML Models”; ~10–15 min; registers 4 models in UC (approval_propensity_model, risk_scoring_model, smart_routing_policy, smart_retry_policy). |
-| **6** | Dashboards | Bundle includes 11 dashboards (source: `src/payment_analysis/dashboards/`); warehouse from `var.warehouse_id`. |
-| **7** | Genie (optional) | SQL → Genie Spaces → Create “Payment Approval Analytics” / “Decline Analysis”; attach gold views; run `genie_sync_job` |
-| **7** | Model serving & UI | After Step 5, redeploy deploys model serving. ML Models UI shows models via backend (set DATABRICKS_CATALOG/SCHEMA). |
-| **7** | AI agents (optional) | Verify Llama endpoint; `databricks bundle run orchestrator_agent_job -t dev`; agents in `ai_gateway.yml` (PAUSED) |
-| **8** | Web app | `.env`: `DATABRICKS_HOST`, `DATABRICKS_TOKEN`, `DATABRICKS_WAREHOUSE_ID`, `DATABRICKS_CATALOG`, `DATABRICKS_SCHEMA`. `uv run apx dev` or `apx build` + deploy |
-| **9** | Verify | Data in bronze/silver; 4 models in UC; model serving endpoints; 11 dashboards; app **ML Models** page shows list and links to Model Registry/MLflow |
+| **1** | Deploy bundle | Prepare dashboards for prod: `uv run python scripts/prepare_dashboards.py` (prod: add `--catalog`/`--schema`). Then `databricks bundle validate -t dev` and `databricks bundle deploy -t dev`. |
+| **2** | Generate data | **Setup & Run** → “Run simulator” or Workflows → “Transaction Stream Simulator”; output `raw_payment_events`. |
+| **3** | Lakeflow ETL | **Setup & Run** → “Start ETL pipeline” or Lakeflow → “Payment Analysis ETL” → Start; Bronze → Silver → Gold. |
+| **4** | Gold views | **Setup & Run** → “Run gold views job” or Workflows → “Create Payment Analysis Gold Views”; verify `v_executive_kpis` etc. |
+| **5** | Lakehouse (SQL) | In SQL Warehouse or a notebook (same catalog/schema), run in order: (a) `vector_search_and_recommendations.sql` — Vector Search source + recommendations; (b) `approval_rules.sql` — Rules table for app + agents; (c) `online_features.sql` — Online features for ML/AI in the app. Scripts live in `src/payment_analysis/transform/`. |
+| **6** | ML models | **Setup & Run** → “Run ML training” or Workflows → “Train Payment Approval ML Models”; ~10–15 min; registers 4 models in UC. |
+| **7** | Dashboards & app | Bundle deploys 11 dashboards; warehouse from `var.warehouse_id`. App: set `.env` (DATABRICKS_HOST, TOKEN, WAREHOUSE_ID, CATALOG, SCHEMA); `uv run apx dev` or `apx build` + deploy. |
+| **8** | Model serving | After step 6, model serving deploys with bundle (or redeploy). **ML Models** page in app shows catalog/schema models. |
+| **9** | Genie / AI agents | Optional: Genie Spaces; run **Orchestrator** or other agent jobs from **Setup & Run** or Workflows. |
+| **10** | Verify | **Dashboard**: KPIs, online features, decisions. **Rules**: add/edit rules (Lakehouse). **Decisioning**: recommendations + policy test. **ML Models**: list and links to Registry/MLflow. Workspace: bronze/silver data; 4 models in UC. |
 
 ## Schema Consistency
 

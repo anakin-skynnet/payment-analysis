@@ -145,7 +145,7 @@ function Rules() {
           Approval rules (Lakehouse)
         </h1>
         <p className="text-sm text-muted-foreground mt-2">
-          Write rules into the Databricks Lakehouse. ML models and AI agents read these rules to accelerate approval rates.
+          Write rules into the Lakehouse (run approval_rules.sql in Setup step 4). ML and AI agents use them to accelerate approval rates.
         </p>
       </div>
 
@@ -174,7 +174,7 @@ function Rules() {
         <CardContent>
           {rulesQuery.isError && (
             <p className="text-sm text-destructive">
-              Failed to load rules. Ensure the Lakehouse table exists (run approval_rules.sql) and Databricks is configured.
+              Failed to load rules. Complete Setup step 4 (run approval_rules.sql in SQL Warehouse) and set .env (DATABRICKS_*).
             </p>
           )}
           {isPending && (
@@ -186,7 +186,7 @@ function Rules() {
           )}
           {!isPending && rules.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              No rules yet. Add a rule to store it in the Lakehouse; ML and AI agents will use it to accelerate approvals.
+              No rules yet. Run approval_rules.sql (Setup step 4), then add rules here. ML and AI agents will use them.
             </p>
           )}
           {!isPending && rules.length > 0 && (

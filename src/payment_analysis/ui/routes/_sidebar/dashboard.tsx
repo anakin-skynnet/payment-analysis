@@ -180,8 +180,7 @@ function Dashboard() {
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2">
-          Real-time KPIs from Unity Catalog via Lakeflow
-          streaming
+          KPIs, approval trends, and Lakehouse data (online features, recommendations). After Setup steps 1–6, data appears here.
         </p>
       </div>
 
@@ -454,7 +453,7 @@ function OnlineFeaturesCard() {
           Online features (Lakehouse)
         </CardTitle>
         <CardDescription>
-          Features from ML and AI processes stored in the Lakehouse database; run <code className="text-xs">online_features.sql</code> and populate from jobs or decisioning.
+          Features from ML and AI stored in the Lakehouse (Setup step 4: run online_features.sql). Populate from jobs or decisioning.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -470,7 +469,7 @@ function OnlineFeaturesCard() {
         )}
         {!isLoading && !isError && features.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            No features yet. Create the <code className="text-xs">online_features</code> table and populate from ML/agent jobs.
+            No features yet. Complete Setup step 4 (run online_features.sql), then populate from ML or agent jobs.
           </p>
         )}
         {!isLoading && !isError && features.length > 0 && (

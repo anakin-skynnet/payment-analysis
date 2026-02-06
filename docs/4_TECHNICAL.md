@@ -37,14 +37,41 @@ Genie 2, Model serving 3, AI Gateway 2. Details: [3_AGENTS_VALUE](3_AGENTS_VALUE
 
 `databricks.yml`: variables `catalog`, `schema`, `environment`, `warehouse_id`; include pipelines, jobs, unity_catalog, vector_search, dashboards, model_serving, genie_spaces, ai_gateway, streaming_simulator. Dashboard JSONs from `src/payment_analysis/dashboards/`. Commands: `databricks bundle validate -t dev`, `databricks bundle deploy -t dev`. For prod catalog/schema in dashboards use `./scripts/validate_bundle.sh prod`. App: `.env` (DATABRICKS_HOST, TOKEN, WAREHOUSE_ID, CATALOG, SCHEMA); `uv run apx dev` or `apx build` + deploy.
 
+## Workspace components ↔ UI mapping
+
+Every Databricks workspace component (bundle resource) is linked from the app so users can run or open it with one click.
+
+| Workspace component | Bundle resource | UI location | One-click action |
+|---------------------|-----------------|-------------|------------------|
+| Transaction Stream Simulator | `streaming_simulator.transaction_stream_simulator` | **Setup & Run** step 1 | Run simulator / Open job (run) |
+| Payment Analysis ETL (Lakeflow) | `pipelines.payment_analysis_etl` | **Setup & Run** step 2 | Start ETL pipeline / Open pipeline |
+| Create Gold Views | `ml_jobs.create_gold_views_job` | **Setup & Run** step 3 | Run gold views job / Open job (run) |
+| Lakehouse tables (SQL) | — | **Setup & Run** step 4 | Open SQL Warehouse / Explore schema |
+| Train ML Models | `ml_jobs.train_ml_models_job` | **Setup & Run** step 5 | Run ML training / Open job (run) |
+| Orchestrator Agent | `ai_gateway.orchestrator_agent_job` | **Setup & Run** step 6 | Run orchestrator / Open job (run) |
+| Specialist agents (5) | `ai_gateway.smart_routing_agent_job` etc. | **Setup & Run** step 6b | Run Smart Routing, Smart Retry, Decline Analyst, Risk Assessor, Performance Recommender / Open job each |
+| Real-time pipeline | `pipelines.payment_realtime_pipeline` | **Setup & Run** step 7 | Start real-time pipeline / Open pipeline |
+| Continuous Stream Processor | `streaming_simulator.continuous_stream_processor` | **Setup & Run** Quick links | Stream processor (run) |
+| Test Agent Framework | `ml_jobs.test_agent_framework_job` | **Setup & Run** Quick links (if job ID set) | Test Agent Framework / All jobs |
+| 11 Dashboards | `dashboards.*` | **Dashboards** page | List from `GET /api/dashboards`; click card opens in workspace |
+| Notebooks | workspace files | **Notebooks** page + Decisioning / Models / Setup | List from `GET /api/notebooks`; open folder/notebook URL |
+| AI agents (catalog) | — | **AI Agents** page | List from `GET /api/agents/agents`; Open Genie, Open agents folder |
+| ML models (UC) | Model Registry (post–train job) | **ML Models** page | List from `GET /api/analytics/models`; open Model Registry / MLflow |
+| Rules (Lakehouse) | UC table `approval_rules` | **Rules** page | CRUD via `GET/POST/PATCH/DELETE /api/rules` |
+| Recommendations / Online features | UC views/tables | **Dashboard**, **Decisioning** | `GET /api/analytics/recommendations`, `GET /api/analytics/online-features` |
+| SQL Warehouse | `sql_warehouse.payment_analysis_warehouse` | **Setup** params + Quick links | SQL Warehouse link; warehouse_id in run params |
+| Genie | `genie_spaces` (optional) | **AI Agents** | Open Genie to chat |
+
+Job and pipeline IDs in the app come from `GET /api/setup/defaults` (backend `DEFAULT_IDS` or env). Set `DATABRICKS_JOB_ID_TEST_AGENT_FRAMEWORK` after deploy to enable the Test Agent Framework quick link.
+
 ## UI & verification checklist
 
-- **Setup & Run:** Steps 1–6 + Quick links; each card opens job/pipeline in Databricks. Run triggers job/pipeline; Open opens in new tab.
-- **Dashboards:** 11 dashboards (stream ingestion, data quality, analytics); list from `GET /api/dashboards`; click card opens dashboard in workspace. Real-Time Monitoring, Streaming & Data Quality, Executive, Decline, Daily Trends, etc.
-- **Ask Data (Genie):** AI Agents page — sample prompts, "Open Genie to chat" opens Genie in workspace.
-- **ML Models:** Approval propensity, risk scoring, smart routing, smart retry + combined business impact; data from backend (catalog/schema); cards open Model Registry or MLflow.
-- **Other UI:** Dashboard home, Decisioning, Notebooks, Declines, Reason codes, Smart checkout, Smart retry — cards open related dashboard/notebook/workspace. Incidents → Real-Time Monitoring; Experiments → MLflow. Profile stays app-only (no workspace link).
-- **Verify:** `GET /api/setup/defaults`, `GET /api/dashboards`, `GET /api/analytics/models`, `GET /api/agents/agents`. Frontend: set `VITE_DATABRICKS_HOST` for Open-in-Databricks links.
+- **Setup & Run:** Steps 1–7 and 6b; every job and pipeline has a **Run** and **Open** (or equivalent) one-click action. Quick links: Jobs, Pipelines, SQL Warehouse, Explore schema, Genie, Stream processor, Test Agent Framework (if configured), All jobs.
+- **Dashboards:** 11 dashboards; list from `GET /api/dashboards`; click card opens dashboard in workspace.
+- **AI Agents:** Genie + agent list; Open Genie, Open agents folder.
+- **ML Models:** Four models; list from backend; cards open Model Registry or MLflow.
+- **Other UI:** Dashboard home, Decisioning, Rules, Notebooks, Declines, Reason codes, Smart checkout, Smart retry; each links to relevant workspace resource or API. Incidents → Real-Time Monitoring; Experiments → MLflow. Profile stays app-only.
+- **Verify:** `GET /api/setup/defaults`, `GET /api/dashboards`, `GET /api/analytics/models`, `GET /api/agents/agents`, `GET /api/rules`. Frontend: set `VITE_DATABRICKS_HOST` for Open-in-Databricks links.
 
 ---
 
