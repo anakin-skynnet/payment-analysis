@@ -1,6 +1,7 @@
 # =============================================================================
-# Lakebase (Databricks managed Postgres) - optional for rules, experiments, incidents
+# Lakebase (Databricks managed Postgres) - required for UI CRUD and ML features
 # =============================================================================
+# Rules, experiments, incidents, and ML features in the app use this database.
 # See: https://www.databricks.com/product/lakebase
 #      https://learn.microsoft.com/en-us/azure/databricks/oltp/
 # Deploys a Lakebase Provisioned instance and optionally registers it as a UC catalog.

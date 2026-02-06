@@ -1,5 +1,5 @@
 # Databricks App runtime. Python deps: requirements.txt (fastapi, uvicorn, databricks-sdk are pre-installed).
-# Optional: set PGAPPNAME to Lakebase instance name for rules/experiments/incidents DB.
+# Set PGAPPNAME to the Lakebase instance name (dev: payment-analysis-db-dev) for UI CRUD and ML features.
 command:
   - uvicorn
   - payment_analysis.backend.app:app

@@ -86,7 +86,7 @@ The app is deployed as a **Databricks App** (FastAPI + React). **Pre-installed P
 
 **requirements.txt** adds only packages *not* in the table above: `pydantic-settings==2.6.1`, `sqlmodel==0.0.27`, `psycopg==3.2.3` (pure Python; no `[binary]` to avoid build in container). See **Databricks Apps package compatibility** below.
 
-**Lakebase database:** Optional. Uncomment resources/lakebase.yml and use a unique lakebase_instance_name; then set **`PGAPPNAME`** in the app environment to that name. If unset, the app starts without DB and rules/experiments/incidents endpoints return 503.
+**Lakebase database:** Required for UI CRUD (rules, experiments, incidents) and ML features. The bundle includes `resources/lakebase.yml`. Set **`PGAPPNAME`** in the app environment to the instance name (dev: `payment-analysis-db-dev`). If unset, rules/experiments/incidents endpoints return 503.
 
 **Runtime:** `app.yaml` sets `command` (uvicorn), `PYTHONPATH=src`, and one worker. After deploy, open the app from Workspace → Apps.
 
@@ -111,7 +111,7 @@ The app is deployed as a **Databricks App** (FastAPI + React). **Pre-installed P
 | `dashboards.yml` | 12 AI/BI dashboards |
 | `app.yml` | Databricks App (payment-analysis) |
 
-**Optional (commented out in databricks.yml):** `lakebase.yml` — use a unique `lakebase_instance_name` (e.g. `--var lakebase_instance_name=payment-analysis-db-YOURNAME`) to avoid "Instance name is not unique"; then set app **PGAPPNAME**. `model_serving.yml` — run Step 6 (Train ML Models) first so 4 models exist in UC, then uncomment and redeploy.
+**Included:** `lakebase.yml` — Lakebase is required for UI CRUD and ML features; dev instance name is `payment-analysis-db-dev`; set app **PGAPPNAME** to this. **Optional (commented out):** `model_serving.yml` — run Step 6 (Train ML Models) first so 4 models exist in UC, then uncomment and redeploy.
 
 **Not in bundle (create manually if needed):** Vector Search endpoint and index are not in the Asset Bundle schema yet. See `resources/vector_search.yml` for the spec and create the endpoint/index in the Vector Search UI, or via API, after running `vector_search_and_recommendations.sql`.
 

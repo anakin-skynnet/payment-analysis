@@ -61,6 +61,7 @@ The app (FastAPI + React) is deployed to Databricks Apps via the bundle.
    - From the CLI: `databricks bundle run payment_analysis_app -t dev`
    - Or in the workspace: **Apps** → find **payment-analysis** → open and start the app.
 4. **App URL** is shown after starting (e.g. `https://<workspace-host>/apps/payment-analysis?o=...`). You can also run `databricks bundle summary -t dev` to see the app and its URL.
+5. **Lakebase (required for UI CRUD and ML features):** In **Workspace → Apps** → payment-analysis → **Edit** → **Environment**, set **PGAPPNAME** to the Lakebase instance name (dev: `payment-analysis-db-dev`). Without this, rules, experiments, incidents, and ML features in the UI will not work.
 
 The app resource is defined in `resources/app.yml`; runtime is configured in `app.yaml` (uvicorn, PYTHONPATH=src). Python dependencies for the Apps container are in `requirements.txt` at the project root (Databricks installs these during app deployment).
 
@@ -70,9 +71,10 @@ Use one catalog/schema everywhere (defaults: `ahs_demos_catalog`, `ahs_demo_paym
 
 ## Will I see all resources in my workspace?
 
-**Yes.** By default the bundle deploys (without Lakebase and model serving so deploy always succeeds):
+**Yes.** By default the bundle deploys (without model serving so deploy succeeds; Lakebase is included):
 
 - **Workspace** folder and synced files under **Workspace → Users → &lt;you&gt; → payment-analysis** (`var.workspace_folder`)
+- **Lakebase** (required for UI CRUD and ML features): instance name in dev is `payment-analysis-db-dev`. Set app env **PGAPPNAME** to this name in **Workspace → Apps** → app → Edit → Environment.
 - **Workflow (Jobs):** simulator, gold views, ML training, test agent, 6 AI agents, stream processor, Genie sync
 - **Lakeflow:** 2 pipelines (ETL, real-time)
 - **SQL** warehouse, **Unity Catalog** (schema + volumes), **12 dashboards**, **Databricks App**
@@ -81,7 +83,6 @@ Use one catalog/schema everywhere (defaults: `ahs_demos_catalog`, `ahs_demo_paym
 
 | Resource | How to enable |
 |----------|----------------|
-| **Lakebase** (Postgres for rules/experiments/incidents) | In `databricks.yml`, uncomment `resources/lakebase.yml`. Use a **unique** instance name to avoid "Instance name is not unique" (e.g. `--var lakebase_instance_name=payment-analysis-db-YOURNAME` or set in target variables). Then set app env **PGAPPNAME** to that name. |
 | **Model serving** (4 endpoints) | Run **Step 6** (Train Payment Approval ML Models) so the 4 models exist in UC. Then in `databricks.yml`, uncomment `resources/model_serving.yml` and run `./scripts/bundle.sh deploy dev` again. |
 
 **Vector Search** is not in the bundle schema; create the endpoint and index manually from `resources/vector_search.yml` after running `vector_search_and_recommendations.sql`.

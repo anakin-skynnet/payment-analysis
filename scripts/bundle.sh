@@ -31,7 +31,11 @@ case "$CMD" in
   deploy)
     prepare_dashboards
     echo "Deploying bundle (-t $TARGET)..."
-    databricks bundle deploy -t "$TARGET" --auto-approve
+    EXTRA_VARS=()
+    if [[ -n "${LAKEBASE_INSTANCE_NAME:-}" ]]; then
+      EXTRA_VARS+=(--var "lakebase_instance_name=${LAKEBASE_INSTANCE_NAME}")
+    fi
+    databricks bundle deploy -t "$TARGET" --auto-approve "${EXTRA_VARS[@]}"
     echo "Deployment complete!"
     ;;
   verify)
