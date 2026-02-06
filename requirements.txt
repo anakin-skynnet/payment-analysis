@@ -1,6 +1,5 @@
-# Databricks App: add only packages NOT pre-installed (fastapi, uvicorn, databricks-sdk are pre-installed).
-# Use wheel-friendly names; avoid source-only builds (no C compiler in container).
-# Lower bounds only; do not pin upper versions to allow compatible security updates.
-pydantic-settings>=2.0
-sqlmodel>=0.0.27
-psycopg[binary]>=3.2
+# Databricks App: only packages NOT pre-installed (fastapi, uvicorn, databricks-sdk are pre-installed).
+# Pinned versions to avoid "error installing packages" (no source builds; pure Python psycopg).
+pydantic-settings==2.6.1
+sqlmodel==0.0.27
+psycopg==3.2.3

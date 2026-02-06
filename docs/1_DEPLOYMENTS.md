@@ -113,6 +113,8 @@ If deploy failed, confirm workspace path with `./scripts/validate_bundle.sh dev`
 | ML training fails | Silver data; ML runtime; UC model registry; MLflow logs |
 | App won’t start | Ports 8000/5173; `uv sync`, `bun install`; `.env` |
 
+**Error deploying app: error installing packages** — `requirements.txt` uses pinned versions and pure `psycopg` (no `[binary]`) so pip install succeeds in the container. The world-map (global_coverage) dashboard is a Lakeview dashboard, not a Python/Node package, so it does not cause this error. If the error persists, the platform may be running `npm install` from `package.json`; ensure Node is available or see Databricks Apps docs.
+
 ## Scripts
 
 - **deploy.sh** — Runs `prepare_dashboards.py` then `databricks bundle deploy -t <target>`. Use for full deploy so `.build/dashboards` exists and dashboard paths are valid.
