@@ -4,7 +4,7 @@ Step-by-step deployment for **Payment Analysis**. **One-click run links:** [5_DE
 
 ## Prerequisites
 
-Databricks workspace (Unity Catalog), SQL Warehouse, CLI configured. Python 3.10+ with `uv`, Node 18+ with `bun`. Permissions: jobs, **Lakeflow**, model serving; write to `ahs_demos_catalog`; deploy to `/Workspace/Users/<your_email>/payment-analysis` (or `var.workspace_folder`). **Databricks App:** You cannot install system-level packages (e.g. `apt-get`, Conda); only dependencies in `requirements.txt` and `package.json` are used. See [4_TECHNICAL](4_TECHNICAL.md) (Databricks App compatibility).
+Databricks workspace (Unity Catalog), SQL Warehouse, CLI configured. Python 3.10+ with `uv`, Node 18+ with `bun`. Databricks App Node runtime is 22.16; `package.json` engines should target it (e.g. `>=22.0.0`). Permissions: jobs, **Lakeflow**, model serving; write to `ahs_demos_catalog`; deploy to `/Workspace/Users/<your_email>/payment-analysis` (or `var.workspace_folder`). **Databricks App:** You cannot install system-level packages (e.g. `apt-get`, Conda); only dependencies in `requirements.txt` and `package.json` are used. See [4_TECHNICAL](4_TECHNICAL.md) (Databricks App compatibility).
 
 ## Quick Start
 
