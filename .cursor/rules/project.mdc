@@ -60,7 +60,7 @@ uv run apx dev check
 
 **Verify all** (lint, build, backend smoke test, dashboard assets, bundle validate):
 ```bash
-./scripts/verify_all.sh [dev|prod]
+./scripts/bundle.sh verify [dev|prod]
 ```
 
 **View logs:**
@@ -82,10 +82,10 @@ uv run apx build
 
 **Deploy to Databricks** (run from repo root; prepares dashboards then deploys):
 ```bash
-./scripts/deploy.sh [dev|prod]
-# Or: ./scripts/validate_bundle.sh dev && databricks bundle deploy -t dev
+./scripts/bundle.sh deploy [dev|prod]
+# Or: ./scripts/bundle.sh validate dev && databricks bundle deploy -t dev
 ```
-Before any `databricks bundle` command (validate, deploy, run), ensure dashboard files exist: run `uv run python scripts/prepare_dashboards.py` (or with `--catalog`/`--schema` for prod)—otherwise you get "failed to read serialized dashboard from file_path .build/dashboards/...."
+Before any `databricks bundle` command (validate, deploy, run), ensure dashboard files exist: run `uv run python scripts/dashboards.py prepare` (or with `--catalog`/`--schema` for prod)—otherwise you get "failed to read serialized dashboard from file_path .build/dashboards/...."
 
 **Note:** OpenAPI client is automatically regenerated on every code change when dev servers are running. No manual regeneration needed.
 

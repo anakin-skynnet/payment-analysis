@@ -43,7 +43,7 @@ resources:
 
     create_gold_views_job:
       name: "[${var.environment}] Create Payment Analysis Gold Views"
-      description: "Execute SQL to create all gold-layer analytical views for dashboards and Genie. Uses .build/transform/gold_views.sql (run prepare_dashboards.py first) so views are created in var.catalog.var.schema."
+      description: "Execute SQL to create all gold-layer analytical views for dashboards and Genie. Uses .build/transform/gold_views.sql (run scripts/dashboards.py prepare first) so views are created in var.catalog.var.schema."
       tasks:
         - task_key: create_views
           description: "Create gold views for dashboards and analytics"

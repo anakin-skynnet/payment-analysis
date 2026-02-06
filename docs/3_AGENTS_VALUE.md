@@ -50,4 +50,4 @@ You can use [Agent Bricks](https://www.databricks.com/blog/introducing-agent-bri
 
 ---
 
-**Next:** [5_DEMO_SETUP](5_DEMO_SETUP.md) · [4_TECHNICAL](4_TECHNICAL.md)
+**Next:** [1_DEPLOYMENTS](1_DEPLOYMENTS.md) · [4_TECHNICAL](4_TECHNICAL.md)

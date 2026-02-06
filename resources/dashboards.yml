@@ -2,9 +2,9 @@
 # AI/BI Dashboards - Payment Approval Analytics
 # =============================================================================
 # Deployed dashboards use catalog/schema from bundle vars. Run before deploy:
-#   uv run python scripts/prepare_dashboards.py   (dev: uses var defaults)
-#   uv run python scripts/prepare_dashboards.py --catalog X --schema Y   (prod/custom)
-# Or: ./scripts/validate_bundle.sh [dev|prod]
+#   uv run python scripts/dashboards.py prepare   (dev: uses var defaults)
+#   uv run python scripts/dashboards.py prepare --catalog X --schema Y   (prod/custom)
+# Or: ./scripts/bundle.sh validate [dev|prod]
 # Dashboards read from ../.build/dashboards/*.lvdash.json (same catalog.schema
 # as where Create Gold Views job runs). warehouse_id from var.
 # =============================================================================
