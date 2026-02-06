@@ -1,5 +1,5 @@
 # =============================================================================
-# Lakeflow Declarative Pipelines
+# Lakeflow
 # =============================================================================
 # Two pipelines: main ETL (Bronze → Silver → Gold) and dedicated real-time stream.
 # Catalog/schema from variables. Serverless, continuous, Photon. Development mode in dev.

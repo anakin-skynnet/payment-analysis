@@ -124,19 +124,19 @@ NOTEBOOKS = [
     NotebookInfo(
         id="bronze_ingest",
         name="Bronze Layer Ingestion",
-        description="Lakeflow Declarative Pipeline for ingesting raw payment events into the bronze layer with data quality checks.",
+        description="Lakeflow for ingesting raw payment events into the bronze layer with data quality checks.",
         category=NotebookCategory.STREAMING,
         workspace_path=get_notebook_path("src/payment_analysis/streaming/bronze_ingest.py"),
-        job_name="Payment Analysis Lakeflow Declarative Pipeline",
+        job_name="Payment Analysis Lakeflow",
         tags=["dlt", "bronze", "ingestion", "data-quality"],
     ),
     NotebookInfo(
         id="realtime_pipeline",
         name="Real-Time Streaming Pipeline",
-        description="Lakeflow Declarative continuous streaming pipeline for real-time payment processing (Bronze → Silver → Gold).",
+        description="Lakeflow continuous streaming pipeline for real-time payment processing (Bronze → Silver → Gold).",
         category=NotebookCategory.STREAMING,
         workspace_path=get_notebook_path("src/payment_analysis/streaming/realtime_pipeline.py"),
-        job_name="Payment Analysis Lakeflow Declarative Pipeline",
+        job_name="Payment Analysis Lakeflow",
         tags=["dlt", "streaming", "realtime", "cdc", "continuous"],
     ),
     NotebookInfo(
@@ -153,10 +153,10 @@ NOTEBOOKS = [
     NotebookInfo(
         id="silver_transform",
         name="Silver Layer Transformations",
-        description="Lakeflow Declarative Pipeline transformations for cleaning, enriching, and validating payment data in the silver layer.",
+        description="Lakeflow transformations for cleaning, enriching, and validating payment data in the silver layer.",
         category=NotebookCategory.TRANSFORMATION,
         workspace_path=get_notebook_path("src/payment_analysis/transform/silver_transform.py"),
-        job_name="Payment Analysis Lakeflow Declarative Pipeline",
+        job_name="Payment Analysis Lakeflow",
         tags=["dlt", "silver", "transformation", "enrichment", "validation"],
     ),
     NotebookInfo(

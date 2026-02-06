@@ -1,7 +1,7 @@
 """
 Setup & Run API - Trigger jobs and pipelines from the UI.
 
-Provides endpoints to run Databricks jobs and Lakeflow Declarative Pipelines with configurable
+Provides endpoints to run Databricks jobs and Lakeflow with configurable
 parameters (catalog, schema, warehouse_id). Used by the Setup & Run page.
 """
 
@@ -100,7 +100,7 @@ class RunJobOut(BaseModel):
 
 class RunPipelineIn(BaseModel):
     """Request to run a pipeline."""
-    pipeline_id: str = Field(..., description="Lakeflow Declarative Pipeline ID")
+    pipeline_id: str = Field(..., description="Lakeflow pipeline ID")
 
 
 class RunPipelineOut(BaseModel):
@@ -175,7 +175,7 @@ def run_setup_pipeline(
     body: RunPipelineIn,
     obo_ws: WorkspaceClient = Depends(get_obo_ws),
 ) -> RunPipelineOut:
-    """Start a Lakeflow Declarative Pipeline update."""
+    """Start a Lakeflow pipeline update."""
     host = _get_workspace_host().rstrip("/")
     try:
         update = obo_ws.pipelines.start_update(pipeline_id=body.pipeline_id)

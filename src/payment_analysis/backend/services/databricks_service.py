@@ -493,7 +493,7 @@ class DatabricksService:
         """
         Submit domain feedback for an insight to the UC feedback table.
 
-        Note: in some environments, Lakeflow Declarative Pipeline-managed tables may disallow direct INSERTs.
+        Note: in some environments, Lakeflow-managed tables may disallow direct INSERTs.
         This is intended as a scaffold for the learning loop.
         """
 

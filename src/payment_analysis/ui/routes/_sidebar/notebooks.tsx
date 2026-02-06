@@ -238,7 +238,7 @@ export function Component() {
             </div>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
-            Real-time payment processing with Lakeflow Declarative Pipelines and structured streaming
+            Real-time payment processing with Lakeflow and structured streaming
           </CardContent>
         </Card>
 

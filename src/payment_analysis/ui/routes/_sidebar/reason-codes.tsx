@@ -130,7 +130,7 @@ function ReasonCodes() {
             </p>
           ) : rows.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No data yet. Run the simulator + Lakeflow Declarative Pipeline to
+              No data yet. Run the simulator + Lakeflow to
               populate UC views.
             </p>
           ) : (

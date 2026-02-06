@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Real-Time Payment Processing Pipeline
 # MAGIC 
-# MAGIC Lakeflow Declarative Pipeline for continuous streaming processing of payment events.
+# MAGIC Lakeflow for continuous streaming processing of payment events.
 
 # COMMAND ----------
 

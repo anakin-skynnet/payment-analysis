@@ -4,7 +4,7 @@ Architecture and implementation reference.
 
 ## Architecture
 
-- **Databricks:** Simulator → **Lakeflow Declarative Pipelines** (Bronze → Silver → Gold) → Unity Catalog (12+ views, 4 models). MLflow, Model Serving, AI Gateway, Genie. 10 AI/BI dashboards, SQL Warehouse.
+- **Databricks:** Simulator → **Lakeflow** (Bronze → Silver → Gold) → Unity Catalog (12+ views, 4 models). MLflow, Model Serving, AI Gateway, Genie. 10 AI/BI dashboards, SQL Warehouse.
 - **App:** FastAPI (analytics, decisioning, notebooks, dashboards, agents) ↔ React (dashboard, dashboards, notebooks, models, ai-agents, decisioning, experiments, declines).
 
 ## Data Layer
@@ -25,7 +25,7 @@ Genie 2, Model serving 3, AI Gateway 2. Details: [3_AGENTS_VALUE](3_AGENTS_VALUE
 
 ## Application Layer
 
-**Backend:** `/api/analytics`, `/api/decisioning`, `/api/notebooks`, `/api/dashboards`, `/api/agents`. UC via Databricks SQL. **Frontend:** React + TanStack Router; `lib/api.ts`. **Stack:** Delta, UC, Lakeflow Declarative Pipelines, SQL Warehouse, MLflow, Serving, Dashboards, Genie, AI Gateway, FastAPI, React, TypeScript, Bun, TailwindCSS, Databricks Asset Bundles.
+**Backend:** `/api/analytics`, `/api/decisioning`, `/api/notebooks`, `/api/dashboards`, `/api/agents`. UC via Databricks SQL. **Frontend:** React + TanStack Router; `lib/api.ts`. **Stack:** Delta, UC, Lakeflow, SQL Warehouse, MLflow, Serving, Dashboards, Genie, AI Gateway, FastAPI, React, TypeScript, Bun, TailwindCSS, Databricks Asset Bundles.
 
 ## Bundle & Deploy
 

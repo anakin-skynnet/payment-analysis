@@ -70,7 +70,7 @@ Brazil >70% volume. Entry channels (Brazil): PD ~62%, WS ~34%, SEP ~3%, Checkout
 - **Business requirement**: insights must be based on aligned, deduplicated, high-quality attempts.
 - **Solution**:
   - **Canonical attempt key**: `canonical_transaction_key` (used to dedup across intermediation paths)
-  - **Data quality expectations**: Lakeflow Declarative Pipelines expectations on required identifiers, amounts, provenance fields
+  - **Data quality expectations**: Lakeflow expectations on required identifiers, amounts, provenance fields
   - **Merchant-visible consolidation**: a single attempt record per merchant-visible outcome (used by Reason Codes)
 - **Where**:
   - Silver expectations + canonical key: `src/payment_analysis/transform/silver_transform.py`
@@ -144,8 +144,8 @@ Brazil >70% volume. Entry channels (Brazil): PD ~62%, WS ~34%, SEP ~3%, Checkout
 | Business goal | Business requirement | Technology used | Where it runs |
 |---------------|----------------------|-----------------|---------------|
 | Maximize approval rate | Reduce false declines; optimize routing and retry | ML models (approval propensity, risk, routing, retry); Unity Catalog gold views | Databricks MLflow + Model Serving; UC views queried via SQL Warehouse |
-| Service-path observability | Know which services (antifraud, 3DS, token, etc.) drive outcomes | Lakeflow Declarative Pipelines (bronze → silver → gold); `service_path` + gold views | Pipelines in Databricks; UI fetches via `/api/analytics` → Databricks SQL |
-| Single source of truth for declines | Consolidate Checkout/PD/WS/SEP; no double count | Canonical key + merchant-visible attempts; reason-code taxonomy in silver/gold | Declarative Pipeline + UC; Reason Codes UI calls `/reason-codes/*` |
+| Service-path observability | Know which services (antifraud, 3DS, token, etc.) drive outcomes | Lakeflow (bronze → silver → gold); `service_path` + gold views | Pipelines in Databricks; UI fetches via `/api/analytics` → Databricks SQL |
+| Single source of truth for declines | Consolidate Checkout/PD/WS/SEP; no double count | Canonical key + merchant-visible attempts; reason-code taxonomy in silver/gold | Lakeflow + UC; Reason Codes UI calls `/reason-codes/*` |
 | Brazil-first analytics | Segment by geography and entry system | `geo_country`, `entry_system` in pipeline; `*_br` gold views | Gold views; Smart Checkout / Reason Codes / Smart Retry pages |
 | 3DS and antifraud attribution | Funnel and decline attribution | Gold views `v_3ds_funnel_br`, `v_smart_checkout_service_path_br` | UC; Smart Checkout UI |
 | Learning loop / quality control | Expert feedback; False Insights counter-metric | `insight_feedback_silver`; `v_false_insights_metric`; submit API | Pipeline + UC; Reason Codes UI (submit + metric) |
@@ -167,6 +167,21 @@ Unified data + ML + apps; real-time; scalable; Unity Catalog; serverless.
 ## Success Metrics
 
 **Primary:** Approval 90%+; revenue recovery; false positive <2%. **Secondary:** Genie adoption, query success >85%, model latency <50ms p95. **Counter:** False Insights rate. **Monitoring:** Real-time (serving); daily (approval/retry); weekly (Genie/drift); monthly (ROI).
+
+## Plan coverage verification
+
+All topics from the Getnet initiatives and business-requirements plans are implemented and wired:
+
+| Plan topic | Implemented in repo |
+|------------|----------------------|
+| **Data foundation** (canonical key, provenance, dedup, taxonomy) | `silver_transform.py` (canonical_transaction_key, entry_system, flow_type, geo_country, decline_reason_standard/group, service_path); `merchant_visible_attempts_silver` |
+| **Smart Checkout** (service-path, 3DS funnel, antifraud attribution) | `gold_views.py` (v_smart_checkout_service_path_br, v_3ds_funnel_br); `/api/analytics` smart-checkout endpoints; `smart-checkout.tsx` |
+| **Reason Codes** (4 entry systems, unified taxonomy, insights, feedback) | `gold_views.py` (v_reason_codes_br, v_reason_code_insights_br, v_entry_system_distribution_br); `/reason-codes/*` API; `reason-codes.tsx` (incl. expert review submit) |
+| **False Insights counter-metric** | `insight_feedback_silver`, `v_false_insights_metric`; `/insights/false-insights` + submit feedback; Reason Codes UI card |
+| **Smart Retry** (recurrence vs reattempt, baseline + lift) | `silver_transform.py` (retry_scenario, time_since_last_attempt, prior_approved_count); `v_retry_performance`; `/retry/performance`; `smart-retry.tsx` |
+| **Brazil-first** (geo_country, *_br views) | Simulator + silver + gold `*_br` views; Smart Checkout / Reason Codes / Smart Retry UIs |
+| **Lakeflow** (bronze → silver → gold) | `resources/pipelines.yml`; `bronze_ingest.py`, `silver_transform.py`, `gold_views.py` |
+| **ML & agents** (decisioning, models, AI agents) | `decision.py` → Model Serving; `train_models.py`; `ai-agents.tsx`, `models.tsx`, `decisioning.tsx` |
 
 ---
 

@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Bronze Layer - Payment Events Ingestion
 # MAGIC 
-# MAGIC Lakeflow Declarative Pipeline for ingesting raw payment events into the Bronze layer.
+# MAGIC Lakeflow for ingesting raw payment events into the Bronze layer.
 
 # COMMAND ----------
 

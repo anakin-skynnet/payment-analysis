@@ -129,13 +129,13 @@ function Dashboard() {
               onClick={() => openNotebook("realtime_pipeline")}
             >
               <Code2 className="w-4 h-4 mr-2" />
-              Declarative Pipeline
+              Lakeflow
               <ExternalLink className="w-3 h-3 ml-2" />
             </Button>
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2">
-          Real-time KPIs from Unity Catalog via Lakeflow Declarative Pipeline
+          Real-time KPIs from Unity Catalog via Lakeflow
           streaming
         </p>
       </div>

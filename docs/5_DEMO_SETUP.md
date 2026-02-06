@@ -16,7 +16,7 @@ One-click links and steps. **Base URL:** Replace `<WORKSPACE_URL>` with your Dat
 
 ## Quick Links (One-Click)
 
-Replace `<WORKSPACE_URL>` in links below.
+Replace `<WORKSPACE_URL>` with your workspace URL (e.g. `https://adb-123456789.1.azuredatabricks.net`). After deploy, get `<JOB_ID>` from **Workflows** and `<PIPELINE_ID>` from **Lakeflow** (names are prefixed with `[dev ...]` or your target).
 
 | Step | Action | Link |
 |------|--------|------|
