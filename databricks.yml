@@ -20,7 +20,7 @@ workspace:
 # Vector Search: create manually from resources/vector_search.yml.
 include:
   - resources/unity_catalog.yml
-  # - resources/lakebase.yml   # Uncomment + use unique lakebase_instance_name (e.g. payment-analysis-db-<you>) to avoid name conflict
+  # - resources/lakebase.yml       # Uncomment + deploy with unique name: --var lakebase_instance_name=payment-analysis-db-<yourname>
   - resources/pipelines.yml
   - resources/sql_warehouse.yml
   - resources/ml_jobs.yml
@@ -29,7 +29,7 @@ include:
   - resources/streaming_simulator.yml
   - resources/genie_spaces.yml
   - resources/dashboards.yml
-  # - resources/model_serving.yml   # Uncomment after Step 6 (Train ML Models) so 4 models exist in UC
+  # - resources/model_serving.yml  # Uncomment after Step 6 (Train ML Models) so 4 models exist in UC
   - resources/app.yml
 
 # -----------------------------------------------------------------------------
