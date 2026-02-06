@@ -58,11 +58,37 @@ Variables (in `databricks.yml`): `lakebase_instance_name`, `lakebase_capacity` (
 
 ## Databricks App (deploy)
 
-The app is deployed as a **Databricks App** (FastAPI + React). **Pre-installed** (do not add to requirements.txt): `fastapi`, `uvicorn[standard]`, `databricks-sdk`. **requirements.txt** adds only: `pydantic-settings>=2.0`, `sqlmodel>=0.0.27`, `psycopg[binary]>=3.2`. Use lower bounds only; avoid upper pins and source-only packages so install succeeds in the App container (no C compiler).
+The app is deployed as a **Databricks App** (FastAPI + React). **Pre-installed Python libraries** (do not add to requirements.txt):
+
+| Library | Version |
+|---------|---------|
+| databricks-sql-connector | 3.4.0 |
+| databricks-sdk | 0.33.0 |
+| mlflow-skinny | 2.16.2 |
+| gradio | 4.44.0 |
+| streamlit | 1.38.0 |
+| shiny | 1.1.0 |
+| dash | 2.18.1 |
+| flask | 3.0.3 |
+| fastapi | 0.115.0 |
+| uvicorn[standard] | 0.30.6 |
+| gunicorn | 23.0.0 |
+| huggingface-hub | 0.35.3 |
+| dash-ag-grid | 31.2.0 |
+| dash-mantine-components | 0.14.4 |
+| dash-bootstrap-components | 1.6.0 |
+| plotly | 5.24.1 |
+| plotly-resampler | 0.10.0 |
+
+**requirements.txt** adds only packages *not* in the table above: `pydantic-settings==2.6.1`, `sqlmodel==0.0.27`, `psycopg==3.2.3` (pure Python; no `[binary]` to avoid build in container). See **Databricks Apps package compatibility** below.
 
 **Lakebase database:** Optional. Uncomment resources/lakebase.yml and use a unique lakebase_instance_name; then set **`PGAPPNAME`** in the app environment to that name. If unset, the app starts without DB and rules/experiments/incidents endpoints return 503. Local dev uses `APX_DEV_DB_PORT` instead.
 
 **Runtime:** `app.yaml` sets `command` (uvicorn), `PYTHONPATH=src`, and one worker. After deploy, open the app from Workspace → Apps.
+
+**Version strategy (Databricks App deployment):** Pin versions for reproducibility and to avoid drift. **Python:** Overriding a pre-installed Python package with a specific version is supported and recommended when stability matters. `requirements.txt` (App runtime) and `pyproject.toml` (local dev) share the same pins for overlapping packages (`pydantic-settings`, `sqlmodel`, `psycopg`). **Node:** `package.json` uses exact pinned versions (no `^`); lockfile is the single source of resolved versions. Always test after version changes (e.g. `uv run apx dev check`, `uv run apx build`, then deploy).
+
+**Databricks Apps package compatibility** — App runtime: **Python 3.11**, **Node.js 22.16**, Ubuntu 22.04 ([system env](https://docs.databricks.com/en/dev-tools/databricks-apps/system-env)). **You cannot install system-level packages** (e.g. via `apt-get` or Conda)—app dependencies are restricted to **requirements.txt** (Python) and **package.json** (Node). **Python:** Only add packages not pre-installed; use pinned versions and pure-Python drivers (e.g. `psycopg` not `psycopg[binary]`) so `pip install` succeeds without a C compiler or system libs. **Node:** Anything required for `npm run build` must be under **dependencies** (not devDependencies), because with `NODE_ENV=production` the platform may skip installing devDependencies ([Manage dependencies](https://docs.databricks.com/en/dev-tools/databricks-apps/dependencies)). No Node libraries are pre-installed. Resolve TanStack peer conflicts by aligning versions: keep `@tanstack/react-router`, `@tanstack/router-plugin`, and `@tanstack/react-router-devtools` on the same major.minor (e.g. all **1.158.1**); do not use `--force` or `--legacy-peer-deps`. After version changes, clear and reinstall to ensure a clean graph (e.g. delete `node_modules` and lockfile, then `npm install` or `bun install`). Verify with `npm ls @tanstack/react-router` that a single compatible version is installed.
 
 ## Bundle & Deploy
 

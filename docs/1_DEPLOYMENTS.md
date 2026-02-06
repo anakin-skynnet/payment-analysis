@@ -4,7 +4,7 @@ Step-by-step deployment for **Payment Analysis**. **One-click run links:** [5_DE
 
 ## Prerequisites
 
-Databricks workspace (Unity Catalog), SQL Warehouse, CLI configured. Python 3.10+ with `uv`, Node 18+ with `bun`. Permissions: jobs, **Lakeflow**, model serving; write to `ahs_demos_catalog`; deploy to `/Workspace/Users/<your_email>/payment-analysis` (or `var.workspace_folder`).
+Databricks workspace (Unity Catalog), SQL Warehouse, CLI configured. Python 3.10+ with `uv`, Node 18+ with `bun`. Permissions: jobs, **Lakeflow**, model serving; write to `ahs_demos_catalog`; deploy to `/Workspace/Users/<your_email>/payment-analysis` (or `var.workspace_folder`). **Databricks App:** You cannot install system-level packages (e.g. `apt-get`, Conda); only dependencies in `requirements.txt` and `package.json` are used. See [4_TECHNICAL](4_TECHNICAL.md) (Databricks App compatibility).
 
 ## Quick Start
 
@@ -113,7 +113,7 @@ If deploy failed, confirm workspace path with `./scripts/validate_bundle.sh dev`
 | ML training fails | Silver data; ML runtime; UC model registry; MLflow logs |
 | App won’t start | Ports 8000/5173; `uv sync`, `bun install`; `.env` |
 
-**Error deploying app: error installing packages** — `requirements.txt` uses pinned versions and pure `psycopg` (no `[binary]`) so pip install succeeds in the container. The world-map (global_coverage) dashboard is a Lakeview dashboard, not a Python/Node package, so it does not cause this error. If the error persists, the platform may be running `npm install` from `package.json`; ensure Node is available or see Databricks Apps docs.
+**Error deploying app: error installing packages** — `requirements.txt` uses pinned versions and pure `psycopg` (no `[binary]`) so pip install succeeds in the container. The world-map (global_coverage) dashboard is a Lakeview dashboard, not a Python/Node package, so it does not cause this error. If the error persists, the platform may be running `npm install` from `package.json`: ensure `@tanstack/react-router`, `@tanstack/router-plugin`, and `@tanstack/react-router-devtools` are aligned to the same version (e.g. all 1.158.1) so peer dependency resolution succeeds; see [4_TECHNICAL](4_TECHNICAL.md) (version strategy and Databricks Apps package compatibility).
 
 ## Scripts
 

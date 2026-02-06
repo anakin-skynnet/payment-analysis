@@ -5,12 +5,12 @@ description = "Payment approval rate optimization platform on Databricks — str
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.119.0",
-    "pydantic-settings>=2.11.0",
-    "uvicorn>=0.37.0",
-    "databricks-sdk>=0.74.0",
-    "sqlmodel>=0.0.27",
-    "psycopg[binary,pool]>=3.2.11",
+    "databricks-sdk==0.84.0",
+    "fastapi==0.128.0",
+    "psycopg[binary,pool]==3.2.3",
+    "pydantic-settings==2.6.1",
+    "sqlmodel==0.0.27",
+    "uvicorn==0.40.0",
 ]
 
 [dependency-groups]

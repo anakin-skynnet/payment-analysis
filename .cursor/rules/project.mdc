@@ -85,7 +85,7 @@ uv run apx build
 ./scripts/deploy.sh [dev|prod]
 # Or: ./scripts/validate_bundle.sh dev && databricks bundle deploy -t dev
 ```
-Before any `databricks bundle` command (validate, deploy, run), ensure dashboard files exist: run `./scripts/ensure_dashboards.sh [dev|prod]` or `uv run python scripts/prepare_dashboards.py`—otherwise you get "failed to read serialized dashboard from file_path .build/dashboards/...."
+Before any `databricks bundle` command (validate, deploy, run), ensure dashboard files exist: run `uv run python scripts/prepare_dashboards.py` (or with `--catalog`/`--schema` for prod)—otherwise you get "failed to read serialized dashboard from file_path .build/dashboards/...."
 
 **Note:** OpenAPI client is automatically regenerated on every code change when dev servers are running. No manual regeneration needed.
 
