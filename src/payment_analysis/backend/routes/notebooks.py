@@ -120,7 +120,7 @@ NOTEBOOKS = [
     NotebookInfo(
         id="bronze_ingest",
         name="Bronze Layer Ingestion",
-        description="Delta Live Tables pipeline for ingesting raw payment events into the bronze layer with data quality checks.",
+        description="Lakeflow Declarative Pipeline for ingesting raw payment events into the bronze layer with data quality checks.",
         category=NotebookCategory.STREAMING,
         workspace_path=get_notebook_path("src/payment_analysis/streaming/bronze_ingest.py"),
         job_name="Payment Analysis DLT Pipeline",
@@ -129,7 +129,7 @@ NOTEBOOKS = [
     NotebookInfo(
         id="realtime_pipeline",
         name="Real-Time Streaming Pipeline",
-        description="Delta Live Tables continuous streaming pipeline for real-time payment processing (Bronze → Silver → Gold).",
+        description="Lakeflow Declarative continuous streaming pipeline for real-time payment processing (Bronze → Silver → Gold).",
         category=NotebookCategory.STREAMING,
         workspace_path=get_notebook_path("src/payment_analysis/streaming/realtime_pipeline.py"),
         job_name="Payment Analysis DLT Pipeline",
@@ -149,7 +149,7 @@ NOTEBOOKS = [
     NotebookInfo(
         id="silver_transform",
         name="Silver Layer Transformations",
-        description="Delta Live Tables transformations for cleaning, enriching, and validating payment data in the silver layer.",
+        description="Lakeflow Declarative Pipeline transformations for cleaning, enriching, and validating payment data in the silver layer.",
         category=NotebookCategory.TRANSFORMATION,
         workspace_path=get_notebook_path("src/payment_analysis/transform/silver_transform.py"),
         job_name="Payment Analysis DLT Pipeline",

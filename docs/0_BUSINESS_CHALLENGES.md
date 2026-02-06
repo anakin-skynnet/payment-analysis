@@ -35,7 +35,7 @@ A **Databricks-powered platform** that maximizes payment approval rates through:
 
 ## Platform Capabilities
 
-- **Real-time processing** – 1,000+ transactions/second; ML-based routing and risk assessment; Delta Live Tables (Bronze → Silver → Gold)
+- **Real-time processing** – 1,000+ transactions/second; ML-based routing and risk assessment; Lakeflow Declarative Pipelines (Bronze → Silver → Gold)
 - **ML models** – Approval propensity (~92%), risk scoring (~88%), smart routing (~75%), smart retry (~81%)
 - **AI agents** – 2 Genie, 3 model-serving, 2 AI Gateway (Llama 3.1 70B)
 - **Analytics** – 10 AI/BI dashboards, 12+ gold views, real-time monitoring, Genie self-service

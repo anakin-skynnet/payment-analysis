@@ -160,7 +160,7 @@ class DedupCollisionStatsOut(BaseModel):
 
 @router.get("/kpis", response_model=KPIOut, operation_id="getKpis")
 def kpis(session: SessionDep) -> KPIOut:
-    """Get KPIs from local Lakebase database."""
+    """Get KPIs from local database."""
     total = session.exec(select(func.count(AuthorizationEvent.id))).one() or 0
     approved = (
         session.exec(
@@ -368,7 +368,7 @@ def recent_decisions(
     operation_id="declineSummary",
 )
 def decline_summary(session: SessionDep, limit: int = 20) -> list[DeclineBucketOut]:
-    """Get decline summary from local Lakebase database."""
+    """Get decline summary from local database."""
     limit = max(1, min(limit, 100))
     stmt = (
         select(

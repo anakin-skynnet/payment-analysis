@@ -1,4 +1,4 @@
-# Delta Live Tables Pipelines
+# Lakeflow Declarative Pipelines
 # Optimized for continuous processing and cost (autoscale, idle timeout, shared config)
 
 resources:

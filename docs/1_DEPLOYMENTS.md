@@ -55,7 +55,7 @@ databricks bundle deploy --target dev
 
 **Purpose:** Bronze → Silver → Gold.
 
-- **UI:** Delta Live Tables → “Payment Analysis DLT Pipeline” → Start  
+- **UI:** Lakeflow Declarative Pipelines → “Payment Analysis DLT Pipeline” → Start  
 - **Tables:** `payments_bronze`, `payments_enriched_silver`, 12+ gold views  
 - **Wait:** Pipeline RUNNING and first batch (~5 min)
 

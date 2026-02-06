@@ -6,13 +6,13 @@ interface LogoProps {
   showText?: boolean;
 }
 
-export function Logo({ to = "/", className = "", showText = true }: LogoProps) {
+export function Logo({ to = "/", className = "", showText = false }: LogoProps) {
   const content = (
     <div className={`flex items-center gap-2 ${className}`}>
       <img
-        src="/logo.svg"
-        alt="logo"
-        className="h-6 w-6 text-primary border border-primary rounded-sm"
+        src="/getnet_logo.png"
+        alt="Getnet"
+        className="h-8 object-contain"
       />
       {showText && (
         <span className="font-semibold text-lg">{__APP_NAME__}</span>

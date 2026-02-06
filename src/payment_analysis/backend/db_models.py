@@ -16,7 +16,7 @@ class AuthorizationEvent(SQLModel, table=True):
     """
     Persisted authorization outcomes (issuer/PSP result).
 
-    In a real deployment this would be fed by Lakeflow streaming into Lakebase.
+    In a real deployment this would be fed by Lakeflow streaming into Unity Catalog.
     For the scaffold, we keep it minimal but queryable for KPI dashboards.
     """
 

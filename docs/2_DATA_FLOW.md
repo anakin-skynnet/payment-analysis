@@ -89,4 +89,4 @@ INGESTION → PROCESSING → INTELLIGENCE → ANALYTICS → APPLICATION
 
 ## Technologies
 
-Delta Lake, Unity Catalog, Delta Live Tables, MLflow, Model Serving, AI/BI Dashboards, Genie, AI Gateway (Llama 3.1), FastAPI, React/TanStack Router. Deploy with **Databricks Asset Bundles**; see [1_DEPLOYMENTS](1_DEPLOYMENTS.md).
+Delta Lake, Unity Catalog, Lakeflow Declarative Pipelines, MLflow, Model Serving, AI/BI Dashboards, Genie, AI Gateway (Llama 3.1), FastAPI, React/TanStack Router. Deploy with **Databricks Asset Bundles**; see [1_DEPLOYMENTS](1_DEPLOYMENTS.md).
