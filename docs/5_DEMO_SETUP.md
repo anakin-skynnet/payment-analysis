@@ -6,7 +6,7 @@ One-click links and steps. **Base URL:** Replace `<WORKSPACE_URL>` with your Dat
 
 | Order | Step | Description |
 |-------|------|-------------|
-| 1 | Deploy bundle | `databricks bundle deploy -t dev` — [1_DEPLOYMENTS](1_DEPLOYMENTS.md) |
+| 1 | Deploy bundle | `./scripts/deploy.sh dev` — [1_DEPLOYMENTS](1_DEPLOYMENTS.md) |
 | 2 | Data ingestion | Run Transaction Stream Simulator |
 | 3 | ETL (Lakeflow) | Start Payment Analysis ETL pipeline (Bronze → Silver → Gold) |
 | 4 | Gold views | Run Create Payment Analysis Gold Views job |
@@ -34,4 +34,4 @@ Replace `<WORKSPACE_URL>` with your workspace URL. After deploy, get job IDs fro
 
 ## Deploy first
 
-If not deployed: `databricks bundle deploy -t dev`. Full steps: [1_DEPLOYMENTS](1_DEPLOYMENTS.md).
+If not deployed: `./scripts/deploy.sh dev`. Full steps: [1_DEPLOYMENTS](1_DEPLOYMENTS.md).
