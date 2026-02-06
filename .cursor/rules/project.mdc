@@ -5,13 +5,12 @@ alwaysApply: true
 # Cursor Agent Rules
 
 # Do's and Don'ts
-- OpenAPI client auto-regenerates on code changes when dev servers are running - don't manually regenerate.
+- OpenAPI client is generated at build time; don't manually regenerate.
 - Prefer running apx related commands via MCP server if it's available.
 - Use the apx MCP `search_registry_components` and `add_component` tools to find and add shadcn/ui components.
 - When using the API calls on the frontend, use error boundaries to handle errors.
 - Run `apx dev check` command (via CLI or MCP) to check for errors in the project code after making changes.
 - If agent has access to native browser tool, use it to verify changes on the frontend. If such tool is not present or is not working, use playwright MCP to automate browser actions (e.g. screenshots, clicks, etc.).
-- Avoid unnecessary restarts of the development servers
 - **Databricks SDK:** Use the apx MCP `docs` tool to search Databricks SDK documentation instead of guessing or hallucinating API signatures.
 - Always use Databricks latest features, releases and naming
 - When mentioning an APP in a prompt, always confirm if it is referring ot a Databricks APP
@@ -43,36 +42,16 @@ Full-stack app: `src/payment-analysis/ui/` (React + Vite) and `src/payment-analy
 
 ## Development Commands
 
-**Start dev servers** (backend, frontend, OpenAPI watcher):
-```bash
-uv run apx dev start
-```
-
-**Check status** (shows running servers and ports):
-```bash
-uv run apx dev status
-```
+App is deployed to Databricks (not run locally). Use these for validation and deployment:
 
 **Check for errors** (TypeScript, Python linting):
 ```bash
 uv run apx dev check
 ```
 
-**Verify all** (lint, build, backend smoke test, dashboard assets, bundle validate):
+**Verify all** (build, backend smoke test, dashboard assets, bundle validate):
 ```bash
 ./scripts/bundle.sh verify [dev|prod]
-```
-
-**View logs:**
-```bash
-uv run apx dev logs              # Recent logs (default: last 10m)
-uv run apx dev logs -d 1h        # Logs from last hour
-uv run apx dev logs -f           # Follow/stream logs live
-```
-
-**Stop servers:**
-```bash
-uv run apx dev stop
 ```
 
 **Build for production:**
@@ -87,18 +66,12 @@ uv run apx build
 ```
 Before any `databricks bundle` command (validate, deploy, run), ensure dashboard files exist: run `uv run python scripts/dashboards.py prepare` (or with `--catalog`/`--schema` for prod)—otherwise you get "failed to read serialized dashboard from file_path .build/dashboards/...."
 
-**Note:** OpenAPI client is automatically regenerated on every code change when dev servers are running. No manual regeneration needed.
-
 ## MCP Tools Reference
 
 When the apx MCP server is available, use these tools:
 
 | Tool | Description |
 |------|-------------|
-| `start` | Start development server and return the URL |
-| `stop` | Stop the development server |
-| `restart` | Restart the development server (preserves port if possible) |
-| `logs` | Fetch recent dev server logs |
 | `check` | Check project code for errors (runs tsc and ty checks in parallel) |
 | `refresh_openapi` | Regenerate OpenAPI schema and API client |
 | `search_registry_components` | Search shadcn registry components using semantic search |

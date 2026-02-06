@@ -7,6 +7,8 @@ description: Quick reference for apx toolkit commands and MCP tools for building
 
 apx is the toolkit for building full-stack Databricks Apps with React + FastAPI.
 
+**This project:** The app is deployed to Databricks (not run locally). Use `uv run apx build` and `./scripts/bundle.sh deploy [dev|prod]` to deploy. Use `uv run apx dev check` for validation.
+
 ## 📦 Project Structure
 
 ```

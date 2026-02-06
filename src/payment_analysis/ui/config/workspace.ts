@@ -29,7 +29,7 @@ export function getWorkspaceUrl(): string {
   }
   
   // Final fallback: empty string disables external links until configured
-  // Set VITE_DATABRICKS_HOST in .env or the backend will provide the URL
+  // Set VITE_DATABRICKS_HOST at build time or the backend will provide the URL
   return '';
 }
 

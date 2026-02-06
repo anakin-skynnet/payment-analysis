@@ -68,7 +68,7 @@ if _dist_dir.exists():
 else:
     logger.warning(
         "UI dist directory not found at %s; serving API only. "
-        "Run `uv run apx build` (or `uv run apx dev start`) to generate frontend assets.",
+        "Run `uv run apx build` to generate frontend assets before deploying.",
         _dist_dir,
     )
 

@@ -28,7 +28,7 @@ For prod with different catalog/schema, run `./scripts/bundle.sh validate prod` 
 | 4 | Gold views | App **Setup & Run** or Workflows | Run **Create Payment Analysis Gold Views**; verify `v_executive_kpis` |
 | 5 | Lakehouse tables (SQL) | SQL Warehouse / Notebook | Run in order: `app_config.sql`, `vector_search_and_recommendations.sql`, `approval_rules.sql`, `online_features.sql` (same catalog/schema) |
 | 6 | Train ML models | App **Setup & Run** or Workflows | Run **Train Payment Approval ML Models** (~10–15 min); 4 models in UC |
-| 7 | Dashboards & app | — | 12 dashboards in bundle; app: `.env` + `uv run apx dev` or deploy |
+| 7 | Dashboards & app | — | 12 dashboards in bundle; app: deploy as Databricks App (see below) |
 | 8 | Model serving | After step 6 | Redeploy bundle (model_serving.yml) or already included |
 | 9 | AI agents (optional) | Workflows | Run **Orchestrator** or other agents in `agents.yml`; Genie optional |
 | 10 | Verify | App + Workspace | KPIs on **Dashboard**; **Rules**, **Decisioning**, **ML Models**; 4 models in UC. All jobs/pipelines have one-click Run and Open in **Setup & Run** (steps 1–7 and 6b; Quick links for Stream processor and Test Agent Framework). |
@@ -43,14 +43,14 @@ For prod with different catalog/schema, run `./scripts/bundle.sh validate prod` 
 | **4** | Gold views | **Setup & Run** → “Run gold views job” or Workflows → “Create Payment Analysis Gold Views”; verify `v_executive_kpis` etc. |
 | **5** | Lakehouse (SQL) | In SQL Warehouse or a notebook (same catalog/schema), run in order: (a) `app_config.sql` — single-row table for app catalog/schema (used by UI and all Lakehouse operations); (b) `vector_search_and_recommendations.sql` — Vector Search source + recommendations; (c) `approval_rules.sql` — Rules table for app + agents; (d) `online_features.sql` — Online features for ML/AI in the app. Scripts live in `src/payment_analysis/transform/`. |
 | **6** | ML models | **Setup & Run** → “Run ML training” or Workflows → “Train Payment Approval ML Models”; ~10–15 min; registers 4 models in UC. |
-| **7** | Dashboards & app | Bundle deploys 12 dashboards; warehouse from `var.warehouse_id`. App: set `.env` (DATABRICKS_HOST, TOKEN, WAREHOUSE_ID, and optionally DATABRICKS_CATALOG, DATABRICKS_SCHEMA for bootstrap); run locally with `uv run apx dev`, or deploy as a Databricks App (see **Deploy app as a Databricks App** below). Effective catalog/schema can be set in the UI via **Setup & Run** → **Save catalog & schema**. |
+| **7** | Dashboards & app | Bundle deploys 12 dashboards; warehouse from `var.warehouse_id`. Deploy the app as a Databricks App (see **Deploy app as a Databricks App** below). Effective catalog/schema can be set in the UI via **Setup & Run** → **Save catalog & schema**. |
 | **8** | Model serving | After step 6, model serving deploys with bundle (or redeploy). **ML Models** page in app shows catalog/schema models. |
 | **9** | Genie / AI agents | Optional: Genie Spaces; run **Orchestrator** or other agent jobs from **Setup & Run** or Workflows. |
 | **10** | Verify | **Dashboard**: KPIs, online features, decisions. **Rules**: add/edit rules (Lakehouse). **Decisioning**: recommendations + policy test. **ML Models**: list and links to Registry/MLflow. Workspace: bronze/silver data; 4 models in UC. |
 
 ## Deploy app as a Databricks App
 
-The same app you run at **http://localhost:8000** (FastAPI + React UI) can be deployed to Databricks Apps via the bundle.
+The app (FastAPI + React) is deployed to Databricks Apps via the bundle.
 
 1. **Build** the frontend and wheel (so the app serves the UI):  
    `uv run apx build`
@@ -106,18 +106,19 @@ If deploy failed, confirm workspace path with `./scripts/bundle.sh validate dev`
 
 | Issue | Actions |
 |-------|---------|
+| **Database instance is in STARTING state** (bundle deploy) | Lakebase is still provisioning. Wait a few minutes and run `./scripts/bundle.sh deploy dev` again. |
 | Don't see resources | Redeploy after commenting out `model_serving.yml` if deploy failed; check workspace path with `./scripts/bundle.sh validate dev`. |
+| **Registered model '...' does not exist** (model serving) | Run **Step 6** (Train Payment Approval ML Models) so the 4 models exist in UC. Then uncomment `resources/model_serving.yml` and run `./scripts/bundle.sh deploy dev` again. |
 | Lakebase "Instance name is not unique" | Use a unique `lakebase_instance_name` (e.g. `payment-analysis-db-<yourname>`) via `--var lakebase_instance_name=...` or target variables. Or leave Lakebase commented out in `databricks.yml`. |
 | Lakeflow fails | Pipeline logs; confirm `raw_payment_events`; UC permissions; `pipelines reset` if needed |
 | Dashboards empty | Gold views + data; warehouse running; warehouse_id in config |
 | ML training fails | Silver data; ML runtime; UC model registry; MLflow logs |
-| App won’t start | Ports 8000/5173; `uv sync`, `bun install`; `.env` |
 
-**Error deploying app: error installing packages** — `requirements.txt` uses pinned versions and pure `psycopg` (no `[binary]`) so pip install succeeds in the container. The world-map (global_coverage) dashboard is a Lakeview dashboard, not a Python/Node package, so it does not cause this error. If the error persists, the platform may be running `npm install` from `package.json`: ensure all three TanStack packages are **1.158.1** and `package.json` has **overrides** for `@tanstack/react-router`, `@tanstack/react-router-devtools`, and `@tanstack/router-plugin` at 1.158.1. Do not commit `package-lock.json` (use `bun.lock` only). Then redeploy. To reproduce locally: delete `node_modules` and `package-lock.json` (if present), run `npm install`, then `npm ls @tanstack/react-router` to confirm a single version. See [4_TECHNICAL](4_TECHNICAL.md) (Databricks Apps package compatibility).
+**Error deploying app: error installing packages** — `requirements.txt` uses pinned versions and pure `psycopg` (no `[binary]`) so pip install succeeds in the container. The world-map (global_coverage) dashboard is a Lakeview dashboard, not a Python/Node package, so it does not cause this error. If the error persists, the platform may be running `npm install` from `package.json`: ensure all three TanStack packages are **1.158.1** and `package.json` has **overrides** for `@tanstack/react-router`, `@tanstack/react-router-devtools`, and `@tanstack/router-plugin` at 1.158.1. Do not commit `package-lock.json` (use `bun.lock` only). Then redeploy. See [4_TECHNICAL](4_TECHNICAL.md) (Databricks Apps package compatibility).
 
 ## Scripts
 
-- **bundle.sh** — Single script for bundle and verification. **`./scripts/bundle.sh deploy [dev|prod]`** — prepare dashboards then deploy. **`./scripts/bundle.sh validate [dev|prod]`** — prepare then validate (use before deploy). **`./scripts/bundle.sh verify [dev|prod]`** — full pre-commit: apx dev check, build, backend smoke test, dashboard assets, bundle validate.
+- **bundle.sh** — Single script for bundle and verification. **`./scripts/bundle.sh deploy [dev|prod]`** — prepare dashboards then deploy. **`./scripts/bundle.sh validate [dev|prod]`** — prepare then validate (use before deploy). **`./scripts/bundle.sh verify [dev|prod]`** — build, backend smoke test, dashboard assets, bundle validate.
 - **dashboards.py** — **`prepare`** copies dashboard JSONs and gold_views.sql to `.build/` (run by bundle.sh). **`validate-assets`** lists required tables/views. **`publish`** publishes all 12 dashboards with embed credentials after deploy: `uv run python scripts/dashboards.py publish` (optional `--path`).
 
 ## Demo setup & one-click run

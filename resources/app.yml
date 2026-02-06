@@ -1,10 +1,9 @@
 # =============================================================================
 # Databricks App - Payment Approval Optimization Platform
 # =============================================================================
-# Deploys the same app as http://localhost:8000 (FastAPI + React UI) to
-# Databricks Apps. After bundle deploy, run the app via UI or:
-#   databricks bundle run payment_analysis_app -t dev
-# App URL will be shown in bundle summary or in Workspace → Apps.
+# Deploys the app (FastAPI + React UI) to Databricks Apps. After bundle deploy,
+# run the app via Workspace → Apps or: databricks bundle run payment_analysis_app -t dev
+# App URL is shown in bundle summary or in Workspace → Apps.
 # =============================================================================
 
 resources:

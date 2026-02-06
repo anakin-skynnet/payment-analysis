@@ -15,11 +15,6 @@ Databricks-powered payment approval optimization: real-time analytics, ML models
 
 1. **Deploy:** `./scripts/bundle.sh deploy dev` (prepares dashboards, then deploys; or `./scripts/bundle.sh validate dev` then `databricks bundle deploy -t dev`)
 2. **Run pipeline:** Use app **Setup & Run** (steps 2–6) or [1_DEPLOYMENTS](docs/1_DEPLOYMENTS.md#demo-setup--one-click-run): data ingestion → ETL → gold views → Lakehouse SQL → ML training → agents.
-3. **App:** `uv sync && bun install` then `uv run apx dev` (set `.env` for Databricks).
+3. **App:** Deploy as a Databricks App; open the app from **Workspace → Apps**. The URL is shown in the Apps UI (e.g. `https://<workspace>/apps/<app-id>`).
 
 See [4_TECHNICAL](docs/4_TECHNICAL.md) (Bundle & Deploy) and [1_DEPLOYMENTS](docs/1_DEPLOYMENTS.md) for variables, commands, and one-click run links.
-
-## App URL
-
-- **Local:** After `uv run apx dev`, open **http://localhost:8000** (backend serves the app and API at `/api`).
-- **Databricks Apps:** If you deploy the app as a Databricks App, the URL is shown in the Apps UI (e.g. `https://<workspace>/apps/<app-id>`).

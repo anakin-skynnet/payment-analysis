@@ -174,7 +174,7 @@ function Rules() {
         <CardContent>
           {rulesQuery.isError && (
             <p className="text-sm text-destructive">
-              Failed to load rules. Complete Setup step 4 (run approval_rules.sql in SQL Warehouse) and set .env (DATABRICKS_*).
+              Failed to load rules. Complete Setup step 4 (run approval_rules.sql in SQL Warehouse) and ensure Databricks connection is configured in Setup & Run.
             </p>
           )}
           {isPending && (
