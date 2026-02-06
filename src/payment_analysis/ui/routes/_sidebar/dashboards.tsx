@@ -120,7 +120,7 @@ export function Component() {
       <div>
         <h1 className="text-3xl font-bold">Analytics Dashboards</h1>
         <p className="text-muted-foreground mt-2">
-          Access all payment analysis dashboards powered by Databricks Lakeview
+          Access all payment analysis dashboards powered by Databricks AI/BI
         </p>
       </div>
 
@@ -265,7 +265,7 @@ export function Component() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           <p>
-            All dashboards are powered by Databricks Lakeview and provide real-time insights into
+            All dashboards are powered by Databricks AI/BI and provide real-time insights into
             your payment processing operations. Click any dashboard to open it in a new tab.
           </p>
           <ul className="list-disc list-inside mt-2 space-y-1">

@@ -17,21 +17,21 @@
 
 # COMMAND ----------
 
-import mlflow
-import mlflow.sklearn
-import pandas as pd
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-from sklearn.preprocessing import LabelEncoder
-from mlflow.models.signature import infer_signature
+import mlflow  # type: ignore[import-untyped]
+import mlflow.sklearn  # type: ignore[import-untyped]
+import pandas as pd  # type: ignore[import-untyped]
+import numpy as np  # type: ignore[import-untyped]
+from sklearn.ensemble import RandomForestClassifier  # type: ignore[import-untyped]
+from sklearn.model_selection import train_test_split  # type: ignore[import-untyped]
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score  # type: ignore[import-untyped]
+from sklearn.preprocessing import LabelEncoder  # type: ignore[import-untyped]
+from mlflow.models.signature import infer_signature  # type: ignore[import-untyped]
 import warnings
 warnings.filterwarnings('ignore')
 
 # Get parameters from widgets or use defaults
-dbutils.widgets.text("catalog", "main")
-dbutils.widgets.text("schema", "payment_analysis_dev")
+dbutils.widgets.text("catalog", "ahs_demos_catalog")
+dbutils.widgets.text("schema", "ahs_demo_payment_analysis_dev")
 
 CATALOG = dbutils.widgets.get("catalog")
 SCHEMA = dbutils.widgets.get("schema")
@@ -43,8 +43,8 @@ mlflow.set_registry_uri("databricks-uc")
 # Create or set experiment
 try:
     mlflow.create_experiment(EXPERIMENT_PATH)
-except:
-    pass
+except Exception:
+    pass  # Experiment already exists
 mlflow.set_experiment(EXPERIMENT_PATH)
 
 print("✓ Configuration complete")
@@ -69,10 +69,16 @@ SELECT
     device_trust_score,
     is_cross_border,
     retry_count,
+    retry_scenario,
+    attempt_sequence,
+    time_since_last_attempt_seconds,
+    prior_approved_count,
+    merchant_retry_policy_max_attempts,
     merchant_segment,
     uses_3ds,
     payment_solution,
     decline_reason,
+    decline_reason_standard,
     is_recurring,
     is_approved,
     processing_time_ms
@@ -99,10 +105,16 @@ except Exception as e:
         'device_trust_score': np.clip(np.random.beta(8, 2, n_samples), 0, 1),
         'is_cross_border': np.random.choice([0, 1], n_samples, p=[0.7, 0.3]),
         'retry_count': np.random.choice([0, 1, 2, 3], n_samples, p=[0.7, 0.15, 0.1, 0.05]),
+        'retry_scenario': np.random.choice(['None', 'PaymentRetry', 'PaymentRecurrence'], n_samples, p=[0.75, 0.15, 0.10]),
+        'attempt_sequence': np.random.choice([1, 2, 3], n_samples, p=[0.85, 0.10, 0.05]),
+        'time_since_last_attempt_seconds': np.random.choice([0, 60, 3600, 86400, 172800], n_samples, p=[0.85, 0.03, 0.03, 0.06, 0.03]),
+        'prior_approved_count': np.random.choice([0, 1, 2, 3], n_samples, p=[0.7, 0.2, 0.07, 0.03]),
+        'merchant_retry_policy_max_attempts': np.random.choice([1, 2, 3], n_samples, p=[0.1, 0.3, 0.6]),
         'merchant_segment': np.random.choice(['Travel', 'Retail', 'Gaming', 'Digital', 'Entertainment'], n_samples),
         'uses_3ds': np.random.choice([0, 1], n_samples, p=[0.4, 0.6]),
         'payment_solution': np.random.choice(['standard', '3ds', 'network_token', 'passkey'], n_samples, p=[0.3, 0.4, 0.2, 0.1]),
         'decline_reason': np.random.choice([None, 'insufficient_funds', 'fraud_suspected', 'expired_card', 'do_not_honor', 'issuer_unavailable'], n_samples, p=[0.85, 0.05, 0.03, 0.03, 0.02, 0.02]),
+        'decline_reason_standard': np.random.choice([None, 'FUNDS_OR_LIMIT', 'FRAUD_SUSPECTED', 'CARD_EXPIRED', 'ISSUER_DO_NOT_HONOR', 'ISSUER_TECHNICAL'], n_samples, p=[0.85, 0.06, 0.03, 0.03, 0.02, 0.01]),
         'is_recurring': np.random.choice([0, 1], n_samples, p=[0.6, 0.4]),
         'processing_time_ms': np.random.uniform(50, 500, n_samples)
     })
@@ -323,12 +335,36 @@ print("=" * 80)
 df_declined = df[df['is_approved'] == 0].copy()
 
 if len(df_declined) > 50:
-    df_declined['decline_encoded'] = df_declined['decline_reason'].fillna('unknown').astype('category').cat.codes
+    # Prefer standardized taxonomy if available
+    reason_source = "decline_reason_standard" if "decline_reason_standard" in df_declined.columns else "decline_reason"
+    df_declined['decline_encoded'] = df_declined[reason_source].fillna('unknown').astype('category').cat.codes
+    df_declined["retry_scenario_encoded"] = (
+        df_declined.get("retry_scenario", "None").fillna("None").astype("category").cat.codes
+    )
     
-    features_retry = ['decline_encoded', 'retry_count', 'amount', 'is_recurring', 'fraud_score', 'device_trust_score']
+    features_retry = [
+        "decline_encoded",
+        "retry_scenario_encoded",
+        "retry_count",
+        "amount",
+        "is_recurring",
+        "fraud_score",
+        "device_trust_score",
+        "attempt_sequence",
+        "time_since_last_attempt_seconds",
+        "prior_approved_count",
+        "merchant_retry_policy_max_attempts",
+    ]
     X_retry = df_declined[features_retry].fillna(0)
     
-    y_retry = ((df_declined['fraud_score'] < 0.3) & (df_declined['retry_count'] < 2)).astype(int)
+    # Heuristic label for recoverability (placeholder for supervised labels)
+    recoverable_reasons = {"FUNDS_OR_LIMIT", "ISSUER_TECHNICAL", "ISSUER_DO_NOT_HONOR"}
+    reason_series = df_declined[reason_source].fillna("unknown")
+    y_retry = (
+        (reason_series.isin(recoverable_reasons))
+        & (df_declined["fraud_score"] < 0.5)
+        & (df_declined["retry_count"] < 2)
+    ).astype(int)
     
     X_train, X_test, y_train, y_test = train_test_split(
         X_retry, y_retry, test_size=0.2, random_state=42

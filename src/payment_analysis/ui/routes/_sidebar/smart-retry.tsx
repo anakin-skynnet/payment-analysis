@@ -1,0 +1,71 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useGetRetryPerformance } from "@/lib/api";
+
+export const Route = createFileRoute("/_sidebar/smart-retry")({
+  component: () => <SmartRetry />,
+});
+
+function SmartRetry() {
+  const q = useGetRetryPerformance({ params: { limit: 50 } });
+
+  const rows = q.data?.data ?? [];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Smart Retry</h1>
+        <p className="text-sm text-muted-foreground mt-2">
+          Retry performance split by recurrence vs reattempt scenarios (demo
+          scaffold).
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Top retry cohorts</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {q.isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : q.isError ? (
+            <p className="text-sm text-muted-foreground">
+              Failed to load retry performance.
+            </p>
+          ) : rows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No data yet. Run the simulator + DLT pipeline to populate UC
+              views.
+            </p>
+          ) : (
+            rows.map((r, idx) => (
+              <div
+                key={`${r.retry_scenario}-${r.decline_reason_standard}-${r.retry_count}-${idx}`}
+                className="flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="secondary">{r.retry_scenario}</Badge>
+                    <span className="font-mono text-sm">
+                      {r.decline_reason_standard}
+                    </span>
+                    <Badge variant="outline">attempt {r.retry_count}</Badge>
+                    <Badge>{r.success_rate_pct}%</Badge>
+                    <Badge variant="outline">{r.effectiveness}</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    recovered ${r.recovered_value.toFixed(2)} · avg fraud{" "}
+                    {r.avg_fraud_score.toFixed(3)}
+                  </div>
+                </div>
+                <Badge variant="secondary">{r.retry_attempts}</Badge>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

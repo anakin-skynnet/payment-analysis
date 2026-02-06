@@ -214,7 +214,7 @@ function SetupRun() {
               id="catalog"
               value={catalog}
               onChange={(e) => setCatalog(e.target.value)}
-              placeholder="main"
+              placeholder="ahs_demos_catalog"
             />
           </div>
           <div className="space-y-2">
@@ -225,7 +225,7 @@ function SetupRun() {
               id="schema"
               value={schema}
               onChange={(e) => setSchema(e.target.value)}
-              placeholder="dev_ariel_hdez_payment_analysis_dev"
+              placeholder="ahs_demo_payment_analysis_dev"
             />
           </div>
         </CardContent>
@@ -288,12 +288,12 @@ function SetupRun() {
               size="sm"
               onClick={() =>
                 window.open(
-                  `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.transaction_stream_simulator}`,
+                  `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.transaction_stream_simulator}/run`,
                   "_blank"
                 )
               }
             >
-              Open job <ExternalLink className="ml-1 h-3 w-3" />
+              Open job (run) <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>
@@ -371,12 +371,12 @@ function SetupRun() {
               size="sm"
               onClick={() =>
                 window.open(
-                  `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.create_gold_views}`,
+                  `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.create_gold_views}/run`,
                   "_blank"
                 )
               }
             >
-              Open job <ExternalLink className="ml-1 h-3 w-3" />
+              Open job (run) <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>
@@ -412,12 +412,12 @@ function SetupRun() {
               size="sm"
               onClick={() =>
                 window.open(
-                  `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.train_ml_models}`,
+                  `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.train_ml_models}/run`,
                   "_blank"
                 )
               }
             >
-              Open job <ExternalLink className="ml-1 h-3 w-3" />
+              Open job (run) <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>
@@ -453,12 +453,12 @@ function SetupRun() {
               size="sm"
               onClick={() =>
                 window.open(
-                  `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.orchestrator_agent}`,
+                  `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.orchestrator_agent}/run`,
                   "_blank"
                 )
               }
             >
-              Open job <ExternalLink className="ml-1 h-3 w-3" />
+              Open job (run) <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>
@@ -535,6 +535,30 @@ function SetupRun() {
             }
           >
             Explore schema
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              window.open(
+                `${defaults?.workspace_host || ""}/genie`,
+                "_blank"
+              )
+            }
+          >
+            Genie <ExternalLink className="ml-1 h-3 w-3" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              window.open(
+                `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.continuous_stream_processor}/run`,
+                "_blank"
+              )
+            }
+          >
+            Stream processor (run) <ExternalLink className="ml-1 h-3 w-3" />
           </Button>
         </CardContent>
       </Card>

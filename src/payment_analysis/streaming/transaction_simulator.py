@@ -1,5 +1,4 @@
 # Databricks notebook source
-# pyright: reportUndefinedVariable=none
 # MAGIC %md
 # MAGIC # Transaction Stream Simulator
 # MAGIC 
@@ -29,8 +28,8 @@ python_round = builtins.round
 # COMMAND ----------
 
 # Get parameters
-dbutils.widgets.text("catalog", "main")
-dbutils.widgets.text("schema", "payment_analysis_dev")
+dbutils.widgets.text("catalog", "ahs_demos_catalog")
+dbutils.widgets.text("schema", "ahs_demo_payment_analysis_dev")
 dbutils.widgets.text("events_per_second", "1000")
 dbutils.widgets.text("duration_minutes", "60")
 dbutils.widgets.text("output_mode", "delta")
@@ -64,39 +63,150 @@ PAYMENT_SOLUTIONS = ["standard", "3ds", "network_token", "passkey", "apple_pay",
 ENTRY_MODES = ["ecom", "contactless", "chip", "manual", "recurring"]
 DECLINE_REASONS = ["INSUFFICIENT_FUNDS", "FRAUD_SUSPECTED", "EXPIRED_CARD", "DO_NOT_HONOR", "ISSUER_UNAVAILABLE", "CVV_MISMATCH", "LIMIT_EXCEEDED"]
 
+# Brazil-first provenance dimensions (aligns with initiative scope)
+GEO_COUNTRIES = ["BR", "US", "MX", "AR", "CL"]
+ENTRY_SYSTEMS_BR = ["PD", "WS", "SEP", "CHECKOUT"]
+PAYMENT_METHOD_TYPES = ["credit", "debit"]
+
+def weighted_choice(options):
+    """Pick a value from [(value, weight), ...]."""
+    values = [v for v, _w in options]
+    weights = [w for _v, w in options]
+    return random.choices(values, weights=weights, k=1)[0]
+
+def derive_flow_type(entry_system: str, is_recurring: bool, is_payment_link: bool) -> str:
+    if is_payment_link and entry_system in {"CHECKOUT", "PD", "WS"}:
+        return "payment_link"
+    if is_payment_link and entry_system == "SEP":
+        return "payment_link_sep"
+    if is_recurring:
+        return "recurring"
+    if entry_system == "WS":
+        return "legacy_ws"
+    return "standard_ecom"
+
 def generate_event():
     """Generate a single realistic payment event."""
+    # Geo distribution: Brazil is the majority (70%+)
+    geo_country = weighted_choice([("BR", 0.72), ("US", 0.10), ("MX", 0.08), ("AR", 0.06), ("CL", 0.04)])
+
+    # Entry system distribution (Brazil monthly view)
+    if geo_country == "BR":
+        entry_system = weighted_choice([("PD", 0.62), ("WS", 0.34), ("SEP", 0.03), ("CHECKOUT", 0.01)])
+    else:
+        entry_system = weighted_choice([("WS", 0.70), ("PD", 0.20), ("SEP", 0.05), ("CHECKOUT", 0.05)])
+
+    # Scenario flags
+    is_payment_link = random.random() < (0.12 if geo_country == "BR" else 0.06)
+    is_recurring = random.random() > 0.6
+
     amount = random.lognormvariate(4.0, 1.5)  # Log-normal distribution for amounts
     fraud_score = random.betavariate(2, 8)  # Beta distribution skewed low
-    is_approved = random.random() > (0.1 + fraud_score * 0.3)  # Higher fraud = more declines
+    aml_risk_score = random.betavariate(2, 10)
+    device_trust_score = random.betavariate(8, 2)
+
+    card_network = random.choice(CARD_NETWORKS)
+    payment_method_type = weighted_choice([("credit", 0.98), ("debit", 0.02)]) if geo_country == "BR" else weighted_choice([("credit", 0.95), ("debit", 0.05)])
+
+    # Smart Checkout service flags (simulated)
+    vault_used = random.random() < 0.65
+    data_only_used = random.random() < 0.10
+    click_to_pay_used = random.random() < 0.05
+    idpay_invoked = random.random() < 0.04
+    idpay_success = (random.random() < 0.70) if idpay_invoked else None
+
+    # Network token: mandatory for VISA in this demo context
+    is_network_token = True if card_network == "visa" else (random.random() > 0.7)
+    has_passkey = random.random() > 0.9
+
+    # 3DS: mandatory for debit in Brazil (simulate funnel stats)
+    three_ds_routed = bool(geo_country == "BR" and payment_method_type == "debit")
+    three_ds_friction = (random.random() < 0.80) if three_ds_routed else None
+    three_ds_authenticated = (random.random() < 0.60) if three_ds_routed else None
+
+    # Antifraud: attribute ~40–50% of declines in BR payment links
+    antifraud_used = random.random() < 0.85
+
+    # Base approval probability before interventions
+    base_decline_prob = 0.08 + fraud_score * 0.30 + (0.05 if geo_country == "BR" else 0.02)
+
+    # Apply simplified Smart Checkout effects
+    if is_network_token:
+        base_decline_prob *= 0.95
+    if has_passkey:
+        base_decline_prob *= 0.90
+    if data_only_used:
+        base_decline_prob *= 0.98
+
+    # 3DS can reduce issuer declines if authenticated; otherwise it declines
+    if three_ds_routed:
+        if not three_ds_authenticated:
+            is_approved = False
+            decline_reason = "3DS_AUTH_FAILED"
+        else:
+            is_approved = random.random() < 0.80  # 80% of authenticated are approved
+            decline_reason = None if is_approved else "DO_NOT_HONOR"
+    else:
+        is_approved = random.random() > base_decline_prob
+        decline_reason = None if is_approved else random.choice(DECLINE_REASONS)
+
+    # Antifraud decline attribution (only when declined)
+    antifraud_result = "not_run"
+    if antifraud_used:
+        antifraud_result = "pass"
+        if (not is_approved) and geo_country == "BR" and is_payment_link and random.random() < 0.45:
+            antifraud_result = "fail"
+            decline_reason = "FRAUD_SUSPECTED"
+
+    decline_code_raw = None if is_approved else f"RC{random.randint(1, 99):02d}"
+    merchant_response_code = "00" if is_approved else (decline_code_raw or "RC00")
+
+    flow_type = derive_flow_type(entry_system=entry_system, is_recurring=is_recurring, is_payment_link=is_payment_link)
     
     return {
         "transaction_id": f"txn_{uuid.uuid4().hex[:16]}",
         "merchant_id": random.choice(MERCHANTS),
         "cardholder_id": f"ch_{random.randint(1, 10000)}",
+        "card_token_id": f"ct_{random.randint(1, 200000)}",
         "amount": python_round(amount, 2),
         "currency": "USD" if random.random() > 0.2 else random.choice(["EUR", "GBP", "CAD"]),
-        "card_network": random.choice(CARD_NETWORKS),
+        "card_network": card_network,
         "card_bin": f"4{random.randint(10000, 99999)}",
         "issuer_country": random.choice(COUNTRIES),
+        "geo_country": geo_country,
         "merchant_segment": random.choice(MERCHANT_SEGMENTS),
+        "entry_system": entry_system,
+        "flow_type": flow_type,
+        "transaction_stage": "entry_response",
+        "merchant_response_code": merchant_response_code,
+        "payment_method_type": payment_method_type,
         "payment_solution": random.choice(PAYMENT_SOLUTIONS),
         "entry_mode": random.choice(ENTRY_MODES),
         "device_type": random.choice(["mobile", "desktop", "tablet"]),
         "device_fingerprint": f"df_{random.randint(1, 5000)}",
         "ip_address": f"{random.randint(1,255)}.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(0,255)}",
-        "uses_3ds": random.random() > 0.4,
-        "is_network_token": random.random() > 0.7,
-        "has_passkey": random.random() > 0.9,
-        "is_recurring": random.random() > 0.6,
+        "uses_3ds": three_ds_routed or (random.random() > 0.4),
+        "three_ds_routed": three_ds_routed,
+        "three_ds_friction": three_ds_friction,
+        "three_ds_authenticated": three_ds_authenticated,
+        "antifraud_used": antifraud_used,
+        "antifraud_result": antifraud_result,
+        "vault_used": vault_used,
+        "data_only_used": data_only_used,
+        "click_to_pay_used": click_to_pay_used,
+        "idpay_invoked": idpay_invoked,
+        "idpay_success": idpay_success,
+        "is_network_token": is_network_token,
+        "has_passkey": has_passkey,
+        "is_recurring": is_recurring,
         "is_retry": random.random() > 0.9,
         "retry_count": random.randint(0, 3) if random.random() > 0.9 else 0,
         "fraud_score": python_round(fraud_score, 4),
-        "aml_risk_score": python_round(random.betavariate(2, 10), 4),
-        "device_trust_score": python_round(random.betavariate(8, 2), 4),
+        "aml_risk_score": python_round(aml_risk_score, 4),
+        "device_trust_score": python_round(device_trust_score, 4),
         "is_approved": is_approved,
-        "decline_reason": None if is_approved else random.choice(DECLINE_REASONS),
-        "decline_code_raw": None if is_approved else f"RC{random.randint(1, 99):02d}",
+        "decline_reason": decline_reason,
+        "decline_code_raw": decline_code_raw,
         "processing_time_ms": random.randint(50, 500),
         "event_timestamp": datetime.utcnow().isoformat()
     }
@@ -116,18 +226,35 @@ event_schema = StructType([
     StructField("transaction_id", StringType(), False),
     StructField("merchant_id", StringType(), False),
     StructField("cardholder_id", StringType(), True),
+    StructField("card_token_id", StringType(), True),
     StructField("amount", DoubleType(), False),
     StructField("currency", StringType(), False),
     StructField("card_network", StringType(), True),
     StructField("card_bin", StringType(), True),
     StructField("issuer_country", StringType(), True),
+    StructField("geo_country", StringType(), True),
     StructField("merchant_segment", StringType(), True),
+    StructField("entry_system", StringType(), True),
+    StructField("flow_type", StringType(), True),
+    StructField("transaction_stage", StringType(), True),
+    StructField("merchant_response_code", StringType(), True),
+    StructField("payment_method_type", StringType(), True),
     StructField("payment_solution", StringType(), True),
     StructField("entry_mode", StringType(), True),
     StructField("device_type", StringType(), True),
     StructField("device_fingerprint", StringType(), True),
     StructField("ip_address", StringType(), True),
     StructField("uses_3ds", BooleanType(), True),
+    StructField("three_ds_routed", BooleanType(), True),
+    StructField("three_ds_friction", BooleanType(), True),
+    StructField("three_ds_authenticated", BooleanType(), True),
+    StructField("antifraud_used", BooleanType(), True),
+    StructField("antifraud_result", StringType(), True),
+    StructField("vault_used", BooleanType(), True),
+    StructField("data_only_used", BooleanType(), True),
+    StructField("click_to_pay_used", BooleanType(), True),
+    StructField("idpay_invoked", BooleanType(), True),
+    StructField("idpay_success", BooleanType(), True),
     StructField("is_network_token", BooleanType(), True),
     StructField("has_passkey", BooleanType(), True),
     StructField("is_recurring", BooleanType(), True),
@@ -159,18 +286,35 @@ CREATE TABLE IF NOT EXISTS {target_table} (
     transaction_id STRING NOT NULL,
     merchant_id STRING NOT NULL,
     cardholder_id STRING,
+    card_token_id STRING,
     amount DOUBLE NOT NULL,
     currency STRING NOT NULL,
     card_network STRING,
     card_bin STRING,
     issuer_country STRING,
+    geo_country STRING,
     merchant_segment STRING,
+    entry_system STRING,
+    flow_type STRING,
+    transaction_stage STRING,
+    merchant_response_code STRING,
+    payment_method_type STRING,
     payment_solution STRING,
     entry_mode STRING,
     device_type STRING,
     device_fingerprint STRING,
     ip_address STRING,
     uses_3ds BOOLEAN,
+    three_ds_routed BOOLEAN,
+    three_ds_friction BOOLEAN,
+    three_ds_authenticated BOOLEAN,
+    antifraud_used BOOLEAN,
+    antifraud_result STRING,
+    vault_used BOOLEAN,
+    data_only_used BOOLEAN,
+    click_to_pay_used BOOLEAN,
+    idpay_invoked BOOLEAN,
+    idpay_success BOOLEAN,
     is_network_token BOOLEAN,
     has_passkey BOOLEAN,
     is_recurring BOOLEAN,

@@ -6,7 +6,7 @@ resources:
       
       config:
         served_entities:
-          - entity_name: "${var.catalog}.payment_analysis_${var.environment}.approval_propensity_model"
+          - entity_name: "${var.catalog}.${var.schema}.approval_propensity_model"
             entity_version: "1"
             workload_size: "Small"
             scale_to_zero_enabled: true
@@ -21,8 +21,8 @@ resources:
         
         auto_capture_config:
           catalog_name: ${var.catalog}
-          schema_name: payment_analysis_${var.environment}
-          table_name_prefix: "approval_propensity_inference"
+          schema_name: ${var.schema}
+          table_name_prefix: "approval_propensity_inference_"
           enabled: true
       
       ai_gateway:
@@ -40,7 +40,7 @@ resources:
       
       config:
         served_entities:
-          - entity_name: "${var.catalog}.payment_analysis_${var.environment}.risk_scoring_model"
+          - entity_name: "${var.catalog}.${var.schema}.risk_scoring_model"
             entity_version: "1"
             workload_size: "Small"
             scale_to_zero_enabled: true
@@ -77,7 +77,7 @@ resources:
       
       config:
         served_entities:
-          - entity_name: "${var.catalog}.payment_analysis_${var.environment}.smart_routing_policy"
+          - entity_name: "${var.catalog}.${var.schema}.smart_routing_policy"
             entity_version: "1"
             workload_size: "Small"
             scale_to_zero_enabled: true
@@ -103,7 +103,7 @@ resources:
       
       config:
         served_entities:
-          - entity_name: "${var.catalog}.payment_analysis_${var.environment}.smart_retry_policy"
+          - entity_name: "${var.catalog}.${var.schema}.smart_retry_policy"
             entity_version: "1"
             workload_size: "Small"
             scale_to_zero_enabled: true

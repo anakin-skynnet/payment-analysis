@@ -78,7 +78,7 @@ class AppConfig(BaseSettings):
     )
     app_name: str = Field(default=app_name)
     db: DatabaseConfig = DatabaseConfig()  # type: ignore
-    databricks: DatabricksConfig = DatabricksConfig()  # type: ignore
+    databricks: DatabricksConfig = DatabricksConfig()
 
     @property
     def static_assets_path(self) -> Path:

@@ -21,7 +21,7 @@ resources:
             notebook_path: ${workspace.file_path}/src/payment_analysis/agents/agent_framework
             base_parameters:
               catalog: ${var.catalog}
-              schema: payment_analysis_${var.environment}
+              schema: ${var.schema}
               agent_role: "smart_routing"
               query: "Analyze current routing performance and recommend optimal cascade configurations"
           new_cluster:
@@ -33,6 +33,7 @@ resources:
               "spark.master": "local[*]"
             custom_tags:
               ResourceClass: SingleNode
+          timeout_seconds: 1800
       schedule:
         quartz_cron_expression: "0 0 */6 * * ?"  # Every 6 hours
         timezone_id: "UTC"
@@ -51,7 +52,7 @@ resources:
             notebook_path: ${workspace.file_path}/src/payment_analysis/agents/agent_framework
             base_parameters:
               catalog: ${var.catalog}
-              schema: payment_analysis_${var.environment}
+              schema: ${var.schema}
               agent_role: "smart_retry"
               query: "Identify retry opportunities and recommend recovery strategies"
           new_cluster:
@@ -63,6 +64,7 @@ resources:
               "spark.master": "local[*]"
             custom_tags:
               ResourceClass: SingleNode
+          timeout_seconds: 1800
       schedule:
         quartz_cron_expression: "0 0 */4 * * ?"  # Every 4 hours
         timezone_id: "UTC"
@@ -81,7 +83,7 @@ resources:
             notebook_path: ${workspace.file_path}/src/payment_analysis/agents/agent_framework
             base_parameters:
               catalog: ${var.catalog}
-              schema: payment_analysis_${var.environment}
+              schema: ${var.schema}
               agent_role: "decline_analyst"
               query: "Analyze recent decline patterns and provide recovery recommendations"
           new_cluster:
@@ -93,6 +95,7 @@ resources:
               "spark.master": "local[*]"
             custom_tags:
               ResourceClass: SingleNode
+          timeout_seconds: 1800
       schedule:
         quartz_cron_expression: "0 0 8 * * ?"  # Daily at 8 AM
         timezone_id: "UTC"
@@ -111,7 +114,7 @@ resources:
             notebook_path: ${workspace.file_path}/src/payment_analysis/agents/agent_framework
             base_parameters:
               catalog: ${var.catalog}
-              schema: payment_analysis_${var.environment}
+              schema: ${var.schema}
               agent_role: "risk_assessor"
               query: "Identify high-risk transactions and recommend interventions"
           new_cluster:
@@ -123,6 +126,7 @@ resources:
               "spark.master": "local[*]"
             custom_tags:
               ResourceClass: SingleNode
+          timeout_seconds: 1800
       schedule:
         quartz_cron_expression: "0 0 */2 * * ?"  # Every 2 hours
         timezone_id: "UTC"
@@ -141,7 +145,7 @@ resources:
             notebook_path: ${workspace.file_path}/src/payment_analysis/agents/agent_framework
             base_parameters:
               catalog: ${var.catalog}
-              schema: payment_analysis_${var.environment}
+              schema: ${var.schema}
               agent_role: "performance_recommender"
               query: "Analyze overall performance and recommend optimizations"
           new_cluster:
@@ -153,6 +157,7 @@ resources:
               "spark.master": "local[*]"
             custom_tags:
               ResourceClass: SingleNode
+          timeout_seconds: 1800
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"  # Daily at 6 AM
         timezone_id: "UTC"
@@ -165,24 +170,26 @@ resources:
     orchestrator_agent_job:
       name: "[${var.environment}] Payment Analysis Orchestrator"
       description: "Orchestrates all payment analysis agents for comprehensive insights"
+      max_concurrent_runs: 1
       tasks:
         - task_key: "run_orchestrator"
           notebook_task:
             notebook_path: ${workspace.file_path}/src/payment_analysis/agents/agent_framework
             base_parameters:
               catalog: ${var.catalog}
-              schema: payment_analysis_${var.environment}
+              schema: ${var.schema}
               agent_role: "orchestrator"
               query: "Run comprehensive payment analysis covering routing, retries, declines, risk, and performance"
           new_cluster:
             spark_version: "15.4.x-scala2.12"
-            node_type_id: "Standard_DS4_v2"
+            node_type_id: "Standard_DS3_v2"
             num_workers: 0
             spark_conf:
               "spark.databricks.cluster.profile": "singleNode"
               "spark.master": "local[*]"
             custom_tags:
               ResourceClass: SingleNode
+          timeout_seconds: 3600
       schedule:
         quartz_cron_expression: "0 0 7 ? * MON"
         timezone_id: "UTC"

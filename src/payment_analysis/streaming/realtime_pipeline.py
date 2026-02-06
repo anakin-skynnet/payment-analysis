@@ -6,9 +6,9 @@
 
 # COMMAND ----------
 
-import dlt
-from pyspark.sql.functions import *
-from pyspark.sql.types import *
+import dlt  # type: ignore[import-untyped]
+from pyspark.sql.functions import *  # type: ignore[import-untyped]
+from pyspark.sql.types import *  # type: ignore[import-untyped]
 
 # COMMAND ----------
 
@@ -70,6 +70,12 @@ def payments_stream_silver():
         .withColumn("event_date", to_date(col("event_timestamp")))
         .withColumn("event_hour", hour(col("event_timestamp")))
         .withColumn("event_minute", minute(col("event_timestamp")))
+
+        # NOTE: Rich enrichment (canonical_transaction_key, retry_scenario,
+        # decline taxonomy, service_path) lives in the ETL pipeline's
+        # payments_enriched_silver table.  This real-time pipeline keeps only
+        # the lightweight features needed by the 1-minute windowed aggregations
+        # and alert generation downstream.
         
         # Risk categorization
         .withColumn("risk_tier", 

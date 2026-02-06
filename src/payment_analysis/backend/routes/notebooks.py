@@ -14,7 +14,7 @@ import os
 from enum import Enum
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 router = APIRouter(tags=["notebooks"])
@@ -218,7 +218,6 @@ async def get_notebook(notebook_id: str) -> NotebookInfo:
         if notebook.id == notebook_id:
             return notebook
     
-    from fastapi import HTTPException
     raise HTTPException(status_code=404, detail=f"Notebook '{notebook_id}' not found")
 
 
@@ -245,6 +244,39 @@ async def get_notebook_url(notebook_id: str) -> dict[str, Any]:
         "url": full_url,
         "workspace_path": workspace_path,
         "category": notebook.category.value,
+    }
+
+
+# Workspace folder IDs to relative paths (under src/payment_analysis/)
+WORKSPACE_FOLDERS: dict[str, str] = {
+    "ml": "src/payment_analysis/ml",
+    "streaming": "src/payment_analysis/streaming",
+    "transform": "src/payment_analysis/transform",
+    "agents": "src/payment_analysis/agents",
+    "genie": "src/payment_analysis/genie",
+}
+
+
+@router.get("/notebooks/folders/{folder_id}/url", operation_id="getNotebookFolderUrl")
+async def get_folder_url(folder_id: str) -> dict[str, Any]:
+    """
+    Get the Databricks workspace URL for a folder containing notebooks.
+
+    Use this to open the ML folder, streaming folder, etc. in the workspace.
+    """
+    if folder_id not in WORKSPACE_FOLDERS:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Folder '{folder_id}' not found. Valid: {list(WORKSPACE_FOLDERS.keys())}",
+        )
+    relative = WORKSPACE_FOLDERS[folder_id]
+    workspace_path = get_notebook_path(relative)
+    base_url = os.getenv("DATABRICKS_HOST", "https://your-workspace.cloud.databricks.com")
+    full_url = f"{base_url}/workspace{workspace_path}"
+    return {
+        "folder_id": folder_id,
+        "url": full_url,
+        "workspace_path": workspace_path,
     }
 
 

@@ -27,7 +27,7 @@ include:
 variables:
   catalog:
     description: Unity Catalog name for data storage
-    default: main
+    default: ahs_demos_catalog
   environment:
     description: Deployment environment identifier
     default: dev
@@ -38,7 +38,7 @@ variables:
     default: "placeholder_warehouse"
   schema:
     description: Unity Catalog schema name (matches DLT target with dev mode prefix)
-    default: dev_ariel_hdez_payment_analysis_dev
+    default: ahs_demo_payment_analysis_dev
 
 # Sync configuration for notebook deployment
 sync:

@@ -169,6 +169,21 @@ export interface DeclineBucketOut {
   total_value?: number | null;
 }
 
+export interface DedupCollisionStatsOut {
+  avg_entry_systems_per_key: number;
+  avg_rows_per_key: number;
+  avg_transaction_ids_per_key: number;
+  colliding_keys: number;
+}
+
+export interface EntrySystemDistributionOut {
+  approval_rate_pct: number;
+  approved_count: number;
+  entry_system: string;
+  total_value: number;
+  transaction_count: number;
+}
+
 export interface Experiment {
   created_at?: string;
   description?: string | null;
@@ -192,6 +207,13 @@ export interface ExperimentIn {
   name: string;
 }
 
+export interface FalseInsightsMetricOut {
+  event_date: string;
+  false_insights: number;
+  false_insights_pct?: number | null;
+  reviewed_insights: number;
+}
+
 export interface HTTPValidationError {
   detail?: ValidationError[];
 }
@@ -211,6 +233,20 @@ export interface IncidentIn {
   details?: Record<string, unknown>;
   key: string;
   severity?: string;
+}
+
+export interface InsightFeedbackIn {
+  insight_id: string;
+  insight_type: string;
+  model_version?: string | null;
+  prompt_version?: string | null;
+  reason?: string | null;
+  reviewer?: string | null;
+  verdict: string;
+}
+
+export interface InsightFeedbackOut {
+  accepted: boolean;
 }
 
 export interface KPIOut {
@@ -262,6 +298,33 @@ export interface NotebookList {
   total: number;
 }
 
+export interface ReasonCodeInsightOut {
+  decline_count: number;
+  decline_reason_group: string;
+  decline_reason_standard: string;
+  entry_system: string;
+  estimated_recoverable_declines: number;
+  estimated_recoverable_value: number;
+  flow_type: string;
+  pct_of_declines?: number | null;
+  priority: number;
+  recommended_action: string;
+  total_declined_value: number;
+}
+
+export interface ReasonCodeOut {
+  affected_merchants: number;
+  avg_amount: number;
+  decline_count: number;
+  decline_reason_group: string;
+  decline_reason_standard: string;
+  entry_system: string;
+  flow_type: string;
+  pct_of_declines?: number | null;
+  recommended_action: string;
+  total_declined_value: number;
+}
+
 export interface RemediationTask {
   action?: string | null;
   created_at?: string;
@@ -278,6 +341,17 @@ export interface RetryDecisionOut {
   reason: string;
   retry_after_seconds?: number | null;
   should_retry: boolean;
+}
+
+export interface RetryPerformanceOut {
+  avg_fraud_score: number;
+  decline_reason_standard: string;
+  effectiveness: string;
+  recovered_value: number;
+  retry_attempts: number;
+  retry_count: number;
+  retry_scenario: string;
+  success_rate_pct: number;
 }
 
 export interface RiskPredictionOut {
@@ -344,6 +418,25 @@ export interface SetupDefaultsOut {
   workspace_host: string;
 }
 
+export interface SmartCheckoutPathPerformanceOut {
+  approval_rate_pct: number;
+  approved_count: number;
+  recommended_path: string;
+  total_value: number;
+  transaction_count: number;
+}
+
+export interface SmartCheckoutServicePathOut {
+  antifraud_declines: number;
+  antifraud_pct_of_declines?: number | null;
+  approval_rate_pct: number;
+  approved_count: number;
+  avg_fraud_score: number;
+  service_path: string;
+  total_value: number;
+  transaction_count: number;
+}
+
 export interface SolutionPerformanceOut {
   approval_rate_pct: number;
   approved_count: number;
@@ -357,6 +450,18 @@ export interface TaskIn {
   action?: string | null;
   owner?: string | null;
   title: string;
+}
+
+export interface ThreeDSFunnelOut {
+  event_date: string;
+  issuer_approval_post_auth_rate_pct?: number | null;
+  issuer_approved_after_auth_count: number;
+  three_ds_authenticated_count: number;
+  three_ds_authentication_rate_pct?: number | null;
+  three_ds_friction_count: number;
+  three_ds_friction_rate_pct?: number | null;
+  three_ds_routed_count: number;
+  total_transactions: number;
 }
 
 export interface User {
@@ -408,6 +513,34 @@ export interface RecentDecisionsParams {
 }
 
 export interface DeclineSummaryParams {
+  limit?: number;
+}
+
+export interface GetFalseInsightsMetricParams {
+  days?: number;
+}
+
+export interface GetReasonCodesBrParams {
+  limit?: number;
+}
+
+export interface GetReasonCodeInsightsBrParams {
+  limit?: number;
+}
+
+export interface GetRetryPerformanceParams {
+  limit?: number;
+}
+
+export interface GetThreeDsFunnelBrParams {
+  days?: number;
+}
+
+export interface GetSmartCheckoutPathPerformanceBrParams {
+  limit?: number;
+}
+
+export interface GetSmartCheckoutServicePathsBrParams {
   limit?: number;
 }
 
@@ -474,6 +607,10 @@ export interface CreateRemediationTaskParams {
 
 export interface ListNotebooksParams {
   category?: NotebookCategory | null;
+}
+
+export interface GetNotebookFolderUrlParams {
+  folder_id: string;
 }
 
 export interface GetNotebookParams {
@@ -695,6 +832,48 @@ export function useIngestAuthEvent(options?: { mutation?: UseMutationOptions<{ d
   return useMutation({ mutationFn: (data) => ingestAuthEvent(data), ...options?.mutation });
 }
 
+export const getFalseInsightsMetric = async (params?: GetFalseInsightsMetricParams, options?: RequestInit): Promise<{ data: FalseInsightsMetricOut[] }> => {
+  const searchParams = new URLSearchParams();
+  if (params?.days != null) searchParams.set("days", String(params?.days));
+  const queryString = searchParams.toString();
+  const url = queryString ? `/api/analytics/insights/false-insights?${queryString}` : `/api/analytics/insights/false-insights`;
+  const res = await fetch(url, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getFalseInsightsMetricKey = (params?: GetFalseInsightsMetricParams) => {
+  return ["/api/analytics/insights/false-insights", params] as const;
+};
+
+export function useGetFalseInsightsMetric<TData = { data: FalseInsightsMetricOut[] }>(options?: { params?: GetFalseInsightsMetricParams; query?: Omit<UseQueryOptions<{ data: FalseInsightsMetricOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getFalseInsightsMetricKey(options?.params), queryFn: () => getFalseInsightsMetric(options?.params), ...options?.query });
+}
+
+export function useGetFalseInsightsMetricSuspense<TData = { data: FalseInsightsMetricOut[] }>(options?: { params?: GetFalseInsightsMetricParams; query?: Omit<UseSuspenseQueryOptions<{ data: FalseInsightsMetricOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getFalseInsightsMetricKey(options?.params), queryFn: () => getFalseInsightsMetric(options?.params), ...options?.query });
+}
+
+export const submitInsightFeedback = async (data: InsightFeedbackIn, options?: RequestInit): Promise<{ data: InsightFeedbackOut }> => {
+  const res = await fetch("/api/analytics/insights/feedback", { ...options, method: "POST", headers: { "Content-Type": "application/json", ...options?.headers }, body: JSON.stringify(data) });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export function useSubmitInsightFeedback(options?: { mutation?: UseMutationOptions<{ data: InsightFeedbackOut }, ApiError, InsightFeedbackIn> }) {
+  return useMutation({ mutationFn: (data) => submitInsightFeedback(data), ...options?.mutation });
+}
+
 export const getKpis = async (options?: RequestInit): Promise<{ data: KPIOut }> => {
   const res = await fetch("/api/analytics/kpis", { ...options, method: "GET" });
   if (!res.ok) {
@@ -739,6 +918,214 @@ export function useGetDatabricksKpis<TData = { data: DatabricksKPIOut }>(options
 
 export function useGetDatabricksKpisSuspense<TData = { data: DatabricksKPIOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: DatabricksKPIOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getDatabricksKpisKey(), queryFn: () => getDatabricksKpis(), ...options?.query });
+}
+
+export const getReasonCodesBr = async (params?: GetReasonCodesBrParams, options?: RequestInit): Promise<{ data: ReasonCodeOut[] }> => {
+  const searchParams = new URLSearchParams();
+  if (params?.limit != null) searchParams.set("limit", String(params?.limit));
+  const queryString = searchParams.toString();
+  const url = queryString ? `/api/analytics/reason-codes/br?${queryString}` : `/api/analytics/reason-codes/br`;
+  const res = await fetch(url, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getReasonCodesBrKey = (params?: GetReasonCodesBrParams) => {
+  return ["/api/analytics/reason-codes/br", params] as const;
+};
+
+export function useGetReasonCodesBr<TData = { data: ReasonCodeOut[] }>(options?: { params?: GetReasonCodesBrParams; query?: Omit<UseQueryOptions<{ data: ReasonCodeOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getReasonCodesBrKey(options?.params), queryFn: () => getReasonCodesBr(options?.params), ...options?.query });
+}
+
+export function useGetReasonCodesBrSuspense<TData = { data: ReasonCodeOut[] }>(options?: { params?: GetReasonCodesBrParams; query?: Omit<UseSuspenseQueryOptions<{ data: ReasonCodeOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getReasonCodesBrKey(options?.params), queryFn: () => getReasonCodesBr(options?.params), ...options?.query });
+}
+
+export const getEntrySystemDistributionBr = async (options?: RequestInit): Promise<{ data: EntrySystemDistributionOut[] }> => {
+  const res = await fetch("/api/analytics/reason-codes/br/entry-systems", { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getEntrySystemDistributionBrKey = () => {
+  return ["/api/analytics/reason-codes/br/entry-systems"] as const;
+};
+
+export function useGetEntrySystemDistributionBr<TData = { data: EntrySystemDistributionOut[] }>(options?: { query?: Omit<UseQueryOptions<{ data: EntrySystemDistributionOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getEntrySystemDistributionBrKey(), queryFn: () => getEntrySystemDistributionBr(), ...options?.query });
+}
+
+export function useGetEntrySystemDistributionBrSuspense<TData = { data: EntrySystemDistributionOut[] }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: EntrySystemDistributionOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getEntrySystemDistributionBrKey(), queryFn: () => getEntrySystemDistributionBr(), ...options?.query });
+}
+
+export const getReasonCodeInsightsBr = async (params?: GetReasonCodeInsightsBrParams, options?: RequestInit): Promise<{ data: ReasonCodeInsightOut[] }> => {
+  const searchParams = new URLSearchParams();
+  if (params?.limit != null) searchParams.set("limit", String(params?.limit));
+  const queryString = searchParams.toString();
+  const url = queryString ? `/api/analytics/reason-codes/br/insights?${queryString}` : `/api/analytics/reason-codes/br/insights`;
+  const res = await fetch(url, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getReasonCodeInsightsBrKey = (params?: GetReasonCodeInsightsBrParams) => {
+  return ["/api/analytics/reason-codes/br/insights", params] as const;
+};
+
+export function useGetReasonCodeInsightsBr<TData = { data: ReasonCodeInsightOut[] }>(options?: { params?: GetReasonCodeInsightsBrParams; query?: Omit<UseQueryOptions<{ data: ReasonCodeInsightOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getReasonCodeInsightsBrKey(options?.params), queryFn: () => getReasonCodeInsightsBr(options?.params), ...options?.query });
+}
+
+export function useGetReasonCodeInsightsBrSuspense<TData = { data: ReasonCodeInsightOut[] }>(options?: { params?: GetReasonCodeInsightsBrParams; query?: Omit<UseSuspenseQueryOptions<{ data: ReasonCodeInsightOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getReasonCodeInsightsBrKey(options?.params), queryFn: () => getReasonCodeInsightsBr(options?.params), ...options?.query });
+}
+
+export const getDedupCollisionStats = async (options?: RequestInit): Promise<{ data: DedupCollisionStatsOut }> => {
+  const res = await fetch("/api/analytics/reason-codes/dedup-collisions", { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getDedupCollisionStatsKey = () => {
+  return ["/api/analytics/reason-codes/dedup-collisions"] as const;
+};
+
+export function useGetDedupCollisionStats<TData = { data: DedupCollisionStatsOut }>(options?: { query?: Omit<UseQueryOptions<{ data: DedupCollisionStatsOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getDedupCollisionStatsKey(), queryFn: () => getDedupCollisionStats(), ...options?.query });
+}
+
+export function useGetDedupCollisionStatsSuspense<TData = { data: DedupCollisionStatsOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: DedupCollisionStatsOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getDedupCollisionStatsKey(), queryFn: () => getDedupCollisionStats(), ...options?.query });
+}
+
+export const getRetryPerformance = async (params?: GetRetryPerformanceParams, options?: RequestInit): Promise<{ data: RetryPerformanceOut[] }> => {
+  const searchParams = new URLSearchParams();
+  if (params?.limit != null) searchParams.set("limit", String(params?.limit));
+  const queryString = searchParams.toString();
+  const url = queryString ? `/api/analytics/retry/performance?${queryString}` : `/api/analytics/retry/performance`;
+  const res = await fetch(url, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getRetryPerformanceKey = (params?: GetRetryPerformanceParams) => {
+  return ["/api/analytics/retry/performance", params] as const;
+};
+
+export function useGetRetryPerformance<TData = { data: RetryPerformanceOut[] }>(options?: { params?: GetRetryPerformanceParams; query?: Omit<UseQueryOptions<{ data: RetryPerformanceOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getRetryPerformanceKey(options?.params), queryFn: () => getRetryPerformance(options?.params), ...options?.query });
+}
+
+export function useGetRetryPerformanceSuspense<TData = { data: RetryPerformanceOut[] }>(options?: { params?: GetRetryPerformanceParams; query?: Omit<UseSuspenseQueryOptions<{ data: RetryPerformanceOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getRetryPerformanceKey(options?.params), queryFn: () => getRetryPerformance(options?.params), ...options?.query });
+}
+
+export const getThreeDsFunnelBr = async (params?: GetThreeDsFunnelBrParams, options?: RequestInit): Promise<{ data: ThreeDSFunnelOut[] }> => {
+  const searchParams = new URLSearchParams();
+  if (params?.days != null) searchParams.set("days", String(params?.days));
+  const queryString = searchParams.toString();
+  const url = queryString ? `/api/analytics/smart-checkout/3ds-funnel/br?${queryString}` : `/api/analytics/smart-checkout/3ds-funnel/br`;
+  const res = await fetch(url, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getThreeDsFunnelBrKey = (params?: GetThreeDsFunnelBrParams) => {
+  return ["/api/analytics/smart-checkout/3ds-funnel/br", params] as const;
+};
+
+export function useGetThreeDsFunnelBr<TData = { data: ThreeDSFunnelOut[] }>(options?: { params?: GetThreeDsFunnelBrParams; query?: Omit<UseQueryOptions<{ data: ThreeDSFunnelOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getThreeDsFunnelBrKey(options?.params), queryFn: () => getThreeDsFunnelBr(options?.params), ...options?.query });
+}
+
+export function useGetThreeDsFunnelBrSuspense<TData = { data: ThreeDSFunnelOut[] }>(options?: { params?: GetThreeDsFunnelBrParams; query?: Omit<UseSuspenseQueryOptions<{ data: ThreeDSFunnelOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getThreeDsFunnelBrKey(options?.params), queryFn: () => getThreeDsFunnelBr(options?.params), ...options?.query });
+}
+
+export const getSmartCheckoutPathPerformanceBr = async (params?: GetSmartCheckoutPathPerformanceBrParams, options?: RequestInit): Promise<{ data: SmartCheckoutPathPerformanceOut[] }> => {
+  const searchParams = new URLSearchParams();
+  if (params?.limit != null) searchParams.set("limit", String(params?.limit));
+  const queryString = searchParams.toString();
+  const url = queryString ? `/api/analytics/smart-checkout/path-performance/br?${queryString}` : `/api/analytics/smart-checkout/path-performance/br`;
+  const res = await fetch(url, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getSmartCheckoutPathPerformanceBrKey = (params?: GetSmartCheckoutPathPerformanceBrParams) => {
+  return ["/api/analytics/smart-checkout/path-performance/br", params] as const;
+};
+
+export function useGetSmartCheckoutPathPerformanceBr<TData = { data: SmartCheckoutPathPerformanceOut[] }>(options?: { params?: GetSmartCheckoutPathPerformanceBrParams; query?: Omit<UseQueryOptions<{ data: SmartCheckoutPathPerformanceOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getSmartCheckoutPathPerformanceBrKey(options?.params), queryFn: () => getSmartCheckoutPathPerformanceBr(options?.params), ...options?.query });
+}
+
+export function useGetSmartCheckoutPathPerformanceBrSuspense<TData = { data: SmartCheckoutPathPerformanceOut[] }>(options?: { params?: GetSmartCheckoutPathPerformanceBrParams; query?: Omit<UseSuspenseQueryOptions<{ data: SmartCheckoutPathPerformanceOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getSmartCheckoutPathPerformanceBrKey(options?.params), queryFn: () => getSmartCheckoutPathPerformanceBr(options?.params), ...options?.query });
+}
+
+export const getSmartCheckoutServicePathsBr = async (params?: GetSmartCheckoutServicePathsBrParams, options?: RequestInit): Promise<{ data: SmartCheckoutServicePathOut[] }> => {
+  const searchParams = new URLSearchParams();
+  if (params?.limit != null) searchParams.set("limit", String(params?.limit));
+  const queryString = searchParams.toString();
+  const url = queryString ? `/api/analytics/smart-checkout/service-paths/br?${queryString}` : `/api/analytics/smart-checkout/service-paths/br`;
+  const res = await fetch(url, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getSmartCheckoutServicePathsBrKey = (params?: GetSmartCheckoutServicePathsBrParams) => {
+  return ["/api/analytics/smart-checkout/service-paths/br", params] as const;
+};
+
+export function useGetSmartCheckoutServicePathsBr<TData = { data: SmartCheckoutServicePathOut[] }>(options?: { params?: GetSmartCheckoutServicePathsBrParams; query?: Omit<UseQueryOptions<{ data: SmartCheckoutServicePathOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getSmartCheckoutServicePathsBrKey(options?.params), queryFn: () => getSmartCheckoutServicePathsBr(options?.params), ...options?.query });
+}
+
+export function useGetSmartCheckoutServicePathsBrSuspense<TData = { data: SmartCheckoutServicePathOut[] }>(options?: { params?: GetSmartCheckoutServicePathsBrParams; query?: Omit<UseSuspenseQueryOptions<{ data: SmartCheckoutServicePathOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getSmartCheckoutServicePathsBrKey(options?.params), queryFn: () => getSmartCheckoutServicePathsBr(options?.params), ...options?.query });
 }
 
 export const getSolutionPerformance = async (options?: RequestInit): Promise<{ data: SolutionPerformanceOut[] }> => {
@@ -1290,6 +1677,29 @@ export function useGetNotebookCategorySummary<TData = { data: Record<string, unk
 
 export function useGetNotebookCategorySummarySuspense<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getNotebookCategorySummaryKey(), queryFn: () => getNotebookCategorySummary(), ...options?.query });
+}
+
+export const getNotebookFolderUrl = async (params: GetNotebookFolderUrlParams, options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+  const res = await fetch(`/api/notebooks/notebooks/folders/${params.folder_id}/url`, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getNotebookFolderUrlKey = (params?: GetNotebookFolderUrlParams) => {
+  return ["/api/notebooks/notebooks/folders/{folder_id}/url", params] as const;
+};
+
+export function useGetNotebookFolderUrl<TData = { data: Record<string, unknown> }>(options: { params: GetNotebookFolderUrlParams; query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getNotebookFolderUrlKey(options.params), queryFn: () => getNotebookFolderUrl(options.params), ...options?.query });
+}
+
+export function useGetNotebookFolderUrlSuspense<TData = { data: Record<string, unknown> }>(options: { params: GetNotebookFolderUrlParams; query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getNotebookFolderUrlKey(options.params), queryFn: () => getNotebookFolderUrl(options.params), ...options?.query });
 }
 
 export const getNotebook = async (params: GetNotebookParams, options?: RequestInit): Promise<{ data: NotebookInfo }> => {

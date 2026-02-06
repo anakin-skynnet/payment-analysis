@@ -110,7 +110,7 @@ def payments_raw_bronze():
 @dlt.expect_or_warn("valid_fraud_score", "fraud_score BETWEEN 0 AND 1")
 def payments_enriched_silver():
     return (
-        dlt.read_stream("payments_raw_bronze")
+        dlt.readStream("payments_raw_bronze")
         .withColumn("risk_tier", 
             when(col("fraud_score") < 0.3, lit("LOW"))
             .when(col("fraud_score") < 0.7, lit("MEDIUM"))
@@ -163,8 +163,8 @@ WHERE event_date >= CURRENT_DATE - 30;
 ### Unity Catalog Schema
 
 ```
-main (catalog)
-└── payment_analysis_dev (schema) or payment_analysis_prod
+ahs_demos_catalog (catalog)
+└── ahs_demo_payment_analysis_dev (schema) or payment_analysis_prod
     ├── Tables
     │   ├── payments_stream_input (source)
     │   ├── payments_raw_bronze (bronze layer)
@@ -310,7 +310,7 @@ features = ['decline_reason', 'amount', 'fraud_score',
 ```yaml
 # Example serving endpoint config
 served_models:
-  - model_name: main.payment_analysis_dev.approval_propensity_model
+  - model_name: ahs_demos_catalog.ahs_demo_payment_analysis_dev.approval_propensity_model
     model_version: 1
     workload_size: Small
     scale_to_zero_enabled: true
@@ -410,7 +410,7 @@ async def get_agent_url(agent_id: str) -> dict:
 
 ## Analytics Layer
 
-### Lakeview Dashboards
+### AI/BI Dashboards
 
 10 pre-built dashboards defined as `.lvdash.json` files:
 
@@ -477,8 +477,8 @@ sample_questions:
   - "How many high-risk transactions today?"
 
 sql_warehouse_id: "{{ resources.warehouses.shared_sql_warehouse.id }}"
-catalog: main
-schema: payment_analysis_dev
+catalog: ahs_demos_catalog
+schema: ahs_demo_payment_analysis_dev
 ```
 
 **Capabilities:**
@@ -571,7 +571,7 @@ class DatabricksClient:
 ├── routes/
 │   ├── _sidebar/
 │   │   ├── dashboard.tsx         // KPI cards & trends
-│   │   ├── dashboards.tsx        // Lakeview gallery
+│   │   ├── dashboards.tsx        // AI/BI Dashboards gallery
 │   │   ├── notebooks.tsx         // Notebook browser
 │   │   ├── models.tsx            // ML models page
 │   │   ├── ai-agents.tsx         // AI agents gallery
@@ -592,7 +592,7 @@ class DatabricksClient:
 
 **1. Dashboard Gallery**
 ```typescript
-// Embedded Lakeview dashboards
+// Embedded AI/BI dashboards
 <iframe 
   src={`${databricksUrl}/sql/dashboards/${dashboardId}?embed=true`}
   width="100%"
@@ -606,7 +606,7 @@ const models = [
   {
     name: "Approval Propensity",
     accuracy: "92%",
-    path: "main.payment_analysis_dev.approval_propensity_model",
+    path: "ahs_demos_catalog.ahs_demo_payment_analysis_dev.approval_propensity_model",
     mlflowUrl: `${databricksUrl}/#mlflow/experiments/...`
   }
   // ... 3 more models
@@ -688,7 +688,7 @@ resources:
       libraries:
         - notebook:
             path: ./src/payment_analysis/pipelines/realtime_pipeline.py
-      target: payment_analysis_dev
+      schema: ahs_demo_payment_analysis_dev
       continuous: true
 
   # SQL Warehouse
@@ -715,7 +715,7 @@ resources:
           notebook_task:
             notebook_path: ./src/payment_analysis/ml/train_models.py
           new_cluster:
-            spark_version: 13.3.x-cpu-ml-scala2.12
+            spark_version: 16.2.x-cpu-ml-scala2.12
             node_type_id: i3.xlarge
             num_workers: 2
 
@@ -758,8 +758,8 @@ apx deploy
 DATABRICKS_HOST=https://adb-984752964297111.11.azuredatabricks.net
 DATABRICKS_TOKEN=dapi...
 SQL_WAREHOUSE_ID=abc123...
-CATALOG=main
-SCHEMA=payment_analysis_dev
+CATALOG=ahs_demos_catalog
+SCHEMA=ahs_demo_payment_analysis_dev
 ```
 
 ---
@@ -770,7 +770,7 @@ SCHEMA=payment_analysis_dev
 
 ```sql
 -- Grant read access to analysts
-GRANT SELECT ON SCHEMA payment_analysis_dev TO `analysts@company.com`;
+GRANT SELECT ON SCHEMA ahs_demo_payment_analysis_dev TO `analysts@company.com`;
 
 -- Grant model serving access to application
 GRANT EXECUTE ON MODEL approval_propensity_model TO `app_service_principal`;
@@ -953,7 +953,7 @@ jobs:
 | **SQL Analytics** | SQL Warehouse (Serverless) | Low-latency queries for dashboards |
 | **ML Training** | MLflow + Spark ML | Experiment tracking, model registry |
 | **ML Serving** | Model Serving | Real-time predictions (<50ms) |
-| **Dashboards** | Lakeview | Interactive visualizations |
+| **Dashboards** | AI/BI Dashboards | Interactive visualizations |
 | **NL Analytics** | Genie | Natural language to SQL |
 | **Conversational AI** | AI Gateway + Llama 3.1 | LLM-powered insights |
 | **Backend API** | FastAPI (Python 3.11) | REST endpoints |

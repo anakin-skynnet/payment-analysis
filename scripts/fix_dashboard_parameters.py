@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fix hardcoded values in Lakeview dashboard JSON files.
+Fix hardcoded values in AI/BI dashboard JSON files.
 
 This script replaces hardcoded schema names and warehouse IDs with
 parameterized values that will be substituted during deployment.

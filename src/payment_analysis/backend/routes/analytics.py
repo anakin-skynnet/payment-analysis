@@ -53,6 +53,111 @@ class SolutionPerformanceOut(BaseModel):
     total_value: float
 
 
+class SmartCheckoutServicePathOut(BaseModel):
+    service_path: str
+    transaction_count: int
+    approved_count: int
+    approval_rate_pct: float
+    avg_fraud_score: float
+    total_value: float
+    antifraud_declines: int
+    antifraud_pct_of_declines: Optional[float] = None
+
+
+class SmartCheckoutPathPerformanceOut(BaseModel):
+    recommended_path: str
+    transaction_count: int
+    approved_count: int
+    approval_rate_pct: float
+    total_value: float
+
+
+class ThreeDSFunnelOut(BaseModel):
+    event_date: str
+    total_transactions: int
+    three_ds_routed_count: int
+    three_ds_friction_count: int
+    three_ds_authenticated_count: int
+    issuer_approved_after_auth_count: int
+    three_ds_friction_rate_pct: Optional[float] = None
+    three_ds_authentication_rate_pct: Optional[float] = None
+    issuer_approval_post_auth_rate_pct: Optional[float] = None
+
+
+class ReasonCodeOut(BaseModel):
+    entry_system: str
+    flow_type: str
+    decline_reason_standard: str
+    decline_reason_group: str
+    recommended_action: str
+    decline_count: int
+    pct_of_declines: Optional[float] = None
+    total_declined_value: float
+    avg_amount: float
+    affected_merchants: int
+
+
+class ReasonCodeInsightOut(BaseModel):
+    entry_system: str
+    flow_type: str
+    decline_reason_standard: str
+    decline_reason_group: str
+    recommended_action: str
+    decline_count: int
+    pct_of_declines: Optional[float] = None
+    total_declined_value: float
+    estimated_recoverable_declines: int
+    estimated_recoverable_value: float
+    priority: int
+
+
+class FalseInsightsMetricOut(BaseModel):
+    event_date: str
+    reviewed_insights: int
+    false_insights: int
+    false_insights_pct: Optional[float] = None
+
+
+class RetryPerformanceOut(BaseModel):
+    retry_scenario: str
+    decline_reason_standard: str
+    retry_count: int
+    retry_attempts: int
+    success_rate_pct: float
+    recovered_value: float
+    avg_fraud_score: float
+    effectiveness: str
+
+
+class InsightFeedbackIn(BaseModel):
+    insight_id: str
+    insight_type: str
+    verdict: str  # valid | invalid | non_actionable
+    reviewer: Optional[str] = None
+    reason: Optional[str] = None
+    model_version: Optional[str] = None
+    prompt_version: Optional[str] = None
+
+
+class InsightFeedbackOut(BaseModel):
+    accepted: bool
+
+
+class EntrySystemDistributionOut(BaseModel):
+    entry_system: str
+    transaction_count: int
+    approved_count: int
+    approval_rate_pct: float
+    total_value: float
+
+
+class DedupCollisionStatsOut(BaseModel):
+    colliding_keys: int
+    avg_rows_per_key: float
+    avg_entry_systems_per_key: float
+    avg_transaction_ids_per_key: float
+
+
 @router.get("/kpis", response_model=KPIOut, operation_id="getKpis")
 def kpis(session: SessionDep) -> KPIOut:
     """Get KPIs from local Lakebase database."""
@@ -92,6 +197,147 @@ async def solution_performance() -> List[SolutionPerformanceOut]:
     service = get_databricks_service()
     data = await service.get_solution_performance()
     return [SolutionPerformanceOut(**row) for row in data]
+
+
+@router.get(
+    "/smart-checkout/service-paths/br",
+    response_model=List[SmartCheckoutServicePathOut],
+    operation_id="getSmartCheckoutServicePathsBr",
+)
+async def smart_checkout_service_paths_br(limit: int = 25) -> List[SmartCheckoutServicePathOut]:
+    """Brazil payment-link performance by Smart Checkout service path."""
+    limit = max(1, min(limit, 100))
+    service = get_databricks_service()
+    data = await service.get_smart_checkout_service_paths_br(limit=limit)
+    return [SmartCheckoutServicePathOut(**row) for row in data]
+
+
+@router.get(
+    "/smart-checkout/path-performance/br",
+    response_model=List[SmartCheckoutPathPerformanceOut],
+    operation_id="getSmartCheckoutPathPerformanceBr",
+)
+async def smart_checkout_path_performance_br(
+    limit: int = 20,
+) -> List[SmartCheckoutPathPerformanceOut]:
+    """Brazil payment-link performance by recommended Smart Checkout path."""
+    limit = max(1, min(limit, 50))
+    service = get_databricks_service()
+    data = await service.get_smart_checkout_path_performance_br(limit=limit)
+    return [SmartCheckoutPathPerformanceOut(**row) for row in data]
+
+
+@router.get(
+    "/smart-checkout/3ds-funnel/br",
+    response_model=List[ThreeDSFunnelOut],
+    operation_id="getThreeDsFunnelBr",
+)
+async def three_ds_funnel_br(days: int = 30) -> List[ThreeDSFunnelOut]:
+    """Brazil payment-link 3DS funnel metrics by day."""
+    days = max(1, min(days, 90))
+    service = get_databricks_service()
+    data = await service.get_3ds_funnel_br(days=days)
+    return [ThreeDSFunnelOut(**row) for row in data]
+
+
+@router.get(
+    "/reason-codes/br",
+    response_model=List[ReasonCodeOut],
+    operation_id="getReasonCodesBr",
+)
+async def reason_codes_br(limit: int = 50) -> List[ReasonCodeOut]:
+    """Brazil declines consolidated into unified reason-code taxonomy."""
+    limit = max(1, min(limit, 200))
+    service = get_databricks_service()
+    data = await service.get_reason_codes_br(limit=limit)
+    return [ReasonCodeOut(**row) for row in data]
+
+
+@router.get(
+    "/reason-codes/br/insights",
+    response_model=List[ReasonCodeInsightOut],
+    operation_id="getReasonCodeInsightsBr",
+)
+async def reason_code_insights_br(limit: int = 50) -> List[ReasonCodeInsightOut]:
+    """Brazil reason-code insights with estimated recoverability (demo heuristic)."""
+    limit = max(1, min(limit, 200))
+    service = get_databricks_service()
+    data = await service.get_reason_code_insights_br(limit=limit)
+    return [ReasonCodeInsightOut(**row) for row in data]
+
+
+@router.get(
+    "/reason-codes/br/entry-systems",
+    response_model=List[EntrySystemDistributionOut],
+    operation_id="getEntrySystemDistributionBr",
+)
+async def entry_system_distribution_br() -> List[EntrySystemDistributionOut]:
+    """Brazil transaction distribution by entry system (coverage check)."""
+    service = get_databricks_service()
+    data = await service.get_entry_system_distribution_br()
+    return [EntrySystemDistributionOut(**row) for row in data]
+
+
+@router.get(
+    "/reason-codes/dedup-collisions",
+    response_model=DedupCollisionStatsOut,
+    operation_id="getDedupCollisionStats",
+)
+async def dedup_collision_stats() -> DedupCollisionStatsOut:
+    """Dedup collision stats (double-counting guardrail)."""
+    service = get_databricks_service()
+    data = await service.get_dedup_collision_stats()
+    return DedupCollisionStatsOut(**data)
+
+
+@router.get(
+    "/insights/false-insights",
+    response_model=List[FalseInsightsMetricOut],
+    operation_id="getFalseInsightsMetric",
+)
+async def false_insights_metric(days: int = 30) -> List[FalseInsightsMetricOut]:
+    """False Insights counter-metric time series (expert review invalid/non-actionable)."""
+    days = max(1, min(days, 180))
+    service = get_databricks_service()
+    data = await service.get_false_insights_metric(days=days)
+    return [FalseInsightsMetricOut(**row) for row in data]
+
+
+@router.get(
+    "/retry/performance",
+    response_model=List[RetryPerformanceOut],
+    operation_id="getRetryPerformance",
+)
+async def retry_performance(limit: int = 50) -> List[RetryPerformanceOut]:
+    """Smart Retry performance with scenario split."""
+    limit = max(1, min(limit, 200))
+    service = get_databricks_service()
+    data = await service.get_retry_performance(limit=limit)
+    return [RetryPerformanceOut(**row) for row in data]
+
+
+@router.post(
+    "/insights/feedback",
+    response_model=InsightFeedbackOut,
+    operation_id="submitInsightFeedback",
+)
+async def submit_insight_feedback(payload: InsightFeedbackIn) -> InsightFeedbackOut:
+    """
+    Submit domain feedback on an insight (learning loop scaffold).
+
+    When Databricks is unavailable, this returns accepted=false.
+    """
+    service = get_databricks_service()
+    ok = await service.submit_insight_feedback(
+        insight_id=payload.insight_id,
+        insight_type=payload.insight_type,
+        reviewer=payload.reviewer,
+        verdict=payload.verdict,
+        reason=payload.reason,
+        model_version=payload.model_version,
+        prompt_version=payload.prompt_version,
+    )
+    return InsightFeedbackOut(accepted=bool(ok))
 
 
 @router.post("/events", response_model=AuthorizationEvent, operation_id="ingestAuthEvent")

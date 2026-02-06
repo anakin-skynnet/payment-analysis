@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Code2, Brain, TrendingUp, Shield, Waypoints, RotateCcw } from "lucide-react";
-import { getMLflowUrl } from "@/config/workspace";
+import { getMLflowUrl, getWorkspaceUrl } from "@/config/workspace";
 
 export const Route = createFileRoute("/_sidebar/models")({
   component: () => <Models />,
@@ -19,9 +19,24 @@ const openNotebook = async (notebookId: string) => {
   }
 };
 
+const openFolder = async (folderId: string) => {
+  try {
+    const response = await fetch(`/api/notebooks/notebooks/folders/${folderId}/url`);
+    const data = await response.json();
+    window.open(data.url, "_blank");
+  } catch (error) {
+    console.error("Failed to open folder:", error);
+  }
+};
+
 const openMLflow = () => {
   const mlflowUrl = getMLflowUrl();
   window.open(mlflowUrl, "_blank");
+};
+
+const openModelInRegistry = (catalogPath: string) => {
+  const base = getWorkspaceUrl();
+  window.open(`${base}/ml/models/${catalogPath}`, "_blank");
 };
 
 interface ModelInfo {
@@ -51,7 +66,7 @@ const models: ModelInfo[] = [
     ],
     icon: <TrendingUp className="w-5 h-5" />,
     color: "text-green-500",
-    catalogPath: "main.payment_analysis_dev.approval_propensity_model",
+    catalogPath: "ahs_demos_catalog.ahs_demo_payment_analysis_dev.approval_propensity_model",
   },
   {
     id: "risk_scoring",
@@ -67,7 +82,7 @@ const models: ModelInfo[] = [
     ],
     icon: <Shield className="w-5 h-5" />,
     color: "text-red-500",
-    catalogPath: "main.payment_analysis_dev.risk_scoring_model",
+    catalogPath: "ahs_demos_catalog.ahs_demo_payment_analysis_dev.risk_scoring_model",
   },
   {
     id: "smart_routing",
@@ -82,7 +97,7 @@ const models: ModelInfo[] = [
     ],
     icon: <Waypoints className="w-5 h-5" />,
     color: "text-blue-500",
-    catalogPath: "main.payment_analysis_dev.smart_routing_policy",
+    catalogPath: "ahs_demos_catalog.ahs_demo_payment_analysis_dev.smart_routing_policy",
   },
   {
     id: "smart_retry",
@@ -98,7 +113,7 @@ const models: ModelInfo[] = [
     ],
     icon: <RotateCcw className="w-5 h-5" />,
     color: "text-purple-500",
-    catalogPath: "main.payment_analysis_dev.smart_retry_policy",
+    catalogPath: "ahs_demos_catalog.ahs_demo_payment_analysis_dev.smart_retry_policy",
   },
 ];
 
@@ -114,14 +129,14 @@ function Models() {
               Production ML models trained on Unity Catalog data and tracked with MLflow
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={openMLflow}
+              onClick={() => openFolder("ml")}
             >
-              <Brain className="w-4 h-4 mr-2" />
-              MLflow Experiments
+              <Code2 className="w-4 h-4 mr-2" />
+              Open ML folder in Workspace
               <ExternalLink className="w-3 h-3 ml-2" />
             </Button>
             <Button
@@ -131,6 +146,15 @@ function Models() {
             >
               <Code2 className="w-4 h-4 mr-2" />
               Training Notebook
+              <ExternalLink className="w-3 h-3 ml-2" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openMLflow}
+            >
+              <Brain className="w-4 h-4 mr-2" />
+              MLflow Experiments
               <ExternalLink className="w-3 h-3 ml-2" />
             </Button>
           </div>
@@ -208,17 +232,28 @@ function Models() {
                 </div>
               </div>
 
-              {/* Action Button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full"
-                onClick={() => openNotebook("train_models")}
-              >
-                <Code2 className="w-4 h-4 mr-2" />
-                View Training Code
-                <ExternalLink className="w-3 h-3 ml-2" />
-              </Button>
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="flex-1 min-w-0"
+                  onClick={() => openModelInRegistry(model.catalogPath)}
+                >
+                  Open in Model Registry
+                  <ExternalLink className="w-3 h-3 ml-2" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 min-w-0"
+                  onClick={() => openNotebook("train_models")}
+                >
+                  <Code2 className="w-4 h-4 mr-2" />
+                  Training Notebook
+                  <ExternalLink className="w-3 h-3 ml-2" />
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}

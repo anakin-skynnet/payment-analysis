@@ -126,14 +126,16 @@ class BaseAgent:
                 temperature=0.7
             )
 
-            assistant_message = response.choices[0].message.content
+            choice = response.choices[0] if response.choices else None
+            msg = choice.message if choice else None
+            content = (getattr(msg, "content", None) or "").strip() or ""
 
             self.conversation_history.append(
-                AgentMessage(role="assistant", content=assistant_message)
+                AgentMessage(role="assistant", content=content)
             )
 
             self.status = AgentStatus.COMPLETE
-            return assistant_message
+            return content
 
         except Exception as e:
             self.status = AgentStatus.ERROR
@@ -177,9 +179,13 @@ class BaseAgent:
                 wait_timeout="30s"
             )
 
-            if response.status.state == StatementState.SUCCEEDED:
-                columns = [col.name for col in response.manifest.schema.columns]
-                rows = response.result.data_array or []
+            if response.status and getattr(response.status, "state", None) == StatementState.SUCCEEDED:
+                manifest = response.manifest
+                schema = getattr(manifest, "schema", None) if manifest else None
+                cols = getattr(schema, "columns", None) if schema else None
+                columns = [c.name for c in (cols or [])]
+                result = response.result
+                rows = getattr(result, "data_array", None) or [] if result else []
                 return [dict(zip(columns, row)) for row in rows]
             return []
         except Exception as e:
@@ -754,8 +760,8 @@ For complex queries, engage multiple agents and synthesize responses."""
 
 
 def setup_agent_framework(
-    catalog: str = "main",
-    schema: str = "payment_analysis_dev"
+    catalog: str = "ahs_demos_catalog",
+    schema: str = "ahs_demo_payment_analysis_dev"
 ) -> OrchestratorAgent:
     """Initialize the multi-agent framework."""
 
@@ -779,8 +785,8 @@ def setup_agent_framework(
 # Databricks notebook entry point
 if __name__ == "__main__":
     # Get parameters
-    catalog = "main"
-    schema = "payment_analysis_dev"
+    catalog = "ahs_demos_catalog"
+    schema = "ahs_demo_payment_analysis_dev"
     test_mode = "true"
     agent_role = "orchestrator"
     query = "What optimizations do you recommend?"
@@ -788,8 +794,8 @@ if __name__ == "__main__":
     # Try to get from dbutils if running in Databricks
     try:
         from databricks.sdk.runtime import dbutils
-        dbutils.widgets.text("catalog", "main")
-        dbutils.widgets.text("schema", "payment_analysis_dev")
+        dbutils.widgets.text("catalog", "ahs_demos_catalog")
+        dbutils.widgets.text("schema", "ahs_demo_payment_analysis_dev")
         dbutils.widgets.text("test_mode", "true")
         dbutils.widgets.text("agent_role", "orchestrator")
         dbutils.widgets.text("query", "What optimizations do you recommend?")
@@ -799,8 +805,8 @@ if __name__ == "__main__":
         test_mode = dbutils.widgets.get("test_mode")
         agent_role = dbutils.widgets.get("agent_role")
         query = dbutils.widgets.get("query")
-    except:
-        pass
+    except Exception:
+        pass  # Running outside Databricks; use defaults
     
     print(f"\nAgent Role: {agent_role}")
     print(f"Query: {query}")

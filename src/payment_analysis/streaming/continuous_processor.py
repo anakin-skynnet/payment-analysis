@@ -12,8 +12,8 @@ from pyspark.sql.types import *
 # COMMAND ----------
 
 # Get parameters
-dbutils.widgets.text("catalog", "main")
-dbutils.widgets.text("schema", "payment_analysis_dev")
+dbutils.widgets.text("catalog", "ahs_demos_catalog")
+dbutils.widgets.text("schema", "ahs_demo_payment_analysis_dev")
 dbutils.widgets.text("checkpoint_location", "/tmp/checkpoints/stream_processor")
 dbutils.widgets.text("trigger_interval", "1 second")
 
@@ -170,15 +170,29 @@ print(f"Writing aggregations to: {agg_table}")
 # Wait for streams (in continuous mode, this runs forever)
 import time
 
-while True:
-    # Check stream status
-    for stream in spark.streams.active:
-        status = stream.status
-        progress = stream.recentProgress
-        
-        if progress:
-            latest = progress[-1]
-            print(f"Stream {stream.name}: {latest.get('numInputRows', 0)} rows/batch, "
-                  f"processing rate: {latest.get('processedRowsPerSecond', 0):.0f} rows/sec")
-    
-    time.sleep(30)  # Status update every 30 seconds
+try:
+    while True:
+        active = spark.streams.active  # type: ignore[name-defined]
+        if not active:
+            print("No active streams — exiting monitor loop.")
+            break
+
+        for stream in active:
+            progress = stream.recentProgress
+            if progress:
+                latest = progress[-1]
+                print(
+                    f"Stream {stream.name}: "
+                    f"{latest.get('numInputRows', 0)} rows/batch, "
+                    f"processing rate: "
+                    f"{latest.get('processedRowsPerSecond', 0):.0f} rows/sec"
+                )
+
+        time.sleep(30)  # Status update every 30 seconds
+except KeyboardInterrupt:
+    print("Monitor loop interrupted — stopping streams.")
+    for stream in spark.streams.active:  # type: ignore[name-defined]
+        stream.stop()
+except Exception as exc:
+    print(f"Stream monitoring error: {exc}")
+    raise

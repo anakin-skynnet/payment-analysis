@@ -67,7 +67,7 @@ function Dashboard() {
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2">
-          Real-time KPIs from Unity Catalog via Lakeflow streaming
+          Real-time KPIs from Unity Catalog via Lakeflow Declarative Pipeline (LDP) streaming
         </p>
       </div>
 

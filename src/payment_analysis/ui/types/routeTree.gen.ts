@@ -11,7 +11,10 @@
 import { Route as rootRouteImport } from './../routes/__root'
 import { Route as SidebarRouteRouteImport } from './../routes/_sidebar/route'
 import { Route as IndexRouteImport } from './../routes/index'
+import { Route as SidebarSmartRetryRouteImport } from './../routes/_sidebar/smart-retry'
+import { Route as SidebarSmartCheckoutRouteImport } from './../routes/_sidebar/smart-checkout'
 import { Route as SidebarSetupRouteImport } from './../routes/_sidebar/setup'
+import { Route as SidebarReasonCodesRouteImport } from './../routes/_sidebar/reason-codes'
 import { Route as SidebarProfileRouteImport } from './../routes/_sidebar/profile'
 import { Route as SidebarNotebooksRouteImport } from './../routes/_sidebar/notebooks'
 import { Route as SidebarModelsRouteImport } from './../routes/_sidebar/models'
@@ -32,9 +35,24 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SidebarSmartRetryRoute = SidebarSmartRetryRouteImport.update({
+  id: '/smart-retry',
+  path: '/smart-retry',
+  getParentRoute: () => SidebarRouteRoute,
+} as any)
+const SidebarSmartCheckoutRoute = SidebarSmartCheckoutRouteImport.update({
+  id: '/smart-checkout',
+  path: '/smart-checkout',
+  getParentRoute: () => SidebarRouteRoute,
+} as any)
 const SidebarSetupRoute = SidebarSetupRouteImport.update({
   id: '/setup',
   path: '/setup',
+  getParentRoute: () => SidebarRouteRoute,
+} as any)
+const SidebarReasonCodesRoute = SidebarReasonCodesRouteImport.update({
+  id: '/reason-codes',
+  path: '/reason-codes',
   getParentRoute: () => SidebarRouteRoute,
 } as any)
 const SidebarProfileRoute = SidebarProfileRouteImport.update({
@@ -100,7 +118,10 @@ export interface FileRoutesByFullPath {
   '/models': typeof SidebarModelsRoute
   '/notebooks': typeof SidebarNotebooksRoute
   '/profile': typeof SidebarProfileRoute
+  '/reason-codes': typeof SidebarReasonCodesRoute
   '/setup': typeof SidebarSetupRoute
+  '/smart-checkout': typeof SidebarSmartCheckoutRoute
+  '/smart-retry': typeof SidebarSmartRetryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -114,7 +135,10 @@ export interface FileRoutesByTo {
   '/models': typeof SidebarModelsRoute
   '/notebooks': typeof SidebarNotebooksRoute
   '/profile': typeof SidebarProfileRoute
+  '/reason-codes': typeof SidebarReasonCodesRoute
   '/setup': typeof SidebarSetupRoute
+  '/smart-checkout': typeof SidebarSmartCheckoutRoute
+  '/smart-retry': typeof SidebarSmartRetryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -130,7 +154,10 @@ export interface FileRoutesById {
   '/_sidebar/models': typeof SidebarModelsRoute
   '/_sidebar/notebooks': typeof SidebarNotebooksRoute
   '/_sidebar/profile': typeof SidebarProfileRoute
+  '/_sidebar/reason-codes': typeof SidebarReasonCodesRoute
   '/_sidebar/setup': typeof SidebarSetupRoute
+  '/_sidebar/smart-checkout': typeof SidebarSmartCheckoutRoute
+  '/_sidebar/smart-retry': typeof SidebarSmartRetryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -146,7 +173,10 @@ export interface FileRouteTypes {
     | '/models'
     | '/notebooks'
     | '/profile'
+    | '/reason-codes'
     | '/setup'
+    | '/smart-checkout'
+    | '/smart-retry'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -160,7 +190,10 @@ export interface FileRouteTypes {
     | '/models'
     | '/notebooks'
     | '/profile'
+    | '/reason-codes'
     | '/setup'
+    | '/smart-checkout'
+    | '/smart-retry'
   id:
     | '__root__'
     | '/'
@@ -175,7 +208,10 @@ export interface FileRouteTypes {
     | '/_sidebar/models'
     | '/_sidebar/notebooks'
     | '/_sidebar/profile'
+    | '/_sidebar/reason-codes'
     | '/_sidebar/setup'
+    | '/_sidebar/smart-checkout'
+    | '/_sidebar/smart-retry'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -199,11 +235,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_sidebar/smart-retry': {
+      id: '/_sidebar/smart-retry'
+      path: '/smart-retry'
+      fullPath: '/smart-retry'
+      preLoaderRoute: typeof SidebarSmartRetryRouteImport
+      parentRoute: typeof SidebarRouteRoute
+    }
+    '/_sidebar/smart-checkout': {
+      id: '/_sidebar/smart-checkout'
+      path: '/smart-checkout'
+      fullPath: '/smart-checkout'
+      preLoaderRoute: typeof SidebarSmartCheckoutRouteImport
+      parentRoute: typeof SidebarRouteRoute
+    }
     '/_sidebar/setup': {
       id: '/_sidebar/setup'
       path: '/setup'
       fullPath: '/setup'
       preLoaderRoute: typeof SidebarSetupRouteImport
+      parentRoute: typeof SidebarRouteRoute
+    }
+    '/_sidebar/reason-codes': {
+      id: '/_sidebar/reason-codes'
+      path: '/reason-codes'
+      fullPath: '/reason-codes'
+      preLoaderRoute: typeof SidebarReasonCodesRouteImport
       parentRoute: typeof SidebarRouteRoute
     }
     '/_sidebar/profile': {
@@ -290,7 +347,10 @@ interface SidebarRouteRouteChildren {
   SidebarModelsRoute: typeof SidebarModelsRoute
   SidebarNotebooksRoute: typeof SidebarNotebooksRoute
   SidebarProfileRoute: typeof SidebarProfileRoute
+  SidebarReasonCodesRoute: typeof SidebarReasonCodesRoute
   SidebarSetupRoute: typeof SidebarSetupRoute
+  SidebarSmartCheckoutRoute: typeof SidebarSmartCheckoutRoute
+  SidebarSmartRetryRoute: typeof SidebarSmartRetryRoute
 }
 
 const SidebarRouteRouteChildren: SidebarRouteRouteChildren = {
@@ -304,7 +364,10 @@ const SidebarRouteRouteChildren: SidebarRouteRouteChildren = {
   SidebarModelsRoute: SidebarModelsRoute,
   SidebarNotebooksRoute: SidebarNotebooksRoute,
   SidebarProfileRoute: SidebarProfileRoute,
+  SidebarReasonCodesRoute: SidebarReasonCodesRoute,
   SidebarSetupRoute: SidebarSetupRoute,
+  SidebarSmartCheckoutRoute: SidebarSmartCheckoutRoute,
+  SidebarSmartRetryRoute: SidebarSmartRetryRoute,
 }
 
 const SidebarRouteRouteWithChildren = SidebarRouteRoute._addFileChildren(

@@ -8,7 +8,7 @@ parameters (catalog, schema, warehouse_id). Used by the Setup & Run page.
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, TypedDict
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -23,15 +23,23 @@ router = APIRouter(prefix="/setup", tags=["setup"])
 # Default resource IDs (from bundle deployment / docs/DEMO_SETUP)
 # =============================================================================
 
+class _DefaultIds(TypedDict):
+    warehouse_id: str
+    catalog: str
+    schema: str
+    jobs: dict[str, str]
+    pipelines: dict[str, str]
+
+
 def _get_workspace_host() -> str:
     """Get Databricks workspace host from env or client default."""
     return os.getenv("DATABRICKS_HOST", "https://adb-984752964297111.11.azuredatabricks.net")
 
 
-DEFAULT_IDS = {
-    "warehouse_id": os.getenv("DATABRICKS_WAREHOUSE_ID", "bf12ee0011ea4ced"),
-    "catalog": os.getenv("DATABRICKS_CATALOG", "main"),
-    "schema": os.getenv("DATABRICKS_SCHEMA", "dev_ariel_hdez_payment_analysis_dev"),
+DEFAULT_IDS: _DefaultIds = {
+    "warehouse_id": os.getenv("DATABRICKS_WAREHOUSE_ID", "bf12ee0011ea4ced") or "",
+    "catalog": os.getenv("DATABRICKS_CATALOG", "ahs_demos_catalog") or "",
+    "schema": os.getenv("DATABRICKS_SCHEMA", "ahs_demo_payment_analysis_dev") or "",
     "jobs": {
         "transaction_stream_simulator": "782493643247677",
         "create_gold_views": "775632375108394",
@@ -59,7 +67,7 @@ class SetupDefaultsOut(BaseModel):
     """Default resource IDs and parameters for setup form."""
     warehouse_id: str = Field(..., description="SQL Warehouse ID")
     catalog: str = Field(..., description="Unity Catalog name")
-    schema_name: str = Field(..., description="Schema name", alias="schema")
+    schema_name: str = Field(..., description="Schema name", serialization_alias="schema")
     jobs: dict[str, str] = Field(..., description="Job ID by logical name")
     pipelines: dict[str, str] = Field(..., description="Pipeline ID by logical name")
     workspace_host: str = Field(..., description="Databricks workspace URL")

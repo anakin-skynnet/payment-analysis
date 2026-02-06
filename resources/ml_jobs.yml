@@ -18,11 +18,16 @@ resources:
           new_cluster:
             spark_version: "14.3.x-cpu-ml-scala2.12"
             node_type_id: "Standard_DS3_v2"
-            num_workers: 1
+            num_workers: 0
+            spark_conf:
+              "spark.databricks.cluster.profile": "singleNode"
+              "spark.master": "local[*]"
             spark_env_vars:
               MLFLOW_TRACKING_URI: "databricks"
+            custom_tags:
+              ResourceClass: SingleNode
           
-          timeout_seconds: 7200
+          timeout_seconds: 5400
           max_retries: 1
       
       schedule:
@@ -48,7 +53,7 @@ resources:
             file:
               path: ${workspace.file_path}/src/payment_analysis/transform/gold_views.sql
           
-          timeout_seconds: 900
+          timeout_seconds: 600
           max_retries: 2
       
       schedule:
@@ -73,7 +78,7 @@ resources:
             notebook_path: ${workspace.file_path}/src/payment_analysis/agents/agent_framework
             base_parameters:
               catalog: ${var.catalog}
-              schema: payment_analysis_${var.environment}
+              schema: ${var.schema}
               test_mode: "true"
           
           new_cluster:

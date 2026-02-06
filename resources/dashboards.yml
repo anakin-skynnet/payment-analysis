@@ -1,4 +1,4 @@
-# Lakeview Dashboards Configuration
+# AI/BI Dashboards Configuration
 # All dashboards use Unity Catalog views from the gold layer
 
 resources:

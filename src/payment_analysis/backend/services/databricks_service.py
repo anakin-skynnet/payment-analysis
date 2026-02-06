@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import lru_cache
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -64,8 +65,8 @@ class DatabricksConfig:
     host: str | None = None
     token: str | None = None
     warehouse_id: str | None = None
-    catalog: str = "main"
-    schema: str = "payment_analysis_dev"
+    catalog: str = "ahs_demos_catalog"
+    schema: str = "ahs_demo_payment_analysis_dev"
 
     @classmethod
     def from_environment(cls) -> "DatabricksConfig":
@@ -74,8 +75,8 @@ class DatabricksConfig:
             host=os.getenv("DATABRICKS_HOST"),
             token=os.getenv("DATABRICKS_TOKEN"),
             warehouse_id=os.getenv("DATABRICKS_WAREHOUSE_ID"),
-            catalog=os.getenv("DATABRICKS_CATALOG", "main"),
-            schema=os.getenv("DATABRICKS_SCHEMA", "payment_analysis_dev"),
+            catalog=os.getenv("DATABRICKS_CATALOG", "ahs_demos_catalog"),
+            schema=os.getenv("DATABRICKS_SCHEMA", "ahs_demo_payment_analysis_dev"),
         )
     
     @property
@@ -195,6 +196,34 @@ class DatabricksService:
         rows = response.result.data_array or []
         
         return [dict(zip(columns, row)) for row in rows]
+
+    async def execute_non_query(self, statement: str) -> bool:
+        """
+        Execute a SQL statement that does not return rows (INSERT/UPDATE/DDL).
+
+        Returns:
+            True if the statement succeeded, else False (with graceful fallback).
+        """
+        if not self.is_available:
+            logger.warning("Databricks unavailable, skipping non-query execution")
+            return False
+
+        try:
+            from databricks.sdk.service.sql import StatementState
+
+            warehouse_id = self._get_warehouse_id()
+            if not warehouse_id:
+                raise RuntimeError("No SQL Warehouse available")
+
+            response = self.client.statement_execution.execute_statement(
+                warehouse_id=warehouse_id,
+                statement=statement,
+                wait_timeout="30s",
+            )
+            return bool(response.status and response.status.state == StatementState.SUCCEEDED)
+        except Exception as e:
+            logger.error(f"Non-query execution failed: {e}")
+            return False
     
     def _get_warehouse_id(self) -> str | None:
         """Get warehouse ID from config or discover first available."""
@@ -277,6 +306,206 @@ class DatabricksService:
         
         results = await self.execute_query(query)
         return results or MockDataGenerator.solution_performance()
+
+    async def get_smart_checkout_service_paths_br(self, limit: int = 25) -> list[dict[str, Any]]:
+        """Fetch Brazil payment-link performance by Smart Checkout service path."""
+        limit = max(1, min(limit, 100))
+        query = f"""
+            SELECT
+              service_path,
+              transaction_count,
+              approved_count,
+              approval_rate_pct,
+              avg_fraud_score,
+              total_value,
+              antifraud_declines,
+              antifraud_pct_of_declines
+            FROM {self.config.full_schema_name}.v_smart_checkout_service_path_br
+            ORDER BY transaction_count DESC
+            LIMIT {limit}
+        """
+        results = await self.execute_query(query)
+        return results or MockDataGenerator.smart_checkout_service_paths(limit)
+
+    async def get_smart_checkout_path_performance_br(self, limit: int = 20) -> list[dict[str, Any]]:
+        """Fetch Brazil payment-link performance by recommended Smart Checkout path."""
+        limit = max(1, min(limit, 50))
+        query = f"""
+            SELECT
+              recommended_path,
+              transaction_count,
+              approved_count,
+              approval_rate_pct,
+              total_value
+            FROM {self.config.full_schema_name}.v_smart_checkout_path_performance_br
+            ORDER BY transaction_count DESC
+            LIMIT {limit}
+        """
+        results = await self.execute_query(query)
+        return results or MockDataGenerator.smart_checkout_path_performance(limit)
+
+    async def get_3ds_funnel_br(self, days: int = 30) -> list[dict[str, Any]]:
+        """Fetch Brazil payment-link 3DS funnel metrics by day."""
+        days = max(1, min(days, 90))
+        query = f"""
+            SELECT
+              event_date,
+              total_transactions,
+              three_ds_routed_count,
+              three_ds_friction_count,
+              three_ds_authenticated_count,
+              issuer_approved_after_auth_count,
+              three_ds_friction_rate_pct,
+              three_ds_authentication_rate_pct,
+              issuer_approval_post_auth_rate_pct
+            FROM {self.config.full_schema_name}.v_3ds_funnel_br
+            WHERE event_date >= CURRENT_DATE - {days}
+            ORDER BY event_date DESC
+        """
+        results = await self.execute_query(query)
+        return results or MockDataGenerator.three_ds_funnel(days)
+
+    async def get_reason_codes_br(self, limit: int = 50) -> list[dict[str, Any]]:
+        """Fetch Brazil declines consolidated into unified reason-code taxonomy."""
+        limit = max(1, min(limit, 200))
+        query = f"""
+            SELECT
+              entry_system,
+              flow_type,
+              decline_reason_standard,
+              decline_reason_group,
+              recommended_action,
+              decline_count,
+              pct_of_declines,
+              total_declined_value,
+              avg_amount,
+              affected_merchants
+            FROM {self.config.full_schema_name}.v_reason_codes_br
+            ORDER BY decline_count DESC
+            LIMIT {limit}
+        """
+        results = await self.execute_query(query)
+        return results or MockDataGenerator.reason_codes(limit)
+
+    async def get_reason_code_insights_br(self, limit: int = 50) -> list[dict[str, Any]]:
+        """Fetch Brazil reason-code insights with estimated recoverability (demo heuristic)."""
+        limit = max(1, min(limit, 200))
+        query = f"""
+            SELECT
+              entry_system,
+              flow_type,
+              decline_reason_standard,
+              decline_reason_group,
+              recommended_action,
+              decline_count,
+              pct_of_declines,
+              total_declined_value,
+              estimated_recoverable_declines,
+              estimated_recoverable_value,
+              priority
+            FROM {self.config.full_schema_name}.v_reason_code_insights_br
+            ORDER BY priority ASC, estimated_recoverable_value DESC
+            LIMIT {limit}
+        """
+        results = await self.execute_query(query)
+        return results or MockDataGenerator.reason_code_insights(limit)
+
+    async def get_entry_system_distribution_br(self) -> list[dict[str, Any]]:
+        """Fetch Brazil transaction distribution by entry system."""
+        query = f"""
+            SELECT
+              entry_system,
+              transaction_count,
+              approved_count,
+              approval_rate_pct,
+              total_value
+            FROM {self.config.full_schema_name}.v_entry_system_distribution_br
+            ORDER BY transaction_count DESC
+        """
+        results = await self.execute_query(query)
+        return results or MockDataGenerator.entry_system_distribution()
+
+    async def get_dedup_collision_stats(self) -> dict[str, Any]:
+        """Fetch dedup collision stats (double-counting guardrail)."""
+        query = f"""
+            SELECT
+              colliding_keys,
+              avg_rows_per_key,
+              avg_entry_systems_per_key,
+              avg_transaction_ids_per_key
+            FROM {self.config.full_schema_name}.v_dedup_collision_stats
+            LIMIT 1
+        """
+        results = await self.execute_query(query)
+        return results[0] if results else MockDataGenerator.dedup_collision_stats()
+
+    async def get_false_insights_metric(self, days: int = 30) -> list[dict[str, Any]]:
+        """Fetch False Insights counter-metric time series."""
+        days = max(1, min(days, 180))
+        query = f"""
+            SELECT
+              event_date,
+              reviewed_insights,
+              false_insights,
+              false_insights_pct
+            FROM {self.config.full_schema_name}.v_false_insights_metric
+            WHERE event_date >= CURRENT_DATE - {days}
+            ORDER BY event_date DESC
+        """
+        results = await self.execute_query(query)
+        return results or MockDataGenerator.false_insights_metric(days)
+
+    async def get_retry_performance(self, limit: int = 50) -> list[dict[str, Any]]:
+        """Fetch Smart Retry performance (scenario split) from Unity Catalog."""
+        limit = max(1, min(limit, 200))
+        query = f"""
+            SELECT
+              retry_scenario,
+              decline_reason_standard,
+              retry_count,
+              retry_attempts,
+              success_rate_pct,
+              recovered_value,
+              avg_fraud_score,
+              effectiveness
+            FROM {self.config.full_schema_name}.v_retry_performance
+            ORDER BY retry_attempts DESC
+            LIMIT {limit}
+        """
+        results = await self.execute_query(query)
+        return results or MockDataGenerator.retry_performance(limit)
+
+    async def submit_insight_feedback(
+        self,
+        *,
+        insight_id: str,
+        insight_type: str,
+        reviewer: str | None,
+        verdict: str,
+        reason: str | None,
+        model_version: str | None,
+        prompt_version: str | None,
+    ) -> bool:
+        """
+        Submit domain feedback for an insight to the UC feedback table.
+
+        Note: in some environments, DLT-managed tables may disallow direct INSERTs.
+        This is intended as a scaffold for the learning loop.
+        """
+
+        def esc(v: str | None) -> str:
+            if v is None:
+                return "NULL"
+            return "'" + v.replace("'", "''") + "'"
+
+        statement = f"""
+        INSERT INTO {self.config.full_schema_name}.insight_feedback_silver
+        (insight_id, insight_type, reviewer, verdict, reason, model_version, prompt_version, reviewed_at)
+        VALUES
+        ({esc(insight_id)}, {esc(insight_type)}, {esc(reviewer)}, {esc(verdict)}, {esc(reason)}, {esc(model_version)}, {esc(prompt_version)}, current_timestamp())
+        """
+
+        return await self.execute_non_query(statement)
     
     # =========================================================================
     # ML Model Serving
@@ -310,7 +539,7 @@ class DatabricksService:
         self,
         endpoint_name: str,
         features: dict[str, Any],
-        mock_fallback: callable,
+        mock_fallback: Callable[[], dict[str, Any]],
     ) -> dict[str, Any]:
         """Generic model endpoint caller with fallback."""
         if not self.is_available:
@@ -368,6 +597,24 @@ class DatabricksService:
             return MockDataGenerator.approval_trends(24)
         elif "v_solution_performance" in query_lower:
             return MockDataGenerator.solution_performance()
+        elif "v_smart_checkout_service_path_br" in query_lower:
+            return MockDataGenerator.smart_checkout_service_paths(25)
+        elif "v_smart_checkout_path_performance_br" in query_lower:
+            return MockDataGenerator.smart_checkout_path_performance(20)
+        elif "v_3ds_funnel_br" in query_lower:
+            return MockDataGenerator.three_ds_funnel(30)
+        elif "v_reason_codes_br" in query_lower:
+            return MockDataGenerator.reason_codes(50)
+        elif "v_reason_code_insights_br" in query_lower:
+            return MockDataGenerator.reason_code_insights(50)
+        elif "v_entry_system_distribution_br" in query_lower:
+            return MockDataGenerator.entry_system_distribution()
+        elif "v_dedup_collision_stats" in query_lower:
+            return [MockDataGenerator.dedup_collision_stats()]
+        elif "v_false_insights_metric" in query_lower:
+            return MockDataGenerator.false_insights_metric(30)
+        elif "v_retry_performance" in query_lower:
+            return MockDataGenerator.retry_performance(50)
         
         return []
 
@@ -460,6 +707,194 @@ class MockDataGenerator:
                 "total_value": round(count * avg_amt, 2),
             }
             for solution, count, approved, rate, avg_amt in solutions
+        ]
+
+    @staticmethod
+    def smart_checkout_service_paths(limit: int = 25) -> list[dict[str, Any]]:
+        """Mock Smart Checkout service-path breakdown."""
+        rows = [
+            ("antifraud=pass+network_token+vault", 12000, 8800, 73.3, 0.12, 2_100_000, 900, 45.0),
+            ("antifraud=pass+3ds=challenge+network_token+vault", 350, 250, 71.4, 0.14, 65_000, 20, 40.0),
+            ("antifraud=fail+vault", 800, 0, 0.0, 0.35, 120_000, 800, 80.0),
+        ]
+        return [
+            {
+                "service_path": sp,
+                "transaction_count": tc,
+                "approved_count": ac,
+                "approval_rate_pct": ar,
+                "avg_fraud_score": fs,
+                "total_value": tv,
+                "antifraud_declines": ad,
+                "antifraud_pct_of_declines": ap,
+            }
+            for sp, tc, ac, ar, fs, tv, ad, ap in rows[:limit]
+        ]
+
+    @staticmethod
+    def smart_checkout_path_performance(limit: int = 20) -> list[dict[str, Any]]:
+        """Mock recommended-path performance."""
+        rows = [
+            ("standard", 14000, 10300, 73.6, 2_300_000.0),
+            ("network_token", 5000, 3800, 76.0, 900_000.0),
+            ("3ds_challenge", 180, 115, 63.9, 40_000.0),
+            ("passkey", 90, 78, 86.7, 22_000.0),
+        ]
+        return [
+            {
+                "recommended_path": p,
+                "transaction_count": tc,
+                "approved_count": ac,
+                "approval_rate_pct": ar,
+                "total_value": tv,
+            }
+            for p, tc, ac, ar, tv in rows[:limit]
+        ]
+
+    @staticmethod
+    def three_ds_funnel(days: int = 30) -> list[dict[str, Any]]:
+        """Mock 3DS funnel time series."""
+        base = datetime.now().date()
+        out: list[dict[str, Any]] = []
+        for i in range(min(days, 30)):
+            d = base - timedelta(days=i)
+            routed = 120
+            friction = 96
+            authed = 72
+            approved_after = 58
+            out.append(
+                {
+                    "event_date": str(d),
+                    "total_transactions": 15000,
+                    "three_ds_routed_count": routed,
+                    "three_ds_friction_count": friction,
+                    "three_ds_authenticated_count": authed,
+                    "issuer_approved_after_auth_count": approved_after,
+                    "three_ds_friction_rate_pct": round(friction * 100.0 / routed, 2),
+                    "three_ds_authentication_rate_pct": round(authed * 100.0 / routed, 2),
+                    "issuer_approval_post_auth_rate_pct": round(approved_after * 100.0 / authed, 2),
+                }
+            )
+        return out
+
+    @staticmethod
+    def reason_codes(limit: int = 50) -> list[dict[str, Any]]:
+        """Mock unified reason codes summary."""
+        rows = [
+            ("PD", "standard_ecom", "FUNDS_OR_LIMIT", "funds", "SmartRetry: delay 24-72h (payday-aware)", 1800, 32.5, 95_000, 52.8, 220),
+            ("WS", "legacy_ws", "ISSUER_DO_NOT_HONOR", "issuer", "Try alternative checkout path (3DS/network token)", 1300, 23.4, 72_000, 55.4, 180),
+            ("PD", "payment_link", "FRAUD_SUSPECTED", "fraud", "Review antifraud rules; reduce false positives", 900, 16.2, 80_000, 88.9, 95),
+        ]
+        return [
+            {
+                "entry_system": es,
+                "flow_type": ft,
+                "decline_reason_standard": drs,
+                "decline_reason_group": drg,
+                "recommended_action": ra,
+                "decline_count": dc,
+                "pct_of_declines": pct,
+                "total_declined_value": tv,
+                "avg_amount": aa,
+                "affected_merchants": am,
+            }
+            for es, ft, drs, drg, ra, dc, pct, tv, aa, am in rows[:limit]
+        ]
+
+    @staticmethod
+    def reason_code_insights(limit: int = 50) -> list[dict[str, Any]]:
+        """Mock reason-code insights with estimated recoverability."""
+        rows = [
+            ("PD", "standard_ecom", "FUNDS_OR_LIMIT", "funds", "SmartRetry: delay 24-72h (payday-aware)", 1800, 32.5, 95_000, 450, 23_750, 2),
+            ("WS", "legacy_ws", "ISSUER_TECHNICAL", "issuer", "SmartRetry: immediate retry or alternate network", 900, 16.2, 80_000, 360, 32_000, 2),
+            ("PD", "payment_link", "FRAUD_SUSPECTED", "fraud", "Review antifraud rules; reduce false positives", 900, 16.2, 80_000, 90, 8_000, 3),
+        ]
+        return [
+            {
+                "entry_system": es,
+                "flow_type": ft,
+                "decline_reason_standard": drs,
+                "decline_reason_group": drg,
+                "recommended_action": ra,
+                "decline_count": dc,
+                "pct_of_declines": pct,
+                "total_declined_value": tv,
+                "estimated_recoverable_declines": erd,
+                "estimated_recoverable_value": erv,
+                "priority": pr,
+            }
+            for es, ft, drs, drg, ra, dc, pct, tv, erd, erv, pr in rows[:limit]
+        ]
+
+    @staticmethod
+    def entry_system_distribution() -> list[dict[str, Any]]:
+        """Mock entry-system distribution for Brazil."""
+        rows = [
+            ("PD", 62000, 45000, 72.6, 11_200_000.0),
+            ("WS", 34000, 24500, 72.1, 6_100_000.0),
+            ("SEP", 3000, 2100, 70.0, 520_000.0),
+            ("CHECKOUT", 1000, 720, 72.0, 180_000.0),
+        ]
+        return [
+            {
+                "entry_system": es,
+                "transaction_count": tc,
+                "approved_count": ac,
+                "approval_rate_pct": ar,
+                "total_value": tv,
+            }
+            for es, tc, ac, ar, tv in rows
+        ]
+
+    @staticmethod
+    def dedup_collision_stats() -> dict[str, Any]:
+        """Mock dedup collision stats."""
+        return {
+            "colliding_keys": 0,
+            "avg_rows_per_key": 0.0,
+            "avg_entry_systems_per_key": 0.0,
+            "avg_transaction_ids_per_key": 0.0,
+        }
+
+    @staticmethod
+    def false_insights_metric(days: int = 30) -> list[dict[str, Any]]:
+        """Mock False Insights counter-metric series."""
+        base = datetime.now().date()
+        out: list[dict[str, Any]] = []
+        for i in range(min(days, 30)):
+            d = base - timedelta(days=i)
+            reviewed = 20
+            false = 3 if i % 7 != 0 else 6
+            out.append(
+                {
+                    "event_date": str(d),
+                    "reviewed_insights": reviewed,
+                    "false_insights": false,
+                    "false_insights_pct": round(false * 100.0 / reviewed, 2),
+                }
+            )
+        return out
+
+    @staticmethod
+    def retry_performance(limit: int = 50) -> list[dict[str, Any]]:
+        """Mock retry performance with scenario split."""
+        rows = [
+            ("PaymentRetry", "FUNDS_OR_LIMIT", 1, 1200, 28.0, 18000.0, 0.11, "Moderate"),
+            ("PaymentRetry", "ISSUER_TECHNICAL", 1, 800, 45.0, 22000.0, 0.09, "Effective"),
+            ("PaymentRecurrence", "CARD_EXPIRED", 1, 300, 5.0, 1200.0, 0.08, "Low"),
+        ]
+        return [
+            {
+                "retry_scenario": s,
+                "decline_reason_standard": r,
+                "retry_count": rc,
+                "retry_attempts": a,
+                "success_rate_pct": sr,
+                "recovered_value": rv,
+                "avg_fraud_score": af,
+                "effectiveness": e,
+            }
+            for (s, r, rc, a, sr, rv, af, e) in rows[:limit]
         ]
     
     @staticmethod

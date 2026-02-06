@@ -16,7 +16,7 @@ import os
 from enum import Enum
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 router = APIRouter(tags=["agents"])
@@ -143,8 +143,8 @@ AGENTS = [
             AgentCapability.REAL_TIME_DECISIONING,
         ],
         use_case="Real-time approval probability scoring for intelligent routing decisions. Route high-propensity transactions to optimal payment solutions and flag low-propensity transactions for review.",
-        databricks_resource="Model: main.payment_analysis_dev.approval_propensity_model",
-        workspace_url=f"{get_workspace_url()}/ml/models/main.payment_analysis_dev.approval_propensity_model",
+        databricks_resource="Model: ahs_demos_catalog.ahs_demo_payment_analysis_dev.approval_propensity_model",
+        workspace_url=f"{get_workspace_url()}/ml/models/ahs_demos_catalog.ahs_demo_payment_analysis_dev.approval_propensity_model",
         tags=["model-serving", "ml", "propensity", "real-time"],
         example_queries=[
             "What's the approval probability for this transaction?",
@@ -164,8 +164,8 @@ AGENTS = [
             AgentCapability.REAL_TIME_DECISIONING,
         ],
         use_case="Automatically select the best payment solution (standard, 3DS, network token, passkey) to maximize approval rates while balancing fraud risk and processing costs.",
-        databricks_resource="Model: main.payment_analysis_dev.smart_routing_policy",
-        workspace_url=f"{get_workspace_url()}/ml/models/main.payment_analysis_dev.smart_routing_policy",
+        databricks_resource="Model: ahs_demos_catalog.ahs_demo_payment_analysis_dev.smart_routing_policy",
+        workspace_url=f"{get_workspace_url()}/ml/models/ahs_demos_catalog.ahs_demo_payment_analysis_dev.smart_routing_policy",
         tags=["model-serving", "routing", "optimization", "decisioning"],
         example_queries=[
             "What's the best payment solution for this merchant?",
@@ -184,8 +184,8 @@ AGENTS = [
             AgentCapability.AUTOMATED_RECOMMENDATIONS,
         ],
         use_case="Increase revenue recovery by 15-25% through intelligent retry strategies. Predicts retry success probability and suggests optimal retry timing for different decline types.",
-        databricks_resource="Model: main.payment_analysis_dev.smart_retry_policy",
-        workspace_url=f"{get_workspace_url()}/ml/models/main.payment_analysis_dev.smart_retry_policy",
+        databricks_resource="Model: ahs_demos_catalog.ahs_demo_payment_analysis_dev.smart_retry_policy",
+        workspace_url=f"{get_workspace_url()}/ml/models/ahs_demos_catalog.ahs_demo_payment_analysis_dev.smart_retry_policy",
         tags=["model-serving", "retry", "recovery", "revenue"],
         example_queries=[
             "Should we retry this declined transaction?",
@@ -306,7 +306,6 @@ async def get_agent(agent_id: str) -> AgentInfo:
         if agent.id == agent_id:
             return agent
     
-    from fastapi import HTTPException
     raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
 
 

@@ -6,14 +6,15 @@
 
 # COMMAND ----------
 
-from databricks.sdk import WorkspaceClient
+from databricks.sdk import WorkspaceClient  # type: ignore[import-untyped]
+from pyspark.sql.functions import col  # type: ignore[import-untyped]
 import json
 
 # COMMAND ----------
 
 # Get parameters
-dbutils.widgets.text("catalog", "main")
-dbutils.widgets.text("schema", "payment_analysis_dev")
+dbutils.widgets.text("catalog", "ahs_demos_catalog")
+dbutils.widgets.text("schema", "ahs_demo_payment_analysis_dev")
 
 CATALOG = dbutils.widgets.get("catalog")
 SCHEMA = dbutils.widgets.get("schema")
@@ -143,7 +144,7 @@ try:
     try:
         dbutils.fs.put(config_path, json.dumps(genie_space_config, indent=2), overwrite=True)
         print(f"\nConfiguration saved to: {config_path}")
-    except:
+    except Exception:
         print("\nNote: Could not save to volume (may not exist yet)")
         
 except Exception as e:

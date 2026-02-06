@@ -5,7 +5,7 @@ resources:
   # Schema for payment analysis data
   schemas:
     payment_analysis_schema:
-      name: payment_analysis_${var.environment}
+      name: ${var.schema}
       catalog_name: ${var.catalog}
       comment: |
         Payment Approval Analysis Platform - ${var.environment} environment.
@@ -44,7 +44,7 @@ resources:
     raw_data_volume:
       name: raw_data
       catalog_name: ${var.catalog}
-      schema_name: payment_analysis_${var.environment}
+      schema_name: ${var.schema}
       volume_type: MANAGED
       comment: "Landing zone for raw payment data files (CSV, JSON, Parquet)"
     
@@ -52,7 +52,7 @@ resources:
     checkpoints_volume:
       name: checkpoints
       catalog_name: ${var.catalog}
-      schema_name: payment_analysis_${var.environment}
+      schema_name: ${var.schema}
       volume_type: MANAGED
       comment: "Checkpoint storage for Structured Streaming jobs"
     
@@ -60,7 +60,7 @@ resources:
     ml_artifacts_volume:
       name: ml_artifacts
       catalog_name: ${var.catalog}
-      schema_name: payment_analysis_${var.environment}
+      schema_name: ${var.schema}
       volume_type: MANAGED
       comment: "ML model artifacts, feature stores, and training data"
     
@@ -68,7 +68,7 @@ resources:
     reports_volume:
       name: reports
       catalog_name: ${var.catalog}
-      schema_name: payment_analysis_${var.environment}
+      schema_name: ${var.schema}
       volume_type: MANAGED
       comment: "Generated reports, dashboards exports, and analytics outputs"
 

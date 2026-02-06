@@ -16,12 +16,12 @@ resources:
 # Description: Natural language interface for payment transaction analytics
 #
 # Data Sources:
-#   - ${var.catalog}.payment_analysis_${var.environment}.v_executive_kpis
-#   - ${var.catalog}.payment_analysis_${var.environment}.v_top_decline_reasons
-#   - ${var.catalog}.payment_analysis_${var.environment}.v_performance_by_geography
-#   - ${var.catalog}.payment_analysis_${var.environment}.v_solution_performance
-#   - ${var.catalog}.payment_analysis_${var.environment}.v_approval_trends_hourly
-#   - ${var.catalog}.payment_analysis_${var.environment}.payments_enriched_silver
+#   - ${var.catalog}.${var.schema}.v_executive_kpis
+#   - ${var.catalog}.${var.schema}.v_top_decline_reasons
+#   - ${var.catalog}.${var.schema}.v_performance_by_geography
+#   - ${var.catalog}.${var.schema}.v_solution_performance
+#   - ${var.catalog}.${var.schema}.v_approval_trends_hourly
+#   - ${var.catalog}.${var.schema}.payments_enriched_silver
 #
 # Sample Questions (for training):
 #   1. "What is the current approval rate?"
@@ -57,7 +57,7 @@ resources:
             notebook_path: ${workspace.file_path}/src/payment_analysis/genie/sync_genie_space
             base_parameters:
               catalog: ${var.catalog}
-              schema: payment_analysis_${var.environment}
+              schema: ${var.schema}
           new_cluster:
             spark_version: "15.4.x-scala2.12"
             node_type_id: "Standard_DS3_v2"
@@ -67,6 +67,7 @@ resources:
               "spark.master": "local[*]"
             custom_tags:
               ResourceClass: SingleNode
+          timeout_seconds: 600
       # Run weekly to refresh configuration
       schedule:
         quartz_cron_expression: "0 0 5 ? * SUN"

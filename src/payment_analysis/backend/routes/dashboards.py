@@ -1,7 +1,7 @@
 """
-Dashboard Router - Lakeview Dashboard Integration.
+Dashboard Router - AI/BI Dashboard Integration.
 
-This module provides endpoints for accessing all Databricks Lakeview dashboards
+This module provides endpoints for accessing all Databricks AI/BI dashboards
 embedded in the FastAPI application.
 """
 
@@ -147,7 +147,7 @@ async def list_dashboards(
     tag: str | None = Query(None, description="Filter by tag"),
 ) -> DashboardList:
     """
-    List all available Lakeview dashboards.
+    List all available AI/BI dashboards.
     
     Returns metadata for all dashboards with optional filtering by category or tag.
     """

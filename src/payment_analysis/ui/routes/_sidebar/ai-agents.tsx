@@ -91,6 +91,16 @@ function AIAgents() {
     }
   };
 
+  const openAgentsFolder = async () => {
+    try {
+      const response = await fetch(`/api/notebooks/notebooks/folders/agents/url`);
+      const data = await response.json();
+      if (data.url) window.open(data.url, "_blank");
+    } catch (error) {
+      console.error("Failed to open agents folder:", error);
+    }
+  };
+
   const getTypeLabel = (type: string): string => {
     return type.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
   };
@@ -99,14 +109,24 @@ function AIAgents() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-3">
-          <Bot className="w-8 h-8 text-primary" />
-          <div>
-            <h1 className="text-3xl font-bold">Databricks AI Agents</h1>
-            <p className="text-muted-foreground mt-1">
-              AI-powered agents to accelerate payment approval rates using Genie, Model Serving, and LLM intelligence
-            </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex gap-3">
+            <Bot className="w-8 h-8 text-primary flex-shrink-0" />
+            <div>
+              <h1 className="text-3xl font-bold">Databricks AI Agents</h1>
+              <p className="text-muted-foreground mt-1">
+                AI-powered agents to accelerate payment approval rates using Genie, Model Serving, and LLM intelligence
+              </p>
+            </div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openAgentsFolder}
+          >
+            <ExternalLink className="w-4 h-4 mr-2" />
+            Open agents folder in Workspace
+          </Button>
         </div>
       </div>
 

@@ -13,6 +13,9 @@ import {
   Brain,
   Bot,
   Rocket,
+  CreditCard,
+  ListChecks,
+  RotateCcw,
 } from "lucide-react";
 import {
   SidebarGroup,
@@ -88,6 +91,24 @@ function Layout() {
       label: "Declines",
       icon: <BadgeX size={16} />,
       match: (path: string) => path === "/declines",
+    },
+    {
+      to: "/smart-checkout",
+      label: "Smart Checkout",
+      icon: <CreditCard size={16} />,
+      match: (path: string) => path === "/smart-checkout",
+    },
+    {
+      to: "/reason-codes",
+      label: "Reason Codes",
+      icon: <ListChecks size={16} />,
+      match: (path: string) => path === "/reason-codes",
+    },
+    {
+      to: "/smart-retry",
+      label: "Smart Retry",
+      icon: <RotateCcw size={16} />,
+      match: (path: string) => path === "/smart-retry",
     },
     {
       to: "/profile",
