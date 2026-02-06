@@ -12,8 +12,8 @@ A Databricks-powered solution that maximizes payment approval rates through real
 | [1. Deployments](docs/1_DEPLOYMENTS.md) | **DevOps / Engineering** | **Step-by-step deployment and validation** (START HERE) |
 | [2. Data Flow](docs/2_DATA_FLOW.md) | **Data Engineers** | 5-stage flow from ingestion to insight |
 | [3. Agents & Value](docs/3_AGENTS_VALUE.md) | **ML / Data Science** | 7 AI agents and business value |
-| [5. Technical](docs/5_TECHNICAL.md) | **Engineers / Architects** | Architecture, stack, implementation |
-| [6. Demo Setup](docs/6_DEMO_SETUP.md) | **Everyone** | **One-click links to run the solution end-to-end** |
+| [4. Technical](docs/4_TECHNICAL.md) | **Engineers / Architects** | Architecture, stack, implementation |
+| [5. Demo Setup](docs/5_DEMO_SETUP.md) | **Everyone** | **One-click links to run the solution end-to-end** |
 
 ---
 
@@ -38,7 +38,7 @@ uv run apx dev
 ## Architecture
 
 ```
-Transactions ──▶ DLT Pipeline ──▶ ML Models ──▶ AI Agents ──▶ Web App
+Transactions ──▶ Lakeflow Pipeline ──▶ ML Models ──▶ AI Agents ──▶ Web App
                       │                             │
                       ▼                             ▼
                  Gold Views ──────────────▶ Dashboards & Genie
@@ -60,7 +60,7 @@ Transactions ──▶ DLT Pipeline ──▶ ML Models ──▶ AI Agents ─�
 
 | Layer | Technology |
 |-------|------------|
-| Data | Delta Lake, Unity Catalog, DLT |
+| Data | Delta Lake, Unity Catalog, Lakeflow Declarative Pipelines |
 | ML | MLflow, Model Serving |
 | AI | Databricks Agents, Llama 3.1 |
 | Backend | FastAPI, SQLModel |

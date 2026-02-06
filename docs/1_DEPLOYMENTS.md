@@ -2,7 +2,7 @@
 
 Step-by-step deployment and validation for the Payment Approval Optimization Platform.
 
-**→ One-click run links:** [6_DEMO_SETUP](6_DEMO_SETUP.md).
+**→ One-click run links:** [5_DEMO_SETUP](5_DEMO_SETUP.md).
 
 ---
 
@@ -23,7 +23,7 @@ databricks bundle validate
 databricks bundle deploy --target dev
 ```
 
-Then run jobs/pipelines in order (see [6_DEMO_SETUP](6_DEMO_SETUP.md)) and optionally [Step 6: Import dashboards](#step-6-import-dashboards).
+Then run jobs/pipelines in order (see [5_DEMO_SETUP](5_DEMO_SETUP.md)) and optionally [Step 6: Import dashboards](#step-6-import-dashboards).
 
 ---
 
@@ -95,9 +95,60 @@ databricks bundle deploy --target dev
 
 ## Step 7: AI agents (optional)
 
-- **Genie:** Create spaces “Payment Approval Analytics” and “Decline Analysis”; attach catalog `ahs_demos_catalog.ahs_demo_payment_analysis_dev` and gold views  
-- **Model serving:** After models are trained, uncomment `resources/model_serving.yml` in `databricks.yml` and redeploy; or use CLI to create endpoints  
-- **AI Gateway:** Verify endpoint `databricks-meta-llama-3-1-70b-instruct` and rate limits
+### 7a. Genie Spaces
+
+Create two Genie Spaces for natural-language analytics:
+
+1. **Payment Approval Analytics**
+   - Go to **SQL** → **Genie Spaces** → **Create**
+   - Name: `Payment Approval Analytics`
+   - Attach tables from `ahs_demos_catalog.ahs_demo_payment_analysis_dev`:
+     - `v_executive_kpis`, `v_approval_trends_hourly`, `v_solution_performance`, `v_performance_by_geography`, `payments_enriched_silver`
+   - Add sample questions: "What is the current approval rate?", "Compare approval rates by country", "Which payment solution performs best?"
+   - Instructions: "Approval rate = approved / total × 100. Risk tiers: low (<0.3), medium (0.3–0.7), high (>0.7)."
+
+2. **Decline Analysis**
+   - Name: `Decline Analysis`
+   - Attach: `v_top_decline_reasons`, `v_decline_patterns`, `v_reason_code_taxonomy`, `payments_enriched_silver`
+   - Sample questions: "Show me top decline reasons", "What are the most recoverable decline codes?"
+
+- **Sync job:** `databricks bundle run genie_sync_job -t dev` (runs weekly, PAUSED by default)
+- **Verify:** Open each Genie Space and ask a sample question
+
+### 7b. Model Serving Endpoints
+
+After ML models are trained (Step 5):
+
+1. Uncomment `resources/model_serving.yml` in `databricks.yml`:
+   ```yaml
+   include:
+     # ...existing...
+     - resources/model_serving.yml
+   ```
+2. Redeploy: `databricks bundle deploy --target dev`
+3. **Endpoints created:**
+   - `approval-propensity-dev` — approval likelihood predictions
+   - `risk-scoring-dev` — real-time risk assessment
+   - `smart-routing-dev` — optimal processor routing
+   - `smart-retry-dev` — retry strategy recommendations
+4. **Verify:** Serving → Endpoints → check status is "Ready"; test with sample payload
+
+### 7c. AI Gateway (LLM Agents)
+
+The agent framework uses Databricks Foundation Model APIs:
+
+1. **Verify** the `databricks-meta-llama-3-1-70b-instruct` endpoint is available in your workspace (Serving → Foundation Model APIs)
+2. **Run the orchestrator** to test all agents:
+   ```bash
+   databricks bundle run orchestrator_agent_job -t dev
+   ```
+3. **Individual agents** (all PAUSED by default, enable as needed):
+   - Smart Routing Agent — every 6 hours
+   - Smart Retry Agent — every 4 hours
+   - Decline Analyst — daily at 8 AM
+   - Risk Assessor — every 2 hours
+   - Performance Recommender — daily at 6 AM
+4. **Rate limits:** 100–200 calls/min per endpoint (configurable in `ai_gateway.yml`)
 
 ---
 

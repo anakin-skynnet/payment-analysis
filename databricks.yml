@@ -32,10 +32,11 @@ variables:
     description: Deployment environment identifier
     default: dev
   warehouse_id:
-    description: SQL Warehouse ID for queries (set via warehouse lookup or environment variable)
-    # Use the deployed warehouse from resources/sql_warehouse.yml
-    # The warehouse is created by the bundle deployment
-    default: "placeholder_warehouse"
+    description: >
+      SQL Warehouse ID for dashboard queries. After first deploy, retrieve with:
+      databricks sql warehouses list --output json | jq -r '.warehouses[0].id'
+      Then set via: --var warehouse_id=<id> or BUNDLE_VAR_warehouse_id env var.
+    default: "auto"
   schema:
     description: Unity Catalog schema name (matches DLT target with dev mode prefix)
     default: ahs_demo_payment_analysis_dev

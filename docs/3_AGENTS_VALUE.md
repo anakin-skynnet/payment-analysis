@@ -98,4 +98,4 @@ Seven Databricks-powered AI agents to increase payment approval rates (e.g. 85% 
 
 ---
 
-**Next:** [6_DEMO_SETUP](6_DEMO_SETUP.md) to run jobs; [1_DEPLOYMENTS](1_DEPLOYMENTS.md) for full deployment.
+**Next:** [5_DEMO_SETUP](5_DEMO_SETUP.md) to run jobs; [1_DEPLOYMENTS](1_DEPLOYMENTS.md) for full deployment.

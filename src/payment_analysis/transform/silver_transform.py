@@ -304,8 +304,17 @@ def insight_feedback_silver():
         ]
     )
 
-    # Empty scaffold table; populate from app/ops workflow in production
-    return spark.createDataFrame([], schema=schema)  # type: ignore[name-defined]
+    # Seed data for demo; in production, populate from app/ops feedback workflow
+    from datetime import datetime
+
+    seed_rows = [
+        ("ins-001", "decline_pattern", "analyst@company.com", "valid", "Confirmed recurring BIN-level decline pattern", "1.0", "v2", datetime(2025, 12, 1, 10, 30, 0)),
+        ("ins-002", "routing_suggestion", "ops@company.com", "invalid", "Suggested processor has higher decline rate for this MCC", "1.0", "v2", datetime(2025, 12, 2, 14, 15, 0)),
+        ("ins-003", "retry_recommendation", "analyst@company.com", "valid", "Retry window recommendation improved recovery by 12%", "1.0", "v2", datetime(2025, 12, 3, 9, 0, 0)),
+        ("ins-004", "risk_alert", "risk@company.com", "non_actionable", "Alert threshold too sensitive for this merchant segment", "1.0", "v1", datetime(2025, 12, 4, 16, 45, 0)),
+        ("ins-005", "approval_optimization", "analyst@company.com", "valid", "3DS exemption recommendation validated", "1.0", "v2", datetime(2025, 12, 5, 11, 20, 0)),
+    ]
+    return spark.createDataFrame(seed_rows, schema=schema)  # type: ignore[name-defined]
 
 # COMMAND ----------
 

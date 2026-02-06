@@ -19,7 +19,11 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from ..config import AppConfig
+
 router = APIRouter(tags=["agents"])
+
+_databricks_config = AppConfig().databricks
 
 
 # =============================================================================
@@ -27,8 +31,8 @@ router = APIRouter(tags=["agents"])
 # =============================================================================
 
 def get_workspace_url() -> str:
-    """Get Databricks workspace URL from environment."""
-    return os.getenv("DATABRICKS_HOST", "https://your-workspace.cloud.databricks.com")
+    """Get Databricks workspace URL from centralized config."""
+    return _databricks_config.workspace_url
 
 
 def get_notebook_workspace_url(relative_path: str) -> str:

@@ -17,7 +17,11 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from ..config import AppConfig
+
 router = APIRouter(tags=["notebooks"])
+
+_databricks_config = AppConfig().databricks
 
 
 # =============================================================================
@@ -230,12 +234,9 @@ async def get_notebook_url(notebook_id: str) -> dict[str, Any]:
     """
     notebook = await get_notebook(notebook_id)
     
-    # Construct full Databricks URL from environment
-    base_url = os.getenv("DATABRICKS_HOST", "https://your-workspace.cloud.databricks.com")
-    
-    # Use workspace path from notebook definition
+    # Use centralized config for workspace URL
+    base_url = _databricks_config.workspace_url
     workspace_path = notebook.workspace_path
-    
     full_url = f"{base_url}/workspace{workspace_path}"
     
     return {
@@ -271,7 +272,7 @@ async def get_folder_url(folder_id: str) -> dict[str, Any]:
         )
     relative = WORKSPACE_FOLDERS[folder_id]
     workspace_path = get_notebook_path(relative)
-    base_url = os.getenv("DATABRICKS_HOST", "https://your-workspace.cloud.databricks.com")
+    base_url = _databricks_config.workspace_url
     full_url = f"{base_url}/workspace{workspace_path}"
     return {
         "folder_id": folder_id,

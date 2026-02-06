@@ -1,8 +1,8 @@
-# 6. Demo Setup — Run End-to-End
+# 5. Demo Setup — Run End-to-End
 
 One-click links and short steps to run the Payment Analysis solution.
 
-**Base URL:** `https://adb-984752964297111.11.azuredatabricks.net` (replace with your workspace if different)
+**Base URL:** Replace `<WORKSPACE_URL>` below with your Databricks workspace URL (e.g., `https://adb-984752964297111.11.azuredatabricks.net`). All one-click links use this base URL.
 
 ---
 

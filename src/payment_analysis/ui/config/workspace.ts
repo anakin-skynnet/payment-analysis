@@ -28,8 +28,9 @@ export function getWorkspaceUrl(): string {
     }
   }
   
-  // Final fallback: return placeholder (will be overridden by backend)
-  return 'https://your-workspace.cloud.databricks.com';
+  // Final fallback: empty string disables external links until configured
+  // Set VITE_DATABRICKS_HOST in .env or the backend will provide the URL
+  return '';
 }
 
 /**

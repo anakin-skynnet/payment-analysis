@@ -90,8 +90,8 @@ A **Databricks-powered platform** that maximizes payment approval rates through:
 ## Next Steps
 
 1. **Review** – [1_DEPLOYMENTS](1_DEPLOYMENTS.md) for deployment steps  
-2. **Architecture** – [5_TECHNICAL](5_TECHNICAL.md) for technical details  
+2. **Architecture** – [4_TECHNICAL](4_TECHNICAL.md) for technical details  
 3. **Agents** – [3_AGENTS_VALUE](3_AGENTS_VALUE.md) for the 7 AI agents  
-4. **Run demo** – [6_DEMO_SETUP](6_DEMO_SETUP.md) for one-click run links  
+4. **Run demo** – [5_DEMO_SETUP](5_DEMO_SETUP.md) for one-click run links  
 
 **Platform:** Databricks (Azure/AWS) · **Users:** Enterprise payments, fintechs, PSPs · **Deployment:** Databricks Asset Bundles

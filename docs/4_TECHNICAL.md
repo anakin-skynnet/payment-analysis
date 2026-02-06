@@ -1,4 +1,4 @@
-# 5. Technical
+# 4. Technical
 
 Platform architecture and implementation reference.
 
@@ -6,7 +6,7 @@ Platform architecture and implementation reference.
 
 ## Architecture
 
-- **Databricks:** Transaction simulator → DLT (Bronze → Silver → Gold) → Unity Catalog (12+ views, 4 models). MLflow, Model Serving, AI Gateway, Genie. 10 AI/BI dashboards, SQL Warehouse.
+- **Databricks:** Transaction simulator → Lakeflow DLT (Bronze → Silver → Gold) → Unity Catalog (12+ views, 4 models). MLflow, Model Serving, AI Gateway, Genie. 10 AI/BI dashboards, SQL Warehouse.
 - **Application:** FastAPI backend (analytics, decisioning, notebooks, agents) ↔ React frontend (dashboard, dashboards gallery, notebooks, ML models, AI agents, decisioning, experiments, declines).
 
 ---
@@ -53,16 +53,16 @@ Details: [3_AGENTS_VALUE](3_AGENTS_VALUE.md).
 **Frontend (React + TanStack Router):**  
 Routes: dashboard, dashboards, notebooks, models, ai-agents, decisioning, experiments, declines. Components: KPI cards, trend charts, dashboard embed, agent cards. API client in `lib/api.ts`.
 
-**Stack:** Delta Lake, Unity Catalog, DLT, SQL Warehouse, MLflow, Model Serving, AI/BI Dashboards, Genie, AI Gateway, FastAPI, React, TypeScript, Bun, TailwindCSS, Databricks Asset Bundles.
+**Stack:** Delta Lake, Unity Catalog, Lakeflow Declarative Pipelines (DLT), SQL Warehouse, MLflow, Model Serving, AI/BI Dashboards, Genie, AI Gateway, FastAPI, React, TypeScript, Bun, TailwindCSS, Databricks Asset Bundles.
 
 ---
 
 ## Bundle and deploy
 
 - **Config:** `databricks.yml`; variables `catalog`, `schema`, `environment`, `warehouse_id`; include pipelines, jobs, unity_catalog, (optional) dashboards, model_serving, genie_spaces, ai_gateway, streaming_simulator.
-- **Commands:** `databricks bundle validate --target dev`; `databricks bundle deploy --target dev`; run jobs/start pipelines per [6_DEMO_SETUP](6_DEMO_SETUP.md).
+- **Commands:** `databricks bundle validate --target dev`; `databricks bundle deploy --target dev`; run jobs/start pipelines per [5_DEMO_SETUP](5_DEMO_SETUP.md).
 - **App:** `.env` for `DATABRICKS_HOST`, `DATABRICKS_TOKEN`, `DATABRICKS_WAREHOUSE_ID`, `DATABRICKS_CATALOG`, `DATABRICKS_SCHEMA`; `uv run apx dev` or `apx build` + deploy.
 
 ---
 
-**See also:** [0_BUSINESS_CHALLENGES](0_BUSINESS_CHALLENGES.md) · [1_DEPLOYMENTS](1_DEPLOYMENTS.md) · [2_DATA_FLOW](2_DATA_FLOW.md) · [3_AGENTS_VALUE](3_AGENTS_VALUE.md) · [6_DEMO_SETUP](6_DEMO_SETUP.md)
+**See also:** [0_BUSINESS_CHALLENGES](0_BUSINESS_CHALLENGES.md) · [1_DEPLOYMENTS](1_DEPLOYMENTS.md) · [2_DATA_FLOW](2_DATA_FLOW.md) · [3_AGENTS_VALUE](3_AGENTS_VALUE.md) · [5_DEMO_SETUP](5_DEMO_SETUP.md)
