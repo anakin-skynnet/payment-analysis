@@ -225,27 +225,29 @@ async def get_notebook(notebook_id: str) -> NotebookInfo:
     raise HTTPException(status_code=404, detail=f"Notebook '{notebook_id}' not found")
 
 
-@router.get("/notebooks/{notebook_id}/url", operation_id="getNotebookUrl")
-async def get_notebook_url(notebook_id: str) -> dict[str, Any]:
-    """
-    Get the Databricks workspace URL for a notebook.
-    
-    Returns the full URL to open the notebook in Databricks.
-    """
+class NotebookUrlOut(BaseModel):
+    notebook_id: str
+    name: str
+    url: str
+    workspace_path: str
+    category: str
+
+
+@router.get("/notebooks/{notebook_id}/url", response_model=NotebookUrlOut, operation_id="getNotebookUrl")
+async def get_notebook_url(notebook_id: str) -> NotebookUrlOut:
+    """Get the Databricks workspace URL for a notebook."""
     notebook = await get_notebook(notebook_id)
-    
-    # Use centralized config for workspace URL
     base_url = _databricks_config.workspace_url
     workspace_path = notebook.workspace_path
     full_url = f"{base_url}/workspace{workspace_path}"
     
-    return {
-        "notebook_id": notebook_id,
-        "name": notebook.name,
-        "url": full_url,
-        "workspace_path": workspace_path,
-        "category": notebook.category.value,
-    }
+    return NotebookUrlOut(
+        notebook_id=notebook_id,
+        name=notebook.name,
+        url=full_url,
+        workspace_path=workspace_path,
+        category=notebook.category.value,
+    )
 
 
 # Workspace folder IDs to relative paths (under src/payment_analysis/)
@@ -258,8 +260,14 @@ WORKSPACE_FOLDERS: dict[str, str] = {
 }
 
 
-@router.get("/notebooks/folders/{folder_id}/url", operation_id="getNotebookFolderUrl")
-async def get_folder_url(folder_id: str) -> dict[str, Any]:
+class FolderUrlOut(BaseModel):
+    folder_id: str
+    url: str
+    workspace_path: str
+
+
+@router.get("/notebooks/folders/{folder_id}/url", response_model=FolderUrlOut, operation_id="getNotebookFolderUrl")
+async def get_folder_url(folder_id: str) -> FolderUrlOut:
     """
     Get the Databricks workspace URL for a folder containing notebooks.
 
@@ -274,14 +282,14 @@ async def get_folder_url(folder_id: str) -> dict[str, Any]:
     workspace_path = get_notebook_path(relative)
     base_url = _databricks_config.workspace_url
     full_url = f"{base_url}/workspace{workspace_path}"
-    return {
-        "folder_id": folder_id,
-        "url": full_url,
-        "workspace_path": workspace_path,
-    }
+    return FolderUrlOut(
+        folder_id=folder_id,
+        url=full_url,
+        workspace_path=workspace_path,
+    )
 
 
-@router.get("/notebooks/categories/summary", operation_id="getNotebookCategorySummary")
+@router.get("/notebooks/categories/summary", response_model=dict[str, Any], operation_id="getNotebookCategorySummary")
 async def get_category_summary() -> dict[str, Any]:
     """
     Get summary of notebooks by category with descriptions.

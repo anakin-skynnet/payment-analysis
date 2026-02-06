@@ -313,25 +313,29 @@ async def get_agent(agent_id: str) -> AgentInfo:
     raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
 
 
-@router.get("/agents/{agent_id}/url", operation_id="getAgentUrl")
-async def get_agent_url(agent_id: str) -> dict[str, Any]:
-    """
-    Get the Databricks workspace URL for an agent.
-    
-    Returns the full URL to access the agent in Databricks.
-    """
+class AgentUrlOut(BaseModel):
+    agent_id: str
+    name: str
+    url: str
+    agent_type: str
+    databricks_resource: str | None = None
+
+
+@router.get("/agents/{agent_id}/url", response_model=AgentUrlOut, operation_id="getAgentUrl")
+async def get_agent_url(agent_id: str) -> AgentUrlOut:
+    """Get the Databricks workspace URL for an agent."""
     agent = await get_agent(agent_id)
     
-    return {
-        "agent_id": agent_id,
-        "name": agent.name,
-        "url": agent.workspace_url or get_workspace_url(),
-        "agent_type": agent.agent_type.value,
-        "databricks_resource": agent.databricks_resource,
-    }
+    return AgentUrlOut(
+        agent_id=agent_id,
+        name=agent.name,
+        url=agent.workspace_url or get_workspace_url(),
+        agent_type=agent.agent_type.value,
+        databricks_resource=agent.databricks_resource,
+    )
 
 
-@router.get("/agents/types/summary", operation_id="getAgentTypeSummary")
+@router.get("/agents/types/summary", response_model=dict[str, Any], operation_id="getAgentTypeSummary")
 async def get_type_summary() -> dict[str, Any]:
     """
     Get summary of agents by type with descriptions.
