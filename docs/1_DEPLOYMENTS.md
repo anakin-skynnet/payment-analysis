@@ -29,7 +29,7 @@ Then run jobs/pipelines per [5_DEMO_SETUP](5_DEMO_SETUP.md); optionally [Step 6:
 | **7** | Model serving (optional) | After Step 5: uncomment `resources/model_serving.yml` in `databricks.yml`, redeploy |
 | **7** | AI agents (optional) | Verify Llama endpoint; `databricks bundle run orchestrator_agent_job -t dev`; agents in `ai_gateway.yml` (PAUSED) |
 | **8** | Web app | `.env`: `DATABRICKS_HOST`, `DATABRICKS_TOKEN`, `DATABRICKS_WAREHOUSE_ID`, `DATABRICKS_CATALOG`, `DATABRICKS_SCHEMA`. `uv run apx dev` or `apx build` + deploy |
-| **9** | Verify | Data in bronze/silver; 4 models; 10 dashboards; app routes load |
+| **9** | Verify | Data in bronze/silver; 4 models; 11 dashboards; app routes load |
 
 ## Schema Consistency
 

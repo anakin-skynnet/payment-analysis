@@ -30,7 +30,7 @@ Target: <5s Bronze → Gold.
 
 ## Stage 4: Analytics
 
-10 AI/BI dashboards (gold views); Genie natural language. Target: >85% query success, 100+ MAU.
+11 AI/BI dashboards (gold views); Genie natural language. Target: >85% query success, 100+ MAU.
 
 ## Stage 5: Application
 

@@ -254,5 +254,74 @@ GROUP BY event_date
 ORDER BY event_date DESC;
 
 -- ===========================================================================
--- SUMMARY: 12 views created for dashboards and analytics
+-- STREAMING & DATA QUALITY VIEWS
+-- ===========================================================================
+
+-- View 13: Streaming ingestion by hour (bronze layer)
+CREATE OR REPLACE VIEW v_streaming_ingestion_hourly AS
+SELECT
+    DATE_TRUNC('hour', _ingested_at) AS hour,
+    COUNT(*) AS bronze_record_count
+FROM payments_raw_bronze
+WHERE _ingested_at >= CURRENT_TIMESTAMP() - INTERVAL 7 DAYS
+GROUP BY DATE_TRUNC('hour', _ingested_at)
+ORDER BY hour DESC;
+
+-- View 14: Silver processed by hour (enriched records)
+CREATE OR REPLACE VIEW v_silver_processed_hourly AS
+SELECT
+    DATE_TRUNC('hour', event_timestamp) AS hour,
+    COUNT(*) AS silver_record_count
+FROM payments_enriched_silver
+WHERE event_timestamp >= CURRENT_TIMESTAMP() - INTERVAL 7 DAYS
+GROUP BY DATE_TRUNC('hour', event_timestamp)
+ORDER BY hour DESC;
+
+-- View 15: Data quality summary (single row: volumes and retention)
+CREATE OR REPLACE VIEW v_data_quality_summary AS
+SELECT
+    (SELECT COUNT(*) FROM payments_raw_bronze WHERE _ingested_at >= CURRENT_TIMESTAMP() - INTERVAL 1 DAY) AS bronze_last_24h,
+    (SELECT COUNT(*) FROM payments_enriched_silver WHERE event_timestamp >= CURRENT_TIMESTAMP() - INTERVAL 1 DAY) AS silver_last_24h,
+    ROUND(
+        (SELECT COUNT(*) FROM payments_enriched_silver WHERE event_timestamp >= CURRENT_TIMESTAMP() - INTERVAL 1 DAY) * 100.0
+        / NULLIF((SELECT COUNT(*) FROM payments_raw_bronze WHERE _ingested_at >= CURRENT_TIMESTAMP() - INTERVAL 1 DAY), 0),
+        2
+    ) AS retention_pct_24h,
+    (SELECT MAX(_ingested_at) FROM payments_raw_bronze) AS latest_bronze_ingestion,
+    (SELECT MAX(event_timestamp) FROM payments_enriched_silver) AS latest_silver_event;
+
+-- ===========================================================================
+-- UNITY CATALOG DATA QUALITY MONITORING METRICS
+-- ===========================================================================
+-- View 16: Latest Unity Catalog data quality results per table.
+-- Source: system.data_quality_monitoring.table_results (freshness, completeness, downstream impact).
+-- Requires: Unity Catalog data quality monitoring enabled and SELECT on system.data_quality_monitoring.
+-- If the system table is not available, comment out this view or grant access.
+-- ===========================================================================
+CREATE OR REPLACE VIEW v_uc_data_quality_metrics AS
+WITH latest AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (PARTITION BY table_id ORDER BY event_time DESC) AS rn
+    FROM system.data_quality_monitoring.table_results
+    WHERE catalog_name = CURRENT_CATALOG()
+      AND schema_name = CURRENT_SCHEMA()
+)
+SELECT
+    event_time,
+    catalog_name,
+    schema_name,
+    table_name,
+    status AS overall_status,
+    freshness.status AS freshness_status,
+    completeness.status AS completeness_status,
+    COALESCE(downstream_impact.impact_level, 0) AS impact_level,
+    COALESCE(downstream_impact.num_downstream_tables, 0) AS num_downstream_tables,
+    COALESCE(downstream_impact.num_queries_on_affected_tables, 0) AS num_queries_affected
+FROM latest
+WHERE rn = 1
+ORDER BY table_name;
+
+-- ===========================================================================
+-- SUMMARY: 16 views created for dashboards and analytics
 -- ===========================================================================

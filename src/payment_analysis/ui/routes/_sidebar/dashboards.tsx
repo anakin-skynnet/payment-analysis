@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, TrendingUp, Shield, DollarSign, Gauge, Users, Calendar, Lock, Award, Zap, ExternalLink, Code2 } from "lucide-react";
+import { BarChart3, TrendingUp, Shield, DollarSign, Gauge, Users, Calendar, Lock, Award, Zap, ExternalLink, Code2, Activity } from "lucide-react";
 import { getWorkspaceUrl } from "@/config/workspace";
 import { useListDashboards, getNotebookUrl, type DashboardCategory, type DashboardInfo } from "@/lib/api";
 
@@ -33,6 +33,7 @@ const dashboardIcons: Record<string, React.ComponentType<{ className?: string }>
   authentication_security: Lock,
   financial_impact: DollarSign,
   performance_latency: Gauge,
+  streaming_data_quality: Activity,
 };
 
 // Map dashboards to their underlying notebooks
@@ -47,6 +48,7 @@ const dashboardNotebooks: Record<string, string[]> = {
   authentication_security: ["silver_transform", "gold_views_sql"],
   financial_impact: ["gold_views_sql"],
   performance_latency: ["gold_views_sql"],
+  streaming_data_quality: ["bronze_ingest", "silver_transform", "gold_views_sql"],
 };
 
 export function Component() {

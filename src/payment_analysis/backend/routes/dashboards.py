@@ -134,6 +134,14 @@ DASHBOARDS = [
         tags=["performance", "latency", "technical", "sla"],
         url_path="/sql/dashboards/performance_latency",
     ),
+    DashboardInfo(
+        id="streaming_data_quality",
+        name="Streaming & Data Quality",
+        description="Incoming streaming data (bronze/silver), pipeline retention %, and Unity Catalog data quality metrics (freshness, completeness, downstream impact from system.data_quality_monitoring).",
+        category=DashboardCategory.TECHNICAL,
+        tags=["streaming", "ingestion", "data-quality", "bronze", "silver", "unity-catalog"],
+        url_path="/sql/dashboards/streaming_data_quality",
+    ),
 ]
 
 

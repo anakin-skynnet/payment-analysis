@@ -4,7 +4,7 @@ Architecture and implementation reference.
 
 ## Architecture
 
-- **Databricks:** Simulator → **Lakeflow** (Bronze → Silver → Gold) → Unity Catalog (12+ views, 4 models). MLflow, Model Serving, AI Gateway, Genie. 10 AI/BI dashboards, SQL Warehouse.
+- **Databricks:** Simulator → **Lakeflow** (Bronze → Silver → Gold) → Unity Catalog (12+ views, 4 models). MLflow, Model Serving, AI Gateway, Genie. 11 AI/BI dashboards, SQL Warehouse.
 - **App:** FastAPI (analytics, decisioning, notebooks, dashboards, agents) ↔ React (dashboard, dashboards, notebooks, models, ai-agents, decisioning, experiments, declines).
 
 ## Data Layer
@@ -21,7 +21,7 @@ Genie 2, Model serving 3, AI Gateway 2. Details: [3_AGENTS_VALUE](3_AGENTS_VALUE
 
 ## Analytics
 
-10 dashboards are defined in `resources/dashboards.yml` and sourced from `src/payment_analysis/dashboards/*.lvdash.json`; default catalog/schema; warehouse from bundle `var.warehouse_id`. Genie: spaces use catalog/schema; see `genie_spaces.yml`.
+11 dashboards are defined in `resources/dashboards.yml` and sourced from `src/payment_analysis/dashboards/*.lvdash.json`; default catalog/schema; warehouse from bundle `var.warehouse_id`. Genie: spaces use catalog/schema; see `genie_spaces.yml`.
 
 ## Application Layer
 
