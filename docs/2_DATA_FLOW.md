@@ -1,92 +1,50 @@
 # 2. Data Flow
 
-From transaction to insight in five stages.
+Transaction to insight in five stages.
 
 ## Overview
 
 ```
 INGESTION → PROCESSING → INTELLIGENCE → ANALYTICS → APPLICATION
-  1000/s    Medallion     ML + AI       Dashboards    Web App
-            Bronze→Gold   Agents        + Genie
+  1000/s    Bronze→Gold   ML + Agents   Dashboards   Web App
+                          + Genie       + Genie
 ```
-
----
 
 ## Stage 1: Ingestion
 
-- **Simulator:** 1,000 events/sec → Delta table (e.g. `payments_stream_input` or source for DLT)
-- **Schema:** transaction_id, amount, merchant, card_network, fraud_score, timestamps
-- **Target:** &lt;1s ingestion latency
-
----
+Simulator 1,000 events/s → Delta. Schema: transaction_id, amount, merchant, card_network, fraud_score, timestamps. Target: <1s latency.
 
 ## Stage 2: Processing (Medallion)
 
 | Layer | Table/View | Purpose |
 |-------|------------|---------|
-| **Bronze** | `payments_raw_bronze` | Raw capture, audit columns |
-| **Silver** | `payments_enriched_silver` | Clean, validate, derive risk_tier, amount_bucket, is_cross_border, composite_risk_score, time columns |
-| **Gold** | 12+ views | Pre-aggregated metrics: `v_executive_kpis`, `v_approval_trends_hourly`, `v_top_decline_reasons`, `v_solution_performance`, `v_retry_performance`, etc. |
+| Bronze | `payments_raw_bronze` | Raw capture, audit |
+| Silver | `payments_enriched_silver` | Clean, risk_tier, amount_bucket, composite_risk_score |
+| Gold | 12+ views | `v_executive_kpis`, `v_approval_trends_hourly`, `v_top_decline_reasons`, `v_solution_performance`, `v_retry_performance`, etc. |
 
-**Target:** &lt;5s Bronze → Silver → Gold
-
----
+Target: <5s Bronze → Gold.
 
 ## Stage 3: Intelligence
 
-**ML models (Unity Catalog):**
-
-| Model | Accuracy | Purpose |
-|-------|----------|---------|
-| Approval Propensity | ~92% | Approval likelihood |
-| Risk Scoring | ~88% | Fraud/AML risk |
-| Smart Routing | ~75% | Optimal payment solution |
-| Smart Retry | ~81% | Recovery opportunities |
-
-**Flow:** Silver → features → MLflow training → Model Registry → Model Serving
-
-**AI agents:** 7 agents (Genie, model serving, AI Gateway). Target: &lt;50ms serving, &lt;30s agent response.
-
----
+**ML (Unity Catalog):** Approval propensity ~92%, risk scoring ~88%, smart routing ~75%, smart retry ~81%. Flow: Silver → features → MLflow → Registry → Serving. **AI agents:** 7 (Genie, serving, AI Gateway). Target: <50ms serving, <30s agent.
 
 ## Stage 4: Analytics
 
-- **10 AI/BI dashboards** – Executive, operations, technical (sources: gold views)
-- **Genie** – Natural language over catalog/schema; e.g. “What’s our approval rate today?”, “Top decline reasons”
-- **Target:** &gt;85% query success, 100+ MAU
-
----
+10 AI/BI dashboards (gold views); Genie natural language. Target: >85% query success, 100+ MAU.
 
 ## Stage 5: Application
 
-- **Backend:** FastAPI – `/api/analytics/*`, `/api/decisioning/*`, `/api/notebooks/*`, `/api/agents/*`
-- **Frontend:** React – Dashboard, Dashboards gallery, Notebooks, ML Models, AI Agents, Decisioning, Experiments, Declines
-- **Target:** &lt;2s page load, &lt;500ms API
+Backend: FastAPI `/api/analytics`, `/api/decisioning`, `/api/notebooks`, `/api/dashboards`, `/api/agents`. Frontend: React (dashboard, dashboards, notebooks, models, ai-agents, decisioning, experiments, declines). Target: <2s page load, <500ms API.
 
----
+## Example: Approval Rate KPI
 
-## Example: “Approval rate” KPI
+Event → Bronze (~1s) → Silver (~3s) → `v_executive_kpis` (~5s) → backend query → UI. End-to-end ~7s.
 
-1. Simulator emits event → Bronze (~1s) → Silver (~3s) → Gold view `v_executive_kpis` (~5s)
-2. Backend queries `v_executive_kpis` via SQL Warehouse
-3. Frontend shows approval rate in KPI card  
-**End-to-end:** ~7s event → UI
-
----
-
-## Performance targets
+## Performance Targets
 
 | Metric | Target |
 |--------|--------|
-| Ingestion | &lt;1s |
-| Bronze → Silver | &lt;3s |
-| Silver → Gold | &lt;2s |
-| API query | &lt;2s |
-| ML inference | &lt;100ms |
-| Agent response | &lt;30s |
+| Ingestion / Bronze→Silver / Silver→Gold | <1s / <3s / <2s |
+| API query / ML inference / Agent | <2s / <100ms / <30s |
 
----
-
-## Technologies
-
-Delta Lake, Unity Catalog, Lakeflow Declarative Pipelines, MLflow, Model Serving, AI/BI Dashboards, Genie, AI Gateway (Llama 3.1), FastAPI, React/TanStack Router. Deploy with **Databricks Asset Bundles**; see [1_DEPLOYMENTS](1_DEPLOYMENTS.md).
+**Stack:** Delta Lake, Unity Catalog, Lakeflow DLT, MLflow, Model Serving, AI/BI Dashboards, Genie, AI Gateway, FastAPI, React. See [1_DEPLOYMENTS](1_DEPLOYMENTS.md).

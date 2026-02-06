@@ -1,68 +1,24 @@
 # Payment Approval Optimization Platform
 
-A Databricks-powered solution that maximizes payment approval rates through real-time analytics, machine learning, and AI-driven recommendations.
-
----
+Databricks-powered solution to maximize payment approval rates via real-time analytics, ML, and AI.
 
 ## Documentation
 
-| Document | Audience | Description |
-|----------|----------|-------------|
-| [0. Business Challenges](docs/0_BUSINESS_CHALLENGES.md) | **C-Suite / Business** | Business challenge, solution, capabilities, ROI |
-| [1. Deployments](docs/1_DEPLOYMENTS.md) | **DevOps / Engineering** | **Step-by-step deployment and validation** (START HERE) |
-| [2. Data Flow](docs/2_DATA_FLOW.md) | **Data Engineers** | 5-stage flow from ingestion to insight |
-| [3. Agents & Value](docs/3_AGENTS_VALUE.md) | **ML / Data Science** | 7 AI agents and business value |
-| [4. Technical](docs/4_TECHNICAL.md) | **Engineers / Architects** | Architecture, stack, implementation |
-| [5. Demo Setup](docs/5_DEMO_SETUP.md) | **Everyone** | **One-click links to run the solution end-to-end** |
-
----
+| Doc | Audience | Description |
+|-----|----------|-------------|
+| [0. Business Challenges](docs/0_BUSINESS_CHALLENGES.md) | C-Suite / Business | Challenges, solution, initiatives, ROI |
+| [1. Deployments](docs/1_DEPLOYMENTS.md) | DevOps / Engineering | **Step-by-step deployment** (start here) |
+| [2. Data Flow](docs/2_DATA_FLOW.md) | Data Engineers | 5-stage flow: ingestion → application |
+| [3. Agents & Value](docs/3_AGENTS_VALUE.md) | ML / Data Science | 7 AI agents and business value |
+| [4. Technical](docs/4_TECHNICAL.md) | Engineers / Architects | Architecture, stack, bundle |
+| [5. Demo Setup](docs/5_DEMO_SETUP.md) | Everyone | **One-click run links and CLI** |
 
 ## Quick Start
 
 ```bash
-# Install dependencies
 uv sync && bun install
-
-# Validate bundle
-databricks bundle validate
-
-# Deploy to development
-databricks bundle deploy --target dev
-
-# Run locally
+databricks bundle validate && databricks bundle deploy --target dev
 uv run apx dev
 ```
 
----
-
-## Architecture
-
-```
-Transactions ──▶ Lakeflow Pipeline ──▶ ML Models ──▶ AI Agents ──▶ Web App
-                      │                             │
-                      ▼                             ▼
-                 Gold Views ──────────────▶ Dashboards & Genie
-```
-
----
-
-## Key Features
-
-- **Real-Time Processing**: 1000+ transactions/second with sub-second latency
-- **Smart Routing**: ML-driven processor selection
-- **Smart Retry**: Automated recovery for soft declines
-- **AI Agents**: 7 specialized agents (Genie, Model Serving, AI Gateway) for continuous optimization
-- **Self-Service Analytics**: Dashboards + natural language queries (Genie)
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| Data | Delta Lake, Unity Catalog, Lakeflow Declarative Pipelines |
-| ML | MLflow, Model Serving |
-| AI | Databricks Agents, Llama 3.1 |
-| Backend | FastAPI, SQLModel |
-| Frontend | React, Vite, TanStack Router |
-| Deploy | Databricks Asset Bundles |
+See [1_DEPLOYMENTS](docs/1_DEPLOYMENTS.md) and [5_DEMO_SETUP](docs/5_DEMO_SETUP.md) for full steps and one-click runs.
