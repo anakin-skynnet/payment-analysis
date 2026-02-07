@@ -34,10 +34,12 @@ Or: `uv run python scripts/dashboards.py prepare` then `databricks bundle valida
 
 ## Deploy app as a Databricks App
 
-1. **Build:** `uv run apx build`
-2. **Deploy:** `./scripts/bundle.sh deploy dev`
-3. **Run:** `databricks bundle run payment_analysis_app -t dev` or **Workspace → Apps** → **payment-analysis** → Start
-4. **App URL:** From bundle summary or app detail.
+**Deploy into Databricks App** (create/update the app in the workspace and make the UI available):
+
+1. **Build (so UI is included):** Run `uv run apx build` so `src/payment_analysis/__dist__` exists. The bundle deploy step also runs this via `artifacts.default.build`.
+2. **Deploy bundle:** Run `uv run python scripts/dashboards.py prepare` then `databricks bundle deploy -t dev` (or `./scripts/bundle.sh deploy dev`). This uploads files (including `src/payment_analysis/__dist__` per `sync.include`) to the workspace and registers the app.
+3. **Start the app:** In the workspace go to **Compute → Apps → payment-analysis → Start**, or run `databricks bundle run payment_analysis_app -t dev`. The app runs in Databricks (not on your machine). Logs showing **"Uvicorn running on http://0.0.0.0:8000"** are expected: the app binds to that address inside the container and the Databricks platform proxies external traffic to it.
+4. **App URL:** Open the app from the Apps page or use the URL from **databricks bundle summary**.
 5. **Required env (Workspace → Apps → payment-analysis → Edit → Environment):**
 
 | Variable | Purpose |
@@ -54,7 +56,7 @@ App resource: `resources/fastapi_app.yml`. Runtime spec: `app.yml` at project ro
 
 ## App configuration and resource paths
 
-**Bundle root:** Directory containing `databricks.yml`. **App source:** `source_code_path: .` (bundle root) in `resources/fastapi_app.yml`.
+**Bundle root:** Directory containing `databricks.yml`. **App source:** `source_code_path` in `resources/fastapi_app.yml` points to the workspace folder (e.g. `/Workspace/Users/<you>/payment-analysis`); sync uploads files there.
 
 **Included resources** (order in `databricks.yml`): `unity_catalog`, `lakebase`, `pipelines`, `sql_warehouse`, `ml_jobs`, `agents`, `streaming_simulator`, `genie_spaces`, `dashboards`, `fastapi_app`. Optional: `model_serving` (uncomment after training models).
 
@@ -133,7 +135,8 @@ By default: Workspace folder, Lakebase, Jobs (simulator, gold views, ML, agents,
 | Error installing packages (app deploy) | Check **Logs** for the exact pip error. Ensure `requirements.txt` is up to date: run `uv lock` then `uv run python scripts/sync_requirements_from_lock.py`. See [Databricks Apps compatibility](#databricks-apps-compatibility). |
 | **permission denied for schema public** | App tables use schema `app` by default. Set **LAKEBASE_SCHEMA** (e.g. `app`) in the app environment if needed; the app creates the schema if it has permission. |
 | **Error loading app spec from app.yml** | Ensure **`app.yml`** exists at project root (runtime spec for the app container). Redeploy. |
-| **Web UI shows "API only" / fallback page** | The UI build was not in the deployed app. Run **`uv run apx build`** then **`databricks bundle deploy -t dev`** (or `./scripts/bundle.sh deploy dev`). The bundle runs the build and syncs `src/payment_analysis/__dist__` so the app can serve the UI. |
+| **Web UI shows "API only" / fallback page** | The app could not find `src/payment_analysis/__dist__`. (1) Run **`uv run apx build`** so the UI build exists locally. (2) Run **`databricks bundle deploy -t dev`** so the bundle builds (again) and syncs files; `sync.include` in `databricks.yml` lists `src/payment_analysis/__dist__`. (3) Restart the app from **Compute → Apps**. (4) If it still fails, in **Apps → payment-analysis → Edit → Environment** set **APP_ROOT** to the full workspace path of the app (e.g. `/Workspace/Users/you@domain.com/payment-analysis`) or **UI_DIST_DIR** to the full path of the `__dist__` folder. Check app **Logs** for "UI dist candidate" to see which paths were tried. |
+| **Logs show "Uvicorn running on http://0.0.0.0:8000"** | This is **expected** when the app runs as a Databricks App. The process binds to `0.0.0.0:8000` inside the app container; the platform proxies requests to it. You are not running on localhost — the app is deployed in Databricks. |
 | **Failed to export ... type=mlflowExperiment** | An old MLflow experiment exists under the app path. Delete it in the workspace, then redeploy. See [Fix: export mlflowExperiment](#fix-failed-to-export--typemlflowexperiment) below. |
 
 ### Fix: Failed to export … type=mlflowExperiment
