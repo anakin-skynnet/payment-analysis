@@ -34,6 +34,7 @@ CREATE OR REPLACE VIEW v_approval_trends_hourly AS
 SELECT 
     DATE_TRUNC('hour', event_time) as hour,
     COUNT(*) as transaction_count,
+    SUM(CASE WHEN is_approved THEN 1 ELSE 0 END) as approved_count,
     ROUND(SUM(CASE WHEN is_approved THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as approval_rate_pct,
     ROUND(AVG(fraud_score), 3) as avg_fraud_score,
     ROUND(SUM(amount), 2) as total_value,
@@ -167,6 +168,7 @@ CREATE OR REPLACE VIEW v_solution_performance AS
 SELECT 
     payment_solution,
     COUNT(*) as transaction_count,
+    SUM(CASE WHEN is_approved THEN 1 ELSE 0 END) as approved_count,
     ROUND(SUM(CASE WHEN is_approved THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as approval_rate_pct,
     ROUND(AVG(fraud_score), 3) as avg_fraud_score,
     ROUND(AVG(amount), 2) as avg_amount,

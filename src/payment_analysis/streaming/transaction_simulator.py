@@ -27,7 +27,7 @@ python_round = builtins.round
 
 # COMMAND ----------
 
-# Get parameters
+# Get parameters (when run as job, catalog/schema = bundle var.catalog, var.schema)
 dbutils.widgets.text("catalog", "ahs_demos_catalog")
 dbutils.widgets.text("schema", "ahs_demo_payment_analysis_dev")
 dbutils.widgets.text("events_per_second", "1000")

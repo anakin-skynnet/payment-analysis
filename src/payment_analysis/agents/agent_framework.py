@@ -814,7 +814,7 @@ if __name__ == "__main__":
     agent_role = "orchestrator"
     query = "What optimizations do you recommend?"
     
-    # Try to get from dbutils if running in Databricks
+    # Try to get from dbutils if running in Databricks (when run as job, catalog/schema = bundle var.catalog, var.schema)
     try:
         from databricks.sdk.runtime import dbutils
         dbutils.widgets.text("catalog", "ahs_demos_catalog")

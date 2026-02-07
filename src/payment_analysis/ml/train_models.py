@@ -30,7 +30,7 @@ import pickle
 import warnings
 warnings.filterwarnings('ignore')
 
-# Get parameters from widgets or use defaults
+# Get parameters from widgets (when run as job, catalog/schema = bundle var.catalog, var.schema)
 dbutils.widgets.text("catalog", "ahs_demos_catalog")
 dbutils.widgets.text("schema", "ahs_demo_payment_analysis_dev")
 dbutils.widgets.text("n_estimators", "100")

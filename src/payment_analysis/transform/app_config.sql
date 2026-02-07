@@ -17,7 +17,7 @@ USING DELTA
 TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true')
 COMMENT 'Single-row config: catalog and schema for the Payment Approval app. Updated via UI or API.';
 
--- Seed default row only when table is empty (bootstrap catalog/schema)
+-- Seed default row only when table is empty (use current catalog/schema so job context is correct)
 INSERT INTO app_config (id, catalog, schema)
-SELECT 1, 'ahs_demos_catalog', 'ahs_demo_payment_analysis_dev'
+SELECT 1, CURRENT_CATALOG(), CURRENT_SCHEMA()
 WHERE (SELECT COUNT(*) FROM app_config) = 0;

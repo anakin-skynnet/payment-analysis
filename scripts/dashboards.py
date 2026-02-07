@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+# Must match bundle variables default (databricks.yml catalog/schema) for prepare substitution
 DEV_CATALOG_SCHEMA = "ahs_demos_catalog.ahs_demo_payment_analysis_dev"
 SOURCE_DIR = REPO_ROOT / "resources" / "dashboards"
 OUT_DIR = REPO_ROOT / ".build" / "dashboards"

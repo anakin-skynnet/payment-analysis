@@ -12,7 +12,7 @@ import json
 
 # COMMAND ----------
 
-# Get parameters
+# Get parameters (when run as job, catalog/schema come from job base_parameters = bundle var.catalog, var.schema)
 dbutils.widgets.text("catalog", "ahs_demos_catalog")
 dbutils.widgets.text("schema", "ahs_demo_payment_analysis_dev")
 
