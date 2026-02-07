@@ -419,7 +419,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "apx", specifier = "==0.2.6", index = "https://databricks-solutions.github.io/apx/simple" },
-    { name = "ty", specifier = ">=0.0.12" },
+    { name = "ty", specifier = "==0.0.14" },
 ]
 
 [[package]]

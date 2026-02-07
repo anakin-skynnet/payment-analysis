@@ -15,7 +15,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "ty>=0.0.12", "apx==0.2.6",
+    "ty==0.0.14",
+    "apx==0.2.6",
 ]
 
 [tool.apx.metadata]

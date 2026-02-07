@@ -71,14 +71,14 @@ App resource: `resources/fastapi_app.yml`. Runtime spec: `app.yml` at project ro
 
 Validate before deploy: `./scripts/bundle.sh validate dev` (runs dashboard prepare then `databricks bundle validate`).
 
-**Version alignment:** All dependency references use exactly the same versions everywhere (no ranges). Python: `pyproject.toml` (pinned `==`) → `uv.lock` → `requirements.txt` via `scripts/sync_requirements_from_lock.py`. Frontend: `package.json` and `bun.lock` use exact versions only (no `^`). After changing `pyproject.toml` run `uv lock` then `uv run python scripts/sync_requirements_from_lock.py`. If you see "error installing packages" on deploy, check **Compute → Apps → your app → Logs** for the exact `pip` error.
+**Version alignment:** All dependency references use **exactly the same versions** everywhere (no ranges). Python: `pyproject.toml` (pinned `==`) → `uv.lock` → `requirements.txt` via `scripts/sync_requirements_from_lock.py`. Frontend: `package.json` and `bun.lock` use exact versions only (no `^`). Dev deps: `ty==0.0.14`, `apx==0.2.6` in `pyproject.toml` match `uv.lock`. After changing `pyproject.toml` run `uv lock` then `uv run python scripts/sync_requirements_from_lock.py`. If you see "error installing packages" on deploy, check **Compute → Apps → your app → Logs** for the exact `pip` error.
 
 **Version verification (same versions everywhere):**
 
 | Stack | Source of truth | Generated / lock | Aligned? |
 |-------|-----------------|------------------|----------|
 | Python app | `pyproject.toml` (pinned `==`) | `uv.lock` → `requirements.txt` via `scripts/sync_requirements_from_lock.py` | Yes: direct deps (databricks-sdk 0.84.0, fastapi 0.128.0, uvicorn 0.40.0, pydantic-settings 2.6.1, sqlmodel 0.0.27, psycopg 3.2.3) match in all three. |
-| Frontend | `package.json` (exact versions, no `^`) | `bun.lock` | Yes: workspace deps in `bun.lock` match `package.json`. |
+| Frontend | `package.json` (exact versions, no `^`) | `bun.lock` | Yes: all deps pinned to exact versions (e.g. vite 7.3.1, react 19.2.3) matching `bun.lock`. |
 | Runtime | `.python-version` = 3.11 | `pyproject.toml` `requires-python = ">=3.11"` | Yes. |
 | Jobs/Pipelines | N/A (Spark/Lakeflow) | `resources/*.yml` use `spark_version` (e.g. 15.4.x) for clusters only; not app deps. | N/A. |
 
@@ -122,7 +122,7 @@ By default: Workspace folder, Lakebase, Jobs (simulator, gold views, ML, agents,
    ```
    then redeploy.
 
-**Supported and compatible:** App runtime is Python 3.11 and Node.js 22.16; our `.python-version` (3.11) and `package.json` `engines.node` (>=22.0.0) match. All Python packages in `requirements.txt` have manylinux-compatible wheels or are pure Python. We use `psycopg[binary]` so the app has a working PostgreSQL driver without needing the system libpq library (the container does not provide it). `requirements.txt` is generated from `uv.lock` by `scripts/sync_requirements_from_lock.py`.
+**Supported and compatible:** Databricks App system environment uses **Python 3.11** and **Node.js 22.16**. Our `.python-version` (3.11) and `package.json` `engines.node` (>=22.0.0) are compatible. All Python packages in `requirements.txt` use exact versions and have manylinux-compatible wheels or are pure Python. We use `psycopg[binary]` so the app has a working PostgreSQL driver without the system libpq (not in the container). `requirements.txt` is generated from `uv.lock` by `scripts/sync_requirements_from_lock.py`; do not edit by hand.
 
 ## Troubleshooting
 
