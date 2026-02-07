@@ -73,7 +73,7 @@ Managed Postgres for rules, experiments, incidents. Bundle: `resources/lakebase.
 | Runtime spec at root | OK | `app.yaml` and `app.yml` (same content) |
 | Command | OK | `uvicorn app:app` |
 | API prefix `/api` | OK | Router `prefix="/api"` |
-| requirements.txt | OK | Exact versions from pyproject.toml/uv.lock (fastapi, uvicorn, pydantic, sqlmodel, psycopg, etc.); psycopg no `[binary]` |
+| requirements.txt | OK | Exact versions from pyproject.toml/uv.lock (fastapi, uvicorn, pydantic, sqlmodel, psycopg[binary], etc.) |
 | No system packages | OK | Pure Python deps |
 | Config from env | OK | DATABRICKS_*, PGAPPNAME |
 | Bundle app resource | OK | `resources/fastapi_app.yml` |
@@ -81,7 +81,7 @@ Managed Postgres for rules, experiments, incidents. Bundle: `resources/lakebase.
 
 ## Databricks App (deploy)
 
-**Pre-installed (Databricks Apps):** databricks-sdk 0.33.0, fastapi 0.115.0, uvicorn 0.30.6, etc. **requirements.txt:** Overrides those with pinned versions from pyproject.toml/uv.lock; psycopg without `[binary]`. If install fails, use [requirements-databricks-minimal.txt](DEPLOYMENT_GUIDE.md#databricks-apps-compatibility) to rely on pre-installed fastapi/uvicorn. **Compatibility:** Python 3.11, Node 22.16, Ubuntu 22.04. TanStack **1.158.1** with overrides; use `bun.lock`. See [Deployment guide](DEPLOYMENT_GUIDE.md#troubleshooting).
+**Pre-installed (Databricks Apps):** databricks-sdk 0.33.0, fastapi 0.115.0, uvicorn 0.30.6, etc. **requirements.txt:** Generated from `uv.lock` by `scripts/sync_requirements_from_lock.py`; same versions everywhere (pyproject.toml → uv lock → requirements.txt). psycopg[binary] for DB (no system libpq in container). **Compatibility:** Python 3.11, Node 22.16, Ubuntu 22.04. Frontend: package.json and bun.lock with exact versions; TanStack **1.158.1**. See [Deployment guide](DEPLOYMENT_GUIDE.md#troubleshooting).
 
 ## Bundle & deploy
 

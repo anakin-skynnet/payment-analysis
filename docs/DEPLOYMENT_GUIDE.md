@@ -68,7 +68,7 @@ App resource: `resources/fastapi_app.yml`. Runtime spec: `app.yaml` and `app.yml
 
 Validate before deploy: `./scripts/bundle.sh validate dev` (runs dashboard prepare then `databricks bundle validate`).
 
-**Version alignment:** Python app dependencies are pinned in `requirements.txt` to match `pyproject.toml` and `uv.lock`. Verify with `uv run python scripts/verify_versions.py`. After changing `pyproject.toml` run `uv lock` and update `requirements.txt` with the same versions so the Databricks App install stays reproducible. If you see "error installing packages" on deploy, check **Compute → Apps → your app → Logs** for the exact `pip` error.
+**Version alignment:** One source of truth for Python app deps: `pyproject.toml` (what we need) and `uv.lock` (resolved versions). After changing `pyproject.toml` run `uv lock` then `uv run python scripts/sync_requirements_from_lock.py` to regenerate `requirements.txt` for the Databricks App. If you see "error installing packages" on deploy, check **Compute → Apps → your app → Logs** for the exact `pip` error.
 
 ## Schema consistency
 
@@ -99,19 +99,18 @@ By default: Workspace folder, Lakebase, Jobs (simulator, gold views, ML, agents,
 | uvicorn[standard] | 0.30.6 |
 | (others) | streamlit, dash, flask, etc. |
 
-**Our `requirements.txt`:** Overrides three pre-installed packages (databricks-sdk → 0.84.0, fastapi → 0.128.0, uvicorn → 0.40.0) and adds pydantic-settings, sqlmodel, psycopg plus transitive pins. Overriding can trigger install conflicts; the docs recommend avoiding large version jumps.
+**Our `requirements.txt`:** Overrides three pre-installed packages (databricks-sdk → 0.84.0, fastapi → 0.128.0, uvicorn → 0.40.0) and adds pydantic-settings, sqlmodel, psycopg[binary] plus transitive pins. Overriding can trigger install conflicts; the docs recommend avoiding large version jumps.
 
 **If you see "error installing packages":**
 
 1. **Check the real error:** **Compute → Apps → your app → Logs** (or **Environment** tab) for the exact `pip` or install failure.
-2. **Try minimal requirements:** Copy the minimal set that uses pre-installed fastapi/uvicorn and only adds what’s missing:
+2. Regenerate from lock:
    ```bash
-   cp requirements-databricks-minimal.txt requirements.txt
+   uv run python scripts/sync_requirements_from_lock.py
    ```
-   Then redeploy. The app is compatible with fastapi 0.115.0 and uvicorn 0.30.6.
-3. **Keep full pins only if needed:** Use the full `requirements.txt` (with fastapi/uvicorn overrides) if you need features from newer FastAPI/Uvicorn and the minimal set installs successfully.
+   then redeploy.
 
-**Supported and compatible:** All listed packages have manylinux-compatible wheels or are pure Python. We use `psycopg` without `[binary]` so no C compiler is required. Run `uv run python scripts/verify_versions.py` to ensure `requirements.txt`, `requirements-databricks-minimal.txt`, and `pyproject.toml` all match `uv.lock`.
+**Supported and compatible:** All listed packages have manylinux-compatible wheels or are pure Python. We use `psycopg[binary]` so the app has a working PostgreSQL driver without needing the system libpq library (the container does not provide it). `requirements.txt` is generated from `uv.lock` by `scripts/sync_requirements_from_lock.py`.
 
 ## Troubleshooting
 
@@ -121,7 +120,7 @@ By default: Workspace folder, Lakebase, Jobs (simulator, gold views, ML, agents,
 | Don't see resources | Redeploy; run `./scripts/bundle.sh validate dev` |
 | Registered model does not exist | Run Step 6, then uncomment `model_serving.yml`, redeploy |
 | Lakebase "Instance name is not unique" | Use unique `lakebase_instance_name` via `--var` or target |
-| Error installing packages (app deploy) | Check **Logs** for the exact pip error. Try minimal deps: `cp requirements-databricks-minimal.txt requirements.txt` then redeploy. See [Databricks Apps compatibility](#databricks-apps-compatibility). |
+| Error installing packages (app deploy) | Check **Logs** for the exact pip error. Ensure `requirements.txt` is up to date: run `uv lock` then `uv run python scripts/sync_requirements_from_lock.py`. See [Databricks Apps compatibility](#databricks-apps-compatibility). |
 | **Error loading app spec from app.yml** | Ensure **`app.yaml`** and **`app.yml`** exist at project root with same content. Redeploy. |
 | **Failed to export ... type=mlflowExperiment** | An old MLflow experiment exists under the app path. Delete it in the workspace, then redeploy. See [Fix: export mlflowExperiment](#fix-failed-to-export--typemlflowexperiment) below. |
 
@@ -142,6 +141,7 @@ Runtime loads **`app.yml`** at deployed app root; **`app.yaml`** is the main spe
 |--------|---------|
 | **bundle.sh** | `./scripts/bundle.sh deploy [dev\|prod]` — prepare dashboards then deploy. `validate` / `verify` for checks. |
 | **dashboards.py** | **prepare** (by bundle.sh), **validate-assets**, **publish** (optional). Run: `uv run python scripts/dashboards.py` |
+| **sync_requirements_from_lock.py** | Generate `requirements.txt` from `uv.lock` for the Databricks App. Run after `uv lock`: `uv run python scripts/sync_requirements_from_lock.py` |
 
 ## Demo setup & one-click run
 
