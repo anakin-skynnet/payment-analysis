@@ -1,6 +1,21 @@
-# Databricks App: add ONLY packages not pre-installed (see docs/ARCHITECTURE_REFERENCE.md).
-# Pre-installed include: databricks-sdk 0.33.0, fastapi 0.115.0, uvicorn[standard] 0.30.6, flask, streamlit, dash, etc.
-# Pinned versions; pure Python psycopg (no [binary]) so pip install succeeds without a C compiler.
+# Databricks App: exact versions from pyproject.toml and uv.lock.
+# Single source of truth: run `uv lock` then sync this file (see docs/DEPLOYMENT_GUIDE.md).
+# Use psycopg (no [binary]) so install works without a C compiler.
+
+# === pyproject.toml direct dependencies (same versions as uv.lock) ===
+databricks-sdk==0.84.0
+fastapi==0.128.0
+uvicorn==0.40.0
 pydantic-settings==2.6.1
 sqlmodel==0.0.27
 psycopg==3.2.3
+
+# === Transitive pins from uv.lock (avoid resolver drift and "error installing packages") ===
+pydantic==2.12.5
+pydantic-core==2.41.5
+starlette==0.50.0
+sqlalchemy==2.0.46
+greenlet==3.3.1
+annotated-types==0.7.0
+typing-extensions==4.15.0
+typing-inspection==0.4.2

@@ -68,6 +68,8 @@ App resource: `resources/fastapi_app.yml`. Runtime spec: `app.yaml` and `app.yml
 
 Validate before deploy: `./scripts/bundle.sh validate dev` (runs dashboard prepare then `databricks bundle validate`).
 
+**Version alignment:** Python app dependencies are pinned in `requirements.txt` to match `pyproject.toml` and `uv.lock`. Verify with `uv run python scripts/verify_versions.py`. After changing `pyproject.toml` run `uv lock` and update `requirements.txt` with the same versions so the Databricks App install stays reproducible. If you see "error installing packages" on deploy, check **Compute → Apps → your app → Logs** for the exact `pip` error.
+
 ## Schema consistency
 
 One catalog/schema (defaults: `ahs_demos_catalog`, `ahs_demo_payment_analysis_dev`). Effective catalog/schema from Lakehouse `app_config`; set via **Setup & Run** → **Save catalog & schema**. See [Architecture & reference](ARCHITECTURE_REFERENCE.md#catalog-and-schema-app_config).
@@ -86,6 +88,31 @@ By default: Workspace folder, Lakebase, Jobs (simulator, gold views, ML, agents,
 
 **Dashboard TABLE_OR_VIEW_NOT_FOUND:** Run **Create Gold Views** in the same catalog.schema as `dashboards.py prepare`. Validate: `uv run python scripts/dashboards.py validate-assets --catalog X --schema Y`.
 
+## Databricks Apps compatibility
+
+**Environment (official):** Python 3.11, Ubuntu 22.04 LTS, Node.js 22.16. [Pre-installed Python libraries](https://docs.databricks.com/en/dev-tools/databricks-apps/system-env#pre-installed-python-libraries) include:
+
+| Library | Pre-installed version |
+|---------|------------------------|
+| databricks-sdk | 0.33.0 |
+| fastapi | 0.115.0 |
+| uvicorn[standard] | 0.30.6 |
+| (others) | streamlit, dash, flask, etc. |
+
+**Our `requirements.txt`:** Overrides three pre-installed packages (databricks-sdk → 0.84.0, fastapi → 0.128.0, uvicorn → 0.40.0) and adds pydantic-settings, sqlmodel, psycopg plus transitive pins. Overriding can trigger install conflicts; the docs recommend avoiding large version jumps.
+
+**If you see "error installing packages":**
+
+1. **Check the real error:** **Compute → Apps → your app → Logs** (or **Environment** tab) for the exact `pip` or install failure.
+2. **Try minimal requirements:** Copy the minimal set that uses pre-installed fastapi/uvicorn and only adds what’s missing:
+   ```bash
+   cp requirements-databricks-minimal.txt requirements.txt
+   ```
+   Then redeploy. The app is compatible with fastapi 0.115.0 and uvicorn 0.30.6.
+3. **Keep full pins only if needed:** Use the full `requirements.txt` (with fastapi/uvicorn overrides) if you need features from newer FastAPI/Uvicorn and the minimal set installs successfully.
+
+**Supported and compatible:** All listed packages have manylinux-compatible wheels or are pure Python. We use `psycopg` without `[binary]` so no C compiler is required. Run `uv run python scripts/verify_versions.py` to ensure versions match `uv.lock`.
+
 ## Troubleshooting
 
 | Issue | Action |
@@ -94,7 +121,7 @@ By default: Workspace folder, Lakebase, Jobs (simulator, gold views, ML, agents,
 | Don't see resources | Redeploy; run `./scripts/bundle.sh validate dev` |
 | Registered model does not exist | Run Step 6, then uncomment `model_serving.yml`, redeploy |
 | Lakebase "Instance name is not unique" | Use unique `lakebase_instance_name` via `--var` or target |
-| Error installing packages | TanStack **1.158.1** with overrides; use `bun.lock`. See [Architecture & reference](ARCHITECTURE_REFERENCE.md#databricks-app-deploy) |
+| Error installing packages (app deploy) | Check **Logs** for the exact pip error. Try minimal deps: `cp requirements-databricks-minimal.txt requirements.txt` then redeploy. See [Databricks Apps compatibility](#databricks-apps-compatibility). |
 | **Error loading app spec from app.yml** | Ensure **`app.yaml`** and **`app.yml`** exist at project root with same content. Redeploy. |
 | **Failed to export ... type=mlflowExperiment** | An old MLflow experiment exists under the app path. Delete it in the workspace, then redeploy. See [Fix: export mlflowExperiment](#fix-failed-to-export--typemlflowexperiment) below. |
 
