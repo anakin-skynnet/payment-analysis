@@ -140,4 +140,4 @@ resources:
         #   serving_endpoint:
         #     name: "smart-retry-${var.environment}"
         #     permission: CAN_QUERY
-      # PGAPPNAME is set in app.yml for Lakebase (e.g. payment-analysis-db-dev).
+      # PGAPPNAME in root app.yml must match var.lakebase_instance_name (dev target: payment-analysis-db-dev).
