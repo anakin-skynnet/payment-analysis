@@ -4,6 +4,8 @@
 # Deploys the app (FastAPI + React UI) to Databricks Apps. After bundle deploy,
 # run the app via Workspace → Apps or: databricks bundle run payment_analysis_app -t dev
 # App URL is shown in bundle summary or in Workspace → Apps.
+# Name: payment-analysis. Source folder: project root (source_code_path: ..).
+# Bound resources: Lakebase database (rules, experiments, incidents), SQL warehouse (analytics).
 # =============================================================================
 
 resources:
@@ -12,4 +14,17 @@ resources:
       name: payment-analysis
       source_code_path: ..
       description: Payment Approval Optimization Platform – dashboards, rules, decisioning, ML models, and agent jobs.
+      # Bind Lakebase and SQL warehouse so the app has managed access (credentials injected via env).
+      resources:
+        - name: database
+          description: Lakebase instance for rules, experiments, incidents, ML features
+          database:
+            instance_name: ${var.lakebase_instance_name}
+            database_name: ${var.lakebase_database_name}
+            permission: CAN_CONNECT_AND_CREATE
+        - name: sql-warehouse
+          description: SQL warehouse for analytics, app_config, gold views
+          sql_warehouse:
+            id: ${resources.sql_warehouses.payment_analysis_warehouse.id}
+            permission: CAN_USE
       # PGAPPNAME is set in app.yaml for Lakebase (payment-analysis-db-dev).
