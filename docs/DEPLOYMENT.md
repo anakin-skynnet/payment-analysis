@@ -160,4 +160,4 @@ If you see **"error loading app spec from app.yml"**: the Apps runtime loads the
 
 ---
 
-**See also:** [OVERVIEW](OVERVIEW.md) · [TECHNICAL](TECHNICAL.md)
+**See also:** [TECHNICAL](TECHNICAL.md)

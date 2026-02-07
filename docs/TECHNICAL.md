@@ -33,7 +33,7 @@ Models: approval propensity (RF ~92%), risk (~88%), routing (RF ~75%), retry (~8
 
 ## AI Agents (Summary)
 
-Genie 2, Model serving 3, Mosaic AI Gateway (LLM) 2. Agent jobs: [agents.yml](../resources/agents.yml). Details: [OVERVIEW](OVERVIEW.md#accelerating-with-agent-bricks--mosaic-ai).
+Genie 2, Model serving 3, Mosaic AI Gateway (LLM) 2. Agent jobs: [agents.yml](../resources/agents.yml).
 
 ## Analytics
 
@@ -113,4 +113,4 @@ Job/pipeline IDs from `GET /api/setup/defaults` (env overrides: see [DEPLOYMENT]
 
 ---
 
-**See also:** [OVERVIEW](OVERVIEW.md) · [DEPLOYMENT](DEPLOYMENT.md)
+**See also:** [DEPLOYMENT](DEPLOYMENT.md)
