@@ -784,7 +784,7 @@ For complex queries, engage multiple agents and synthesize responses."""
 
 def setup_agent_framework(
     catalog: str = "ahs_demos_catalog",
-    schema: str = "ahs_demo_payment_analysis_dev"
+    schema: str = "payment_analysis"
 ) -> OrchestratorAgent:
     """Initialize the multi-agent framework."""
 
@@ -809,7 +809,7 @@ def setup_agent_framework(
 if __name__ == "__main__":
     # Get parameters
     catalog = "ahs_demos_catalog"
-    schema = "ahs_demo_payment_analysis_dev"
+    schema = "payment_analysis"
     test_mode = "true"
     agent_role = "orchestrator"
     query = "What optimizations do you recommend?"
@@ -818,7 +818,7 @@ if __name__ == "__main__":
     try:
         from databricks.sdk.runtime import dbutils
         dbutils.widgets.text("catalog", "ahs_demos_catalog")
-        dbutils.widgets.text("schema", "ahs_demo_payment_analysis_dev")
+        dbutils.widgets.text("schema", "payment_analysis")
         dbutils.widgets.text("test_mode", "true")
         dbutils.widgets.text("agent_role", "orchestrator")
         dbutils.widgets.text("query", "What optimizations do you recommend?")

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import {
@@ -30,6 +30,8 @@ import {
   ArrowDownRight,
   MessageSquareText,
   Cpu,
+  GitBranch,
+  ArrowRight,
 } from "lucide-react";
 import { getDashboardUrl, getGenieUrl } from "@/config/workspace";
 
@@ -176,6 +178,37 @@ function Dashboard() {
         <p className="text-sm text-muted-foreground">
           Overview of Getnet portfolio performance in the last 30 days. Key metrics, trends, and where to act.
         </p>
+      </motion.div>
+
+      {/* Data flow & storytelling — one system */}
+      <motion.div variants={dashboardItem}>
+        <Card className="border-primary/20 bg-muted/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <GitBranch className="w-4 h-4 text-primary" />
+              One Lakehouse-based decision system
+            </CardTitle>
+            <CardDescription>
+              Smart Checkout, Reason Code Performance, and Smart Retry work together to increase approval rates and control risk. Transactions → enrichment → decision → dashboards.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2 pt-0">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/dashboards">
+                DBSQL dashboards <ArrowRight className="w-3 h-3 ml-1" />
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/smart-checkout">Smart Checkout</Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/reason-codes">Reason codes</Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/smart-retry">Smart Retry</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </motion.div>
 
       {/* Header with Links */}

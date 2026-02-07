@@ -65,7 +65,7 @@ class DatabricksConfig:
     token: str | None = None
     warehouse_id: str | None = None
     catalog: str = "ahs_demos_catalog"
-    schema: str = "ahs_demo_payment_analysis_dev"
+    schema: str = "payment_analysis"
 
     @classmethod
     def from_environment(cls) -> "DatabricksConfig":
@@ -73,9 +73,9 @@ class DatabricksConfig:
         return cls(
             host=os.getenv("DATABRICKS_HOST"),
             token=os.getenv("DATABRICKS_TOKEN"),
-            warehouse_id=os.getenv("DATABRICKS_WAREHOUSE_ID"),
+            warehouse_id=os.getenv("DATABRICKS_WAREHOUSE_ID", "148ccb90800933a1"),
             catalog=os.getenv("DATABRICKS_CATALOG", "ahs_demos_catalog"),
-            schema=os.getenv("DATABRICKS_SCHEMA", "ahs_demo_payment_analysis_dev"),
+            schema=os.getenv("DATABRICKS_SCHEMA", "payment_analysis"),
         )
     
     @property

@@ -16,20 +16,20 @@ import { ModeToggle } from "@/components/apx/mode-toggle";
 import Logo from "@/components/apx/logo";
 
 const PATH_LABELS: Record<string, string> = {
-  "/dashboard": "Portfolio overview",
+  "/dashboard": "KPI overview",
   "/setup": "Setup & run",
-  "/dashboards": "Analytics dashboards",
+  "/dashboards": "DBSQL dashboards",
   "/notebooks": "Notebooks",
   "/models": "ML models",
   "/ai-agents": "AI agents",
-  "/decisioning": "Decisioning",
+  "/decisioning": "Decisioning & Genie",
   "/rules": "Rules",
   "/experiments": "Experiments",
   "/incidents": "Incidents",
   "/declines": "Declines",
-  "/smart-checkout": "Smart checkout",
+  "/smart-checkout": "Smart Checkout",
   "/reason-codes": "Reason codes",
-  "/smart-retry": "Smart retry",
+  "/smart-retry": "Smart Retry",
   "/profile": "Profile",
 };
 

@@ -93,24 +93,105 @@ export function Component() {
     return colors[category] || "bg-gray-500/10 text-gray-700 dark:text-gray-400";
   };
 
+  // Core 6 for executive storytelling: KPI, Decline, Risk & Fraud, Routing, Live, Retry/Recommendations
+  const coreDashboardIds = [
+    "executive_overview",
+    "decline_analysis",
+    "fraud_risk_analysis",
+    "routing_optimization",
+    "realtime_monitoring",
+    "daily_trends",
+  ];
+  const coreDashboards = dashboards.filter((d) => coreDashboardIds.includes(d.id));
+  const otherDashboards = dashboards.filter((d) => !coreDashboardIds.includes(d.id));
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-8">
+      {/* Header & storytelling */}
       <div>
-        <h1 className="text-3xl font-bold">Dashboards</h1>
-        <p className="text-muted-foreground mt-2">
-          12 AI/BI dashboards (Executive, Decline, Real-Time, Fraud, Merchant, Routing, Daily Trends, 3DS, Financial, Performance, Data Quality, Global Coverage world map). After Setup steps 1–4, open any card to load data from your workspace.
+        <h1 className="text-3xl font-bold font-heading">DBSQL dashboards</h1>
+        <p className="text-muted-foreground mt-2 max-w-2xl">
+          AI/BI dashboards for executives and operations: approval rate, decline rate, fraud rate, uplift vs. baseline; visuals by geography, merchant segment, issuer, and payment solution. One Lakehouse-based system for Smart Checkout, Reason Code Performance, and Smart Retry.
         </p>
       </div>
 
-      {/* Category Filter */}
+      {/* Core executive & operations (6) */}
+      {coreDashboards.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Core executive & operations
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {coreDashboards.map((dashboard) => {
+              const IconComponent = dashboardIcons[dashboard.id] || BarChart3;
+              const notebookIds = dashboardNotebooks[dashboard.id] || [];
+              return (
+                <Card
+                  key={dashboard.id}
+                  className="cursor-pointer hover:shadow-lg transition-all hover:border-primary/30 group"
+                  onClick={() => handleDashboardClick(dashboard)}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <IconComponent className="w-8 h-8 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                      <Badge className={getCategoryColor(dashboard.category)}>
+                        {dashboard.category}
+                      </Badge>
+                    </div>
+                    <CardTitle className="text-lg">{dashboard.name}</CardTitle>
+                    <CardDescription className="line-clamp-2">
+                      {dashboard.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {(dashboard.tags ?? []).slice(0, 3).map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                    {notebookIds.length > 0 && (
+                      <div className="mb-2 p-2 bg-muted/50 rounded-md">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                          <Code2 className="w-3 h-3" />
+                          <span>Source:</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {notebookIds.slice(0, 2).map((notebookId) => (
+                            <Button
+                              key={notebookId}
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs hover:bg-primary/10"
+                              onClick={(e) => handleNotebookClick(notebookId, e)}
+                            >
+                              {notebookId.replace(/_/g, " ")}
+                              <ExternalLink className="w-3 h-3 ml-1" />
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <Button className="w-full" size="sm">
+                      Open dashboard
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Category filter */}
       <div className="flex flex-wrap gap-2">
         <Button
           variant={selectedCategory === null ? "default" : "outline"}
           size="sm"
           onClick={() => setSelectedCategory(null)}
         >
-          All Dashboards ({Object.values(categories).reduce((a, b) => a + b, 0)})
+          All ({Object.values(categories).reduce((a, b) => a + b, 0)})
         </Button>
         {Object.entries(categories).map(([category, count]) => {
           const IconComponent = categoryIcons[category];
@@ -138,7 +219,7 @@ export function Component() {
         </Card>
       )}
 
-      {/* Dashboard Grid */}
+      {/* More dashboards (when viewing All) or full grid (when category selected) */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
@@ -155,74 +236,147 @@ export function Component() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {dashboards.map((dashboard) => {
-            const IconComponent = dashboardIcons[dashboard.id] || BarChart3;
-            const notebookIds = dashboardNotebooks[dashboard.id] || [];
-            return (
-              <Card
-                key={dashboard.id}
-                className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] group"
-                onClick={() => handleDashboardClick(dashboard)}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <IconComponent className="w-8 h-8 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                    <Badge className={getCategoryColor(dashboard.category)}>
-                      {dashboard.category}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-lg">{dashboard.name}</CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {dashboard.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {(dashboard.tags ?? []).slice(0, 3).map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                    {(dashboard.tags ?? []).length > 3 && (
-                      <Badge variant="secondary" className="text-xs">
-                        +{(dashboard.tags ?? []).length - 3}
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  {/* Notebook Links */}
-                  {notebookIds.length > 0 && (
-                    <div className="mb-3 p-2 bg-muted/50 rounded-md">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                        <Code2 className="w-3 h-3" />
-                        <span>Source Notebooks:</span>
+        <>
+          {selectedCategory === null && otherDashboards.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                More dashboards
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {otherDashboards.map((dashboard) => {
+                  const IconComponent = dashboardIcons[dashboard.id] || BarChart3;
+                  const notebookIds = dashboardNotebooks[dashboard.id] || [];
+                  return (
+                    <Card
+                      key={dashboard.id}
+                      className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] group"
+                      onClick={() => handleDashboardClick(dashboard)}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <IconComponent className="w-8 h-8 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                          <Badge className={getCategoryColor(dashboard.category)}>
+                            {dashboard.category}
+                          </Badge>
+                        </div>
+                        <CardTitle className="text-lg">{dashboard.name}</CardTitle>
+                        <CardDescription className="line-clamp-2">
+                          {dashboard.description}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {(dashboard.tags ?? []).slice(0, 3).map((tag) => (
+                            <Badge key={tag} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                          {(dashboard.tags ?? []).length > 3 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{(dashboard.tags ?? []).length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                        {notebookIds.length > 0 && (
+                          <div className="mb-3 p-2 bg-muted/50 rounded-md">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                              <Code2 className="w-3 h-3" />
+                              <span>Source Notebooks:</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {notebookIds.map((notebookId) => (
+                                <Button
+                                  key={notebookId}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-xs hover:bg-primary/10"
+                                  onClick={(e) => handleNotebookClick(notebookId, e)}
+                                >
+                                  {notebookId.replace(/_/g, " ")}
+                                  <ExternalLink className="w-3 h-3 ml-1" />
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <Button className="w-full" size="sm">
+                          Open Dashboard
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {selectedCategory !== null && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {dashboards.map((dashboard) => {
+                const IconComponent = dashboardIcons[dashboard.id] || BarChart3;
+                const notebookIds = dashboardNotebooks[dashboard.id] || [];
+                return (
+                  <Card
+                    key={dashboard.id}
+                    className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] group"
+                    onClick={() => handleDashboardClick(dashboard)}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <IconComponent className="w-8 h-8 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                        <Badge className={getCategoryColor(dashboard.category)}>
+                          {dashboard.category}
+                        </Badge>
                       </div>
-                      <div className="flex flex-wrap gap-1">
-                        {notebookIds.map((notebookId) => (
-                          <Button
-                            key={notebookId}
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-2 text-xs hover:bg-primary/10"
-                            onClick={(e) => handleNotebookClick(notebookId, e)}
-                          >
-                            {notebookId.replace(/_/g, " ")}
-                            <ExternalLink className="w-3 h-3 ml-1" />
-                          </Button>
+                      <CardTitle className="text-lg">{dashboard.name}</CardTitle>
+                      <CardDescription className="line-clamp-2">
+                        {dashboard.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {(dashboard.tags ?? []).slice(0, 3).map((tag) => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
                         ))}
+                        {(dashboard.tags ?? []).length > 3 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{(dashboard.tags ?? []).length - 3}
+                          </Badge>
+                        )}
                       </div>
-                    </div>
-                  )}
-                  
-                  <Button className="w-full" size="sm">
-                    Open Dashboard
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                      {notebookIds.length > 0 && (
+                        <div className="mb-3 p-2 bg-muted/50 rounded-md">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                            <Code2 className="w-3 h-3" />
+                            <span>Source Notebooks:</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {notebookIds.map((notebookId) => (
+                              <Button
+                                key={notebookId}
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs hover:bg-primary/10"
+                                onClick={(e) => handleNotebookClick(notebookId, e)}
+                              >
+                                {notebookId.replace(/_/g, " ")}
+                                <ExternalLink className="w-3 h-3 ml-1" />
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <Button className="w-full" size="sm">
+                        Open Dashboard
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {/* Empty State */}

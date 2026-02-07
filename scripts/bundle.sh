@@ -57,7 +57,7 @@ print('   Backend app and API router import OK.')
     echo ""
     echo "4. Prepare dashboards and validate dashboard assets..."
     prepare_dashboards
-    uv run python scripts/dashboards.py validate-assets --catalog "${DATABRICKS_CATALOG:-ahs_demos_catalog}" --schema "${DATABRICKS_SCHEMA:-ahs_demo_payment_analysis_dev}"
+    uv run python scripts/dashboards.py validate-assets --catalog "${DATABRICKS_CATALOG:-ahs_demos_catalog}" --schema "${DATABRICKS_SCHEMA:-payment_analysis}"
     echo "   Dashboard assets OK."
     echo ""
     echo "5. Databricks bundle validate..."

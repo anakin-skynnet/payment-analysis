@@ -53,9 +53,9 @@ def _pipeline_id_env_key(key: str) -> str:
 # Job/pipeline IDs from bundle deploy (target workspace). Override via env: DATABRICKS_JOB_ID_<NAME>, DATABRICKS_PIPELINE_ID_<NAME>.
 # See docs/DEPLOYMENT_GUIDE.md for the list of env vars.
 DEFAULT_IDS: _DefaultIds = {
-    "warehouse_id": os.getenv("DATABRICKS_WAREHOUSE_ID", "bf12ee0011ea4ced") or "",
+    "warehouse_id": os.getenv("DATABRICKS_WAREHOUSE_ID", "148ccb90800933a1") or "",
     "catalog": os.getenv("DATABRICKS_CATALOG", "ahs_demos_catalog") or "",
-    "schema": os.getenv("DATABRICKS_SCHEMA", "ahs_demo_payment_analysis_dev") or "",
+    "schema": os.getenv("DATABRICKS_SCHEMA", "payment_analysis") or "",
     "jobs": {
         "transaction_stream_simulator": os.getenv(_job_id_env_key("transaction_stream_simulator"), "782493643247677") or "782493643247677",
         "create_gold_views": os.getenv(_job_id_env_key("create_gold_views"), "775632375108394") or "775632375108394",

@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-# Must match bundle variables default (databricks.yml catalog/schema) for prepare substitution
+# String in source dashboard JSONs to replace with catalog.schema (run prepare with --schema payment_analysis for default)
 DEV_CATALOG_SCHEMA = "ahs_demos_catalog.ahs_demo_payment_analysis_dev"
 SOURCE_DIR = REPO_ROOT / "resources" / "dashboards"
 OUT_DIR = REPO_ROOT / ".build" / "dashboards"
@@ -165,11 +165,11 @@ def main() -> int:
     # prepare
     p_prepare = sub.add_parser("prepare", help="Copy dashboards and gold_views.sql to .build/ with catalog/schema")
     p_prepare.add_argument("--catalog", default=os.environ.get("BUNDLE_VAR_catalog", "ahs_demos_catalog"))
-    p_prepare.add_argument("--schema", default=os.environ.get("BUNDLE_VAR_schema", "ahs_demo_payment_analysis_dev"))
+    p_prepare.add_argument("--schema", default=os.environ.get("BUNDLE_VAR_schema", "payment_analysis"))
     # validate-assets
     p_va = sub.add_parser("validate-assets", help="List tables/views required by dashboards")
     p_va.add_argument("--catalog", default="ahs_demos_catalog")
-    p_va.add_argument("--schema", default="ahs_demo_payment_analysis_dev")
+    p_va.add_argument("--schema", default="payment_analysis")
     # publish
     p_pub = sub.add_parser("publish", help="Publish all dashboards with embed credentials (after deploy)")
     p_pub.add_argument("--path", default=None, help="Workspace root path")

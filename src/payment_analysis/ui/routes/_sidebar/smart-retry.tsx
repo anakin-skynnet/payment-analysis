@@ -21,10 +21,9 @@ function SmartRetry() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Smart Retry</h1>
-        <p className="text-sm text-muted-foreground mt-2">
-          Retry performance split by recurrence vs reattempt scenarios (demo
-          scaffold).
+        <h1 className="text-2xl font-bold font-heading">Smart Retry</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Approval rates with and without smart retry; reduction in low-probability, wasteful retries. Works with Reason Code insights and Smart Checkout in one decision system.
         </p>
       </div>
 

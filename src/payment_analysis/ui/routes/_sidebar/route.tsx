@@ -7,7 +7,6 @@ import {
   BadgeX,
   FlaskConical,
   User,
-  Wand2,
   LayoutDashboard,
   Code2,
   Brain,
@@ -17,6 +16,7 @@ import {
   ListChecks,
   RotateCcw,
   ScrollText,
+  MessageSquareText,
 } from "lucide-react";
 import {
   SidebarGroup,
@@ -58,26 +58,33 @@ function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
 function Layout() {
   const location = useLocation();
 
-  const overviewItems: NavItem[] = [
-    { to: "/dashboard", label: "Dashboard", icon: <BarChart3 size={16} />, match: (p) => p === "/dashboard" },
-    { to: "/setup", label: "Setup & Run", icon: <Rocket size={16} />, match: (p) => p === "/setup" },
-    { to: "/dashboards", label: "Analytics Dashboards", icon: <LayoutDashboard size={16} />, match: (p) => p === "/dashboards" },
-    { to: "/notebooks", label: "Notebooks", icon: <Code2 size={16} />, match: (p) => p === "/notebooks" },
+  // Executive: KPI tiles + DBSQL dashboards hub (for executives and high-level storytelling)
+  const executiveItems: NavItem[] = [
+    { to: "/dashboard", label: "KPI overview", icon: <BarChart3 size={16} />, match: (p) => p === "/dashboard" },
+    { to: "/dashboards", label: "DBSQL dashboards", icon: <LayoutDashboard size={16} />, match: (p) => p === "/dashboards" },
   ];
 
-  const riskItems: NavItem[] = [
-    { to: "/declines", label: "Declines", icon: <BadgeX size={16} />, match: (p) => p === "/declines" },
+  // Performance & analytics: Smart Checkout + Reason Codes + Smart Retry + Declines (one approval-accelerator system)
+  const performanceItems: NavItem[] = [
+    { to: "/smart-checkout", label: "Smart Checkout", icon: <CreditCard size={16} />, match: (p) => p === "/smart-checkout" },
+    { to: "/reason-codes", label: "Reason codes", icon: <ListChecks size={16} />, match: (p) => p === "/reason-codes" },
     { to: "/smart-retry", label: "Smart Retry", icon: <RotateCcw size={16} />, match: (p) => p === "/smart-retry" },
-    { to: "/reason-codes", label: "Reason Codes", icon: <ListChecks size={16} />, match: (p) => p === "/reason-codes" },
-    { to: "/decisioning", label: "Decisioning", icon: <Wand2 size={16} />, match: (p) => p === "/decisioning" },
+    { to: "/declines", label: "Declines", icon: <BadgeX size={16} />, match: (p) => p === "/declines" },
   ];
 
+  // Genie & agents: natural language and agent interaction (analysts, PMs)
+  const genieItems: NavItem[] = [
+    { to: "/ai-agents", label: "AI agents", icon: <Bot size={16} />, match: (p) => p === "/ai-agents" },
+    { to: "/decisioning", label: "Decisioning & Genie", icon: <MessageSquareText size={16} />, match: (p) => p === "/decisioning" },
+  ];
+
+  // Operations: setup, notebooks, models, incidents, experiments, rules
   const operationsItems: NavItem[] = [
-    { to: "/models", label: "ML Models", icon: <Brain size={16} />, match: (p) => p === "/models" },
-    { to: "/ai-agents", label: "AI Agents", icon: <Bot size={16} />, match: (p) => p === "/ai-agents" },
+    { to: "/setup", label: "Setup & run", icon: <Rocket size={16} />, match: (p) => p === "/setup" },
+    { to: "/notebooks", label: "Notebooks", icon: <Code2 size={16} />, match: (p) => p === "/notebooks" },
+    { to: "/models", label: "ML models", icon: <Brain size={16} />, match: (p) => p === "/models" },
     { to: "/incidents", label: "Incidents", icon: <AlertTriangle size={16} />, match: (p) => p === "/incidents" },
     { to: "/experiments", label: "Experiments", icon: <FlaskConical size={16} />, match: (p) => p === "/experiments" },
-    { to: "/smart-checkout", label: "Smart Checkout", icon: <CreditCard size={16} />, match: (p) => p === "/smart-checkout" },
     { to: "/rules", label: "Rules", icon: <ScrollText size={16} />, match: (p) => p === "/rules" },
   ];
 
@@ -89,11 +96,11 @@ function Layout() {
     <SidebarLayout>
       <SidebarGroup>
         <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2">
-          Overview
+          Executive
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {overviewItems.map((item) => (
+            {executiveItems.map((item) => (
               <SidebarMenuItem key={item.to}>
                 <NavLink item={item} isActive={item.match(location.pathname)} />
               </SidebarMenuItem>
@@ -103,11 +110,25 @@ function Layout() {
       </SidebarGroup>
       <SidebarGroup>
         <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2">
-          Risk
+          Performance & analytics
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {riskItems.map((item) => (
+            {performanceItems.map((item) => (
+              <SidebarMenuItem key={item.to}>
+                <NavLink item={item} isActive={item.match(location.pathname)} />
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2">
+          Genie & agents
+        </SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {genieItems.map((item) => (
               <SidebarMenuItem key={item.to}>
                 <NavLink item={item} isActive={item.match(location.pathname)} />
               </SidebarMenuItem>

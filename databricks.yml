@@ -44,10 +44,10 @@ variables:
     default: dev
   schema:
     description: Unity Catalog schema name; must match Lakeflow outputs and gold views
-    default: ahs_demo_payment_analysis_dev
+    default: payment_analysis
   warehouse_id:
     description: SQL Warehouse ID for dashboards and SQL tasks; in dev, set from deployed warehouse resource
-    default: "auto"
+    default: "148ccb90800933a1"
   # Lakebase (managed Postgres) - required for UI CRUD and ML features; app uses PGAPPNAME = lakebase_instance_name
   lakebase_instance_name:
     description: Lakebase database instance name (PGAPPNAME in app); must be unique per workspace

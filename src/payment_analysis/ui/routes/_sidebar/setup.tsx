@@ -320,7 +320,7 @@ function SetupRun() {
               id="warehouse_id"
               value={warehouseId}
               onChange={(e) => setWarehouseId(e.target.value)}
-              placeholder="e.g. bf12ee0011ea4ced"
+              placeholder="e.g. 148ccb90800933a1"
             />
           </div>
           <div className="space-y-2">
@@ -342,7 +342,7 @@ function SetupRun() {
               id="schema"
               value={schema}
               onChange={(e) => setSchema(e.target.value)}
-              placeholder="ahs_demo_payment_analysis_dev"
+              placeholder="payment_analysis"
             />
           </div>
           <div className="sm:col-span-3 flex justify-end">

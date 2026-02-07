@@ -36,9 +36,9 @@ function SmartCheckout() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Smart Checkout (Brazil)</h1>
-        <p className="text-sm text-muted-foreground mt-2">
-          Service-path observability for payment-link flows (demo scaffold).
+        <h1 className="text-2xl font-bold font-heading">Smart Checkout</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Approval rate uplift vs. baseline; uplift by geography, merchant segment, and payment solution mix. Part of the Lakehouse-based approval accelerator with Reason Codes and Smart Retry.
         </p>
       </div>
 

@@ -42,9 +42,9 @@ function ReasonCodes() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Reason Codes (Brazil)</h1>
-        <p className="text-sm text-muted-foreground mt-2">
-          Unified decline taxonomy across entry systems (demo scaffold).
+        <h1 className="text-2xl font-bold font-heading">Reason Code Performance</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Decline rates over time, heatmaps by issuer vs reason code, and suggested remediation. Feeds into Smart Checkout configuration (e.g. avoiding a given acquirer route for a segment).
         </p>
       </div>
 

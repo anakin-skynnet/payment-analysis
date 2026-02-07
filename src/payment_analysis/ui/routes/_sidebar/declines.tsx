@@ -39,8 +39,13 @@ function Declines() {
     <div className="space-y-6">
       {/* Header with Links */}
       <div>
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Declines & remediation</h1>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h1 className="text-2xl font-bold font-heading">Declines</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Decline patterns and recovery. Use Reason Codes for issuer vs reason heatmaps and remediation; use Smart Retry for approval with/without retry.
+            </p>
+          </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -62,9 +67,6 @@ function Declines() {
             </Button>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground mt-2">
-          Decline patterns from gold views (Setup steps 3–4). Use with Rules and Smart Retry to improve recovery.
-        </p>
       </div>
 
       <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={openDashboard} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openDashboard()}>
