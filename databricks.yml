@@ -9,9 +9,11 @@
 bundle:
   name: payment-analysis
 
-# Workspace root for notebooks, jobs, and dashboards (user-scoped)
+# Workspace root for notebooks, jobs, and dashboards (user-scoped).
+# file_path is where bundle sync uploads files; app source_code_path must match so the app finds src/payment_analysis/__dist__ (apx/cookbook: run from synced folder).
 workspace:
   root_path: /Workspace/Users/${workspace.current_user.userName}/${var.workspace_folder}
+  file_path: /Workspace/Users/${workspace.current_user.userName}/${var.workspace_folder}/files
 
 # Resource modules. Order: UC → warehouse → pipelines → jobs → dashboards → app.
 # Lakebase is required for UI CRUD (rules, experiments, incidents) and ML features.

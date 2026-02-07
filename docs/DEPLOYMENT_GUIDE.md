@@ -124,6 +124,23 @@ By default: Workspace folder, Lakebase, Jobs (simulator, gold views, ML, agents,
 
 **Supported and compatible:** Databricks App system environment uses **Python 3.11** and **Node.js 22.16**. Our `.python-version` (3.11) and `package.json` `engines.node` (>=22.0.0) are compatible. All Python packages in `requirements.txt` use exact versions and have manylinux-compatible wheels or are pure Python. We use `psycopg[binary]` so the app has a working PostgreSQL driver without the system libpq (not in the container). `requirements.txt` is generated from `uv.lock` by `scripts/sync_requirements_from_lock.py`; do not edit by hand.
 
+## Why the web UI was not found (references: apps-cookbook, apx, ai-dev-kit)
+
+**Root cause:** The app runs from a **working directory** that must be the same place where the bundle **sync** uploaded your code and the built UI. Per [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/settings) and [apx](https://github.com/databricks-solutions/apx):
+
+- **Sync** uploads to **`workspace.file_path`** (default: `.../payment-analysis/files`), not the bundle root.
+- If the app’s **`source_code_path`** pointed to the parent folder (`.../payment-analysis`), the process **cwd** was that parent, so `src/payment_analysis/__dist__` was not under cwd and the UI build was not found.
+- [Apps Cookbook](https://apps-cookbook.dev/docs/intro) and [ai-dev-kit](https://github.com/databricks-solutions/ai-dev-kit) use the same idea: the app must run from the folder that contains the deployed files (including the built frontend).
+
+**Fix applied in this repo:**
+
+1. **`source_code_path`** in `resources/fastapi_app.yml` is set to **`${workspace.file_path}`** so the app runs from the same path where sync uploads (the `files/` subfolder).
+2. **`workspace.file_path`** in `databricks.yml` is set explicitly to `.../${var.workspace_folder}/files` so it matches the sync destination.
+3. **Build before deploy:** `artifacts.default.build: uv run apx build` creates `src/payment_analysis/__dist__`; **`sync.include`** lists `src/payment_analysis/__dist__` so it is uploaded even though it’s in `.gitignore`.
+4. At runtime the app tries several path candidates (including `cwd/src/payment_analysis/__dist__` and `cwd/files/...`) and logs **"UI dist candidate"** in app Logs for diagnostics.
+
+After any change to the app or bundle config, **redeploy** and **restart** the app so the new paths and files are used.
+
 ## Troubleshooting
 
 | Issue | Action |
