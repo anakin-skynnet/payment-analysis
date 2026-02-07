@@ -145,10 +145,17 @@ class Runtime:
         if not self._db_configured():
             logger.info("Database not configured; skipping table creation.")
             return
-        logger.info("Initializing database models")
+        raw_schema = (self.config.db.schema or "app").strip()
+        schema_name = raw_schema if raw_schema.replace("_", "").isalnum() else "app"
+        logger.info("Initializing database models (schema=%s)", schema_name)
         # Ensure SQLModel tables are registered before create_all().
         # Import is intentionally inside the method to avoid import-time side effects.
         from . import db_models  # noqa: F401
 
+        # Use a dedicated schema so we don't need CREATE on public (Lakebase often denies public).
+        SQLModel.metadata.schema = schema_name
+        with self.engine.connect() as conn:
+            conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
+            conn.commit()
         SQLModel.metadata.create_all(self.engine)
         logger.info("Database models initialized successfully")

@@ -46,6 +46,7 @@ Or: `uv run python scripts/dashboards.py prepare` then `databricks bundle valida
 | **DATABRICKS_HOST** | Workspace URL |
 | **DATABRICKS_WAREHOUSE_ID** | SQL Warehouse ID (from bundle summary) |
 | **DATABRICKS_TOKEN** | API access (PAT or OAuth) |
+| **LAKEBASE_SCHEMA** | Optional. Postgres schema for app tables (default `app`). Use when the app has no CREATE on `public`. |
 
 6. **Optional — override job/pipeline IDs:** Set `DATABRICKS_JOB_ID_*`, `DATABRICKS_PIPELINE_ID_*`, `DATABRICKS_WORKSPACE_ID` per [Architecture & reference](ARCHITECTURE_REFERENCE.md#workspace-components--ui-mapping).
 
@@ -121,6 +122,7 @@ By default: Workspace folder, Lakebase, Jobs (simulator, gold views, ML, agents,
 | Registered model does not exist | Run Step 6, then uncomment `model_serving.yml`, redeploy |
 | Lakebase "Instance name is not unique" | Use unique `lakebase_instance_name` via `--var` or target |
 | Error installing packages (app deploy) | Check **Logs** for the exact pip error. Ensure `requirements.txt` is up to date: run `uv lock` then `uv run python scripts/sync_requirements_from_lock.py`. See [Databricks Apps compatibility](#databricks-apps-compatibility). |
+| **permission denied for schema public** | App tables use schema `app` by default. Set **LAKEBASE_SCHEMA** (e.g. `app`) in the app environment if needed; the app creates the schema if it has permission. |
 | **Error loading app spec from app.yml** | Ensure **`app.yaml`** and **`app.yml`** exist at project root with same content. Redeploy. |
 | **Failed to export ... type=mlflowExperiment** | An old MLflow experiment exists under the app path. Delete it in the workspace, then redeploy. See [Fix: export mlflowExperiment](#fix-failed-to-export--typemlflowexperiment) below. |
 
