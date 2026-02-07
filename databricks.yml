@@ -3,7 +3,7 @@
 # =============================================================================
 # Payment approval optimization: Smart Checkout, Reason Codes, Smart Retry.
 # All parameters have defaults or are set at deployment (target/variables).
-# Docs: docs/TECHNICAL.md
+# Docs: docs/ARCHITECTURE_REFERENCE.md
 # =============================================================================
 
 bundle:

@@ -8,7 +8,7 @@
 # AI Gateway is configured per endpoint (rate limits, usage tracking, guardrails).
 # Reference: https://learn.microsoft.com/en-us/azure/databricks/ai-gateway/configure-ai-gateway-endpoints
 # For governed LLM endpoints (Payment Intelligence, Risk Advisor), enable AI Gateway
-# on your workspace Foundation Model API endpoint in Serving UI. See docs/TECHNICAL.md.
+# on your workspace Foundation Model API endpoint in Serving UI. See docs/ARCHITECTURE_REFERENCE.md.
 # =============================================================================
 
 resources:

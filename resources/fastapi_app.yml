@@ -1,5 +1,5 @@
-# Bundle app resource (read by databricks bundle deploy). Defines app name, source_code_path: ., and bindings.
-# Runtime spec is app.yaml at project root. Run app: Workspace → Apps or: databricks bundle run payment_analysis_app -t dev
+# Bundle app resource: app name, source path, and bindings (database, warehouse, jobs).
+# Runtime spec: app.yaml and app.yml at project root. Run: Workspace → Apps or databricks bundle run payment_analysis_app -t dev
 
 resources:
   apps:
@@ -123,4 +123,4 @@ resources:
         #   serving_endpoint:
         #     name: "smart-retry-${var.environment}"
         #     permission: CAN_QUERY
-      # PGAPPNAME in root app.yaml must match var.lakebase_instance_name (dev target: payment-analysis-db-dev).
+      # PGAPPNAME in app.yaml and app.yml at project root must match var.lakebase_instance_name (dev: payment-analysis-db-dev).

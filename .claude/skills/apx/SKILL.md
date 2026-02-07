@@ -12,7 +12,7 @@ apx is the toolkit for building full-stack Databricks Apps with React + FastAPI.
 ## 📦 Project Structure
 
 ```
-src/payment-analysis/
+src/payment_analysis/
 ├── ui/                    # React + Vite frontend
 │   ├── components/        # UI components (shadcn/ui)
 │   ├── routes/            # @tanstack/react-router pages
@@ -112,7 +112,8 @@ async def get_items():
 
 ## 🔗 Resources
 
-- OpenAPI client: `src/payment-analysis/ui/lib/api/` (auto-generated)
-- Routes: `src/payment-analysis/ui/routes/`
-- Components: `src/payment-analysis/ui/components/`
-- Backend: `src/payment-analysis/backend/`
+- OpenAPI client: `src/payment_analysis/ui/lib/api.ts` (auto-generated)
+- Routes: `src/payment_analysis/ui/routes/`
+- Components: `src/payment_analysis/ui/components/`
+- Backend: `src/payment_analysis/backend/`
+- Docs: `docs/DEPLOYMENT_GUIDE.md`, `docs/ARCHITECTURE_REFERENCE.md`

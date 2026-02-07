@@ -40,3 +40,10 @@ package-lock.json
 
 # UI dist folder
 src/payment_analysis/__dist__/
+
+# Dev / test artifacts (keep repo clean)
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.log

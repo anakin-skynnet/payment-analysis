@@ -383,7 +383,7 @@ function SetupRun() {
         </div>
       )}
 
-      {/* Steps — order matches docs/DEPLOYMENT.md (Demo setup) */}
+      {/* Steps — order matches docs/DEPLOYMENT_GUIDE.md (Demo setup) */}
       <div className="space-y-4">
         <h2 className="text-lg font-medium">Execution steps (1–7)</h2>
         <p className="text-sm text-muted-foreground">

@@ -22,11 +22,11 @@ alwaysApply: true
 ## Component Management
 - **Finding components:** Use MCP `search_registry_components` to search for available shadcn/ui components
 - **Adding components:** Use MCP `add_component` or CLI `uv run apx components add <component> --yes` to add components
-- **Component location:** If component was added to a wrong location (e.g. stored into `src/components` instead of `src/payment-analysis/ui/components`), move it to the proper folder
-- **Component organization:** Prefer grouping components by functionality rather than by file type (e.g. `src/payment-analysis/ui/components/chat/`)
+- **Component location:** If component was added to a wrong location (e.g. stored into `src/components` instead of `src/payment_analysis/ui/components`), move it to the proper folder
+- **Component organization:** Prefer grouping components by functionality rather than by file type (e.g. `src/payment_analysis/ui/components/chat/`)
 
 ## Project Structure
-Full-stack app: `src/payment-analysis/ui/` (React + Vite) and `src/payment-analysis/backend/` (FastAPI). Backend serves frontend at `/` and API at `/api`. API client auto-generated from OpenAPI schema.
+Full-stack app: `src/payment_analysis/ui/` (React + Vite) and `src/payment_analysis/backend/` (FastAPI). Backend serves frontend at `/` and API at `/api`. API client auto-generated from OpenAPI schema.
 
 
 ## Models & API
@@ -34,10 +34,10 @@ Full-stack app: `src/payment-analysis/ui/` (React + Vite) and `src/payment-analy
 - **API routes must have:** `response_model` and `operation_id` for client generation
 
 ## Frontend Rules
-- **Routing:** `@tanstack/react-router` (routes in `src/payment-analysis/ui/routes/`)
+- **Routing:** `@tanstack/react-router` (routes in `src/payment_analysis/ui/routes/`)
 - **Data fetching:** Always use `useXSuspense` hooks with `Suspense` and `Skeleton` components
 - **Pattern:** Render static elements immediately, fetch API data with suspense
-- **Components:** Use shadcn/ui, add to `src/payment-analysis/ui/components/`
+- **Components:** Use shadcn/ui, add to `src/payment_analysis/ui/components/`
 - **Data access:** Use `selector()` function for clean destructuring (e.g., `const {data: profile} = useProfileSuspense(selector())`)
 
 ## Development Commands
