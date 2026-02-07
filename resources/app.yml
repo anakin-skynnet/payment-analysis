@@ -4,7 +4,7 @@
 # Deploys the app (FastAPI + React UI) to Databricks Apps. After bundle deploy,
 # run the app via Workspace → Apps or: databricks bundle run payment_analysis_app -t dev
 # App URL is shown in bundle summary or in Workspace → Apps.
-# Name: payment-analysis. Source in workspace: see source_code_path below (workspace path).
+# Name: payment-analysis. Source: relative to bundle root (.), uploaded to workspace on deploy.
 #
 # Bound resources (include if required for the app):
 #   - database: Lakebase (rules, experiments, incidents, ML features)
@@ -22,8 +22,8 @@ resources:
   apps:
     payment_analysis_app:
       name: payment-analysis
-      # Source folder path in Databricks workspace (same root as jobs/notebooks: /Workspace/Users/<user>/<workspace_folder>)
-      source_code_path: ${workspace.file_path}
+      # Source folder path: relative to bundle root so the bundle can locate and upload app source (do not use workspace path)
+      source_code_path: .
       description: Payment Approval Optimization Platform – dashboards, rules, decisioning, ML models, and agent jobs.
       resources:
         - name: database
