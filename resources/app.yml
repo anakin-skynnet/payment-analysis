@@ -4,15 +4,15 @@
 # Deploys the app (FastAPI + React UI) to Databricks Apps. After bundle deploy,
 # run the app via Workspace → Apps or: databricks bundle run payment_analysis_app -t dev
 # App URL is shown in bundle summary or in Workspace → Apps.
-# Name: payment-analysis. Source folder: bundle root (project root), see source_code_path below.
+# Name: payment-analysis. Source in workspace: see source_code_path below (workspace path).
 #
 # Bound resources (include if required for the app):
 #   - database: Lakebase (rules, experiments, incidents, ML features)
 #   - sql_warehouse: analytics, app_config, gold views
-#   - genie_space: when var.genie_space_id is set (create space first, then set variable)
+#   - genie_space: COMMENTED OUT by default (space_id required; empty would fail). Uncomment only when var.genie_space_id is set.
 #   - job (x12): Setup & Run, agents, streaming, Genie sync
-#   - serving_endpoint (x4): when resources/model_serving.yml is included
-#   - uc_securable (reports volume): app/jobs may read or write reports
+#   - serving_endpoint (x4): COMMENTED OUT by default (endpoints must exist). Uncomment only when resources/model_serving.yml is included.
+#   - uc_securable (reports volume): commented out until schema/volume exist
 #   - secret: optional; add scope/key below if the app needs secrets
 # Not in bundle app.resources: dashboards (link by URL), MLflow experiment (used by job; add in UI if needed),
 #   vector search index, UC function, UC connection (add in Apps UI if needed).
@@ -22,8 +22,8 @@ resources:
   apps:
     payment_analysis_app:
       name: payment-analysis
-      # Source folder path (relative to bundle root = project root: paymet-analysis)
-      source_code_path: .
+      # Source folder path in Databricks workspace (same root as jobs/notebooks: /Workspace/Users/<user>/<workspace_folder>)
+      source_code_path: ${workspace.file_path}
       description: Payment Approval Optimization Platform – dashboards, rules, decisioning, ML models, and agent jobs.
       resources:
         - name: database
@@ -37,7 +37,7 @@ resources:
           sql_warehouse:
             id: ${resources.sql_warehouses.payment_analysis_warehouse.id}
             permission: CAN_USE
-        # Genie: uncomment and set --var genie_space_id=<id> (ID of "Approvals domain expert" from Genie UI) so deploy binds the space.
+        # Genie: commented out so deploy succeeds when genie_space_id is empty (required field). Uncomment and set --var genie_space_id=<uuid> to bind "Approvals domain expert".
         # - name: genie-space
         #   description: Genie space for natural language analytics (Ask Data)
         #   genie_space:
@@ -119,7 +119,7 @@ resources:
           job:
             id: ${resources.jobs.genie_sync_job.id}
             permission: CAN_MANAGE_RUN
-        # Model serving: uncomment when resources/model_serving.yml is included (endpoints must exist)
+        # Model serving: commented out so deploy succeeds when model_serving.yml is not included (endpoints don't exist). Uncomment only after including resources/model_serving.yml in databricks.yml.
         # - name: serving-approval-prop
         #   description: Approval propensity model endpoint
         #   serving_endpoint:

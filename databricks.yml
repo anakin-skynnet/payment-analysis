@@ -63,9 +63,9 @@ variables:
   workspace_folder:
     description: Workspace folder name for bundle files (notebooks, dashboards, app)
     default: payment-analysis
-  # Genie space ID to bind to the app (e.g. existing "Approvals domain expert"; find ID in Genie UI)
+  # Genie space ID for app resource binding. Default empty; do not add genie-space to app resources in app.yml unless this is set (empty space_id causes deploy to fail).
   genie_space_id:
-    description: "Genie space ID for app resource binding (current space name: Approvals domain expert; update when new space is created)"
+    description: "Genie space ID (e.g. UUID of 'Approvals domain expert' from Genie UI). Set when uncommenting genie-space in resources/app.yml."
     default: ""
 
 # -----------------------------------------------------------------------------
