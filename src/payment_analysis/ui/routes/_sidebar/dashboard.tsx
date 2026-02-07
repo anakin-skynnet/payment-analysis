@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "motion/react";
 import {
   Card,
   CardContent,
@@ -31,6 +32,20 @@ import {
   Cpu,
 } from "lucide-react";
 import { getDashboardUrl, getGenieUrl } from "@/config/workspace";
+
+const dashboardStagger = {
+  hidden: { opacity: 0, y: 16 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { staggerChildren: 0.06, delayChildren: 0.1 },
+  },
+};
+
+const dashboardItem = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0 },
+};
 
 const openInDatabricks = (url: string) => {
   if (url) window.open(url, "_blank");
@@ -147,12 +162,26 @@ function Dashboard() {
   const getRiskTier = (log: { response?: Record<string, unknown> }) =>
     log.response?.risk_tier as string | undefined;
 
+  const openExecutive = () => openInDatabricks(getDashboardUrl("/sql/dashboards/executive_overview"));
+
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-8"
+      variants={dashboardStagger}
+      initial="hidden"
+      animate="show"
+    >
       {/* Header with Links */}
-      <div>
+      <motion.div variants={dashboardItem}>
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h1 className="text-2xl font-semibold">Approval performance</h1>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-heading">
+              Approval performance
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Real-time KPIs, trends, and Lakehouse intelligence. Your command center for conversion and revenue.
+            </p>
+          </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={openDashboard}>
               <TrendingUp className="w-4 h-4 mr-2" />
@@ -179,72 +208,78 @@ function Dashboard() {
             </Button>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground mt-2">
-          KPIs, approval trends, and Lakehouse data (online features, recommendations). After Setup steps 1–6, data appears here.
-        </p>
-      </div>
+      </motion.div>
 
-      {/* KPI Cards — click opens Executive dashboard in Databricks */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => openInDatabricks(getDashboardUrl("/sql/dashboards/executive_overview"))}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openInDatabricks(getDashboardUrl("/sql/dashboards/executive_overview"))}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total auths
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">
-              {kpis.total.toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-        <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => openInDatabricks(getDashboardUrl("/sql/dashboards/executive_overview"))}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openInDatabricks(getDashboardUrl("/sql/dashboards/executive_overview"))}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Approved
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">
-              {kpis.approved.toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-        <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => openInDatabricks(getDashboardUrl("/sql/dashboards/executive_overview"))}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openInDatabricks(getDashboardUrl("/sql/dashboards/executive_overview"))}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Approval rate
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{pct}%</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* KPI Cards — hero card for Approval rate */}
+      <motion.div variants={dashboardStagger} className="grid gap-4 md:grid-cols-3">
+        <motion.div variants={dashboardItem}>
+          <Card
+            className="cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all duration-300"
+            onClick={openExecutive}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && openExecutive()}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total auths
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">
+                {kpis.total.toLocaleString()}
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+        <motion.div variants={dashboardItem}>
+          <Card
+            className="cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all duration-300"
+            onClick={openExecutive}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && openExecutive()}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Approved
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">
+                {kpis.approved.toLocaleString()}
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+        <motion.div variants={dashboardItem}>
+          <Card
+            className="cursor-pointer relative overflow-hidden border-primary/40 bg-primary/5 hover:shadow-xl hover:shadow-primary/15 hover:border-primary/60 transition-all duration-300"
+            onClick={openExecutive}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && openExecutive()}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
+            <CardHeader className="pb-2 relative">
+              <CardTitle className="text-sm font-semibold text-primary">
+                Approval rate
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="relative">
+              <p className="text-4xl font-bold text-primary">{pct}%</p>
+              <p className="text-xs text-muted-foreground mt-1">Key metric</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
       {/* Trends + Solutions */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <motion.div variants={dashboardStagger} className="grid gap-4 md:grid-cols-2">
+        <motion.div variants={dashboardItem}>
         {/* Approval Trends — click opens Daily Trends dashboard */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all duration-300"
           onClick={() => openInDatabricks(getDashboardUrl("/sql/dashboards/daily_trends"))}
           role="button"
           tabIndex={0}
@@ -298,10 +333,12 @@ function Dashboard() {
             )}
           </CardContent>
         </Card>
+        </motion.div>
 
+        <motion.div variants={dashboardItem}>
         {/* Solution Performance — click opens Smart Routing dashboard */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all duration-300"
           onClick={() => openInDatabricks(getDashboardUrl("/sql/dashboards/routing_optimization"))}
           role="button"
           tabIndex={0}
@@ -361,14 +398,18 @@ function Dashboard() {
             )}
           </CardContent>
         </Card>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Online features (Lakehouse) — from ML and AI processes */}
-      <OnlineFeaturesCard />
+      <motion.div variants={dashboardItem}>
+        <OnlineFeaturesCard />
+      </motion.div>
 
       {/* ML & decision reasoning — click opens Genie in Databricks */}
+      <motion.div variants={dashboardItem}>
       <Card
-        className="cursor-pointer hover:shadow-md transition-shadow"
+        className="cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all duration-300"
         onClick={() => openInDatabricks(getGenieUrl())}
         role="button"
         tabIndex={0}
@@ -418,7 +459,8 @@ function Dashboard() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

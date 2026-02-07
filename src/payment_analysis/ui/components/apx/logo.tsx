@@ -15,14 +15,14 @@ export function Logo({ to = "/", className = "", showText = false }: LogoProps) 
         className="h-8 object-contain"
       />
       {showText && (
-        <span className="font-semibold text-lg">{__APP_NAME__}</span>
+        <span className="font-semibold text-lg font-heading">{__APP_NAME__}</span>
       )}
     </div>
   );
 
   if (to) {
     return (
-      <Link to={to} className="hover:opacity-80 transition-opacity">
+      <Link to={to} className="hover:opacity-80 transition-opacity duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md">
         {content}
       </Link>
     );

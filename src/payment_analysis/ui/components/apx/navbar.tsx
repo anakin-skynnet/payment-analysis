@@ -9,8 +9,8 @@ interface NavbarProps {
 
 export function Navbar({ leftContent, rightContent }: NavbarProps) {
   return (
-    <header className="z-50 bg-background/80 backdrop-blur-sm border-b">
-      <div className="h-16 flex items-center justify-between px-4">
+    <header className="z-50 bg-background/85 backdrop-blur-md border-b transition-colors duration-200">
+      <div className="h-16 flex items-center justify-between px-4 md:px-6">
         {leftContent || <Logo />}
         <div className="flex-1" />
         {rightContent || <ModeToggle />}

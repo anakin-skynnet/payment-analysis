@@ -130,22 +130,26 @@ function Layout() {
       <SidebarGroup>
         <SidebarGroupContent>
           <SidebarMenu>
-            {navItems.map((item) => (
-              <SidebarMenuItem key={item.to}>
-                <Link
-                  to={item.to}
-                  className={cn(
-                    "flex items-center gap-2 p-2 rounded-lg",
-                    item.match(location.pathname)
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                  )}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </Link>
-              </SidebarMenuItem>
-            ))}
+            {navItems.map((item) => {
+              const isActive = item.match(location.pathname);
+              return (
+                <SidebarMenuItem key={item.to}>
+                  <Link
+                    to={item.to}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200",
+                      "border-l-2 border-transparent -ml-[2px]",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-primary"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
+                    )}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                </SidebarMenuItem>
+              );
+            })}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
