@@ -78,7 +78,7 @@ class DatabaseConfig(BaseSettings):
         description="The name of the Lakebase/database instance (set PGAPPNAME in Databricks App)",
         validation_alias="PGAPPNAME",
     )
-    schema: str = Field(
+    db_schema: str = Field(
         default="app",
         description="Postgres schema for app tables (avoid 'public' if app has no CREATE there). Set LAKEBASE_SCHEMA.",
         validation_alias="LAKEBASE_SCHEMA",
