@@ -22,16 +22,21 @@ except Exception:
 
 def _resolve_ui_dist() -> Path | None:
     """Resolve UI dist directory; try metadata path, env, cwd-based paths (Databricks App vs local)."""
+    cwd = Path.cwd()
+    # Bundle sync uploads to workspace.file_path (e.g. .../payment-analysis/files); app may run with cwd there or at parent.
     candidates: list[Path] = [
         _dist_dir_meta.resolve() if not _dist_dir_meta.is_absolute() else _dist_dir_meta,
         Path(__file__).resolve().parents[2] / "payment_analysis" / "__dist__",  # from backend/app.py -> src/payment_analysis/__dist__
-        Path.cwd() / "src" / "payment_analysis" / "__dist__",
-        Path.cwd() / "__dist__",
+        cwd / "src" / "payment_analysis" / "__dist__",
+        cwd / "files" / "src" / "payment_analysis" / "__dist__",  # when cwd is bundle root and sync put content under files/
+        cwd / "__dist__",
     ]
     # Databricks App: optional env for app root (bundle workspace folder)
     app_root = os.environ.get("APP_ROOT") or os.environ.get("BUNDLE_FOLDER")
     if app_root:
-        candidates.insert(0, Path(app_root).resolve() / "src" / "payment_analysis" / "__dist__")
+        base = Path(app_root).resolve()
+        candidates.insert(0, base / "src" / "payment_analysis" / "__dist__")
+        candidates.insert(0, base / "files" / "src" / "payment_analysis" / "__dist__")
     # Optional explicit UI dist path (e.g. for custom deploys)
     ui_dist_env = os.environ.get("UI_DIST_DIR")
     if ui_dist_env:
@@ -44,13 +49,18 @@ def _resolve_ui_dist() -> Path | None:
             p_resolved = p
         exists = p_resolved.exists()
         has_index = (p_resolved / "index.html").exists() if exists else False
+        logger.info(
+            "UI dist candidate: path=%s exists=%s has_index=%s",
+            p_resolved,
+            exists,
+            has_index,
+        )
         if exists and has_index:
             return p_resolved
     logger.warning(
-        "UI dist not found. Tried: metadata=%s, cwd=%s, APP_ROOT=%s. "
+        "UI dist not found. cwd=%s APP_ROOT=%s. "
         "Set APP_ROOT or UI_DIST_DIR in app Environment if needed. Sync includes src/payment_analysis/__dist__.",
-        _dist_dir_meta,
-        Path.cwd(),
+        cwd,
         app_root,
     )
     return None
