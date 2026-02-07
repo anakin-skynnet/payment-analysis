@@ -153,7 +153,11 @@ class Runtime:
         from . import db_models  # noqa: F401
 
         # Use a dedicated schema so we don't need CREATE on public (Lakebase often denies public).
+        # Tables are created at import time with schema=None; we must set each table's schema
+        # so create_all() emits CREATE TABLE "schema".table, not public.
         SQLModel.metadata.schema = schema_name
+        for table in SQLModel.metadata.tables.values():
+            table.schema = schema_name
         with self.engine.connect() as conn:
             conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
             conn.commit()
