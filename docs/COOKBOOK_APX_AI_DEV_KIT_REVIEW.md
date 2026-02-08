@@ -2,7 +2,9 @@
 
 This document reviews the **payment-analysis** project against:
 
-1. **[Databricks Apps Cookbook](https://apps-cookbook.dev/docs/intro)** – FastAPI patterns, API structure, and Databricks Apps runtime
+1. **[Databricks Apps Cookbook](https://apps-cookbook.dev/docs/intro)** – FastAPI patterns, API structure, and Databricks Apps runtime  
+   - [Create a FastAPI app](https://apps-cookbook.dev/docs/fastapi/getting_started/create): `/api` prefix for OAuth, versioned routes, healthcheck at `/api/v1/healthcheck`  
+   - [Connect FastAPI to Lakebase](https://apps-cookbook.dev/docs/fastapi/getting_started/lakebase_connection): Postgres via instance name, `WorkspaceClient.database.get_database_instance()` and `generate_database_credential()`
 2. **[apx](https://github.com/databricks-solutions/apx)** – Toolkit for building Databricks Apps (React + FastAPI, dev server, OpenAPI, MCP)
 3. **[AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit)** – Skills and MCP tools for Databricks (pipelines, jobs, dashboards, UC, Genie, apps)
 
@@ -85,9 +87,7 @@ From `.cursor/rules/project.mdc` and `.claude/skills/apx/SKILL.md`:
 | Dependencies (fastapi, uvicorn) | ✅ | In `pyproject.toml`: fastapi, uvicorn. |
 | Databricks SDK usage | ✅ | Backend uses `databricks.sdk` (WorkspaceClient, Config, etc.); SQL/warehouse usage via services. |
 
-**Minor (non-blocking):**
-
-- Cookbook example uses `response_model` implicitly via return type; project rules require **operation_id** on all API routes for client generation. The two v1 health endpoints (`/healthcheck`, `/health/database`) do **not** currently have `operation_id` (or explicit `response_model`). Adding them would align with project rules and improve OpenAPI client consistency.
+- **operation_id and response_model:** The v1 health endpoints (`/healthcheck`, `/health/database`) **have** `response_model` and `operation_id` (`healthcheck`, `healthDatabase`), so they align with project rules and OpenAPI client generation.
 
 ### 5.2 APX
 
@@ -117,7 +117,7 @@ From `.cursor/rules/project.mdc` and `.claude/skills/apx/SKILL.md`:
 |------|--------|-------|
 | API at `/api`, frontend at `/` | ✅ | Router prefix `/api`; static UI mounted at `/` when dist present. |
 | 3-model pattern (Entity, EntityIn, EntityOut) | ✅ | Used in backend (e.g. rules, experiments, incidents, analytics). |
-| response_model + operation_id on routes | ⚠️ | **Almost all** routes have both; **v1 healthcheck** and **v1 health/database** lack `operation_id` (and explicit `response_model`). |
+| response_model + operation_id on routes | ✅ | All routes have both; v1 healthcheck and health/database use `HealthcheckOut`/`HealthDatabaseOut` and `operation_id="healthcheck"` / `operation_id="healthDatabase"`. |
 | useXSuspense + Suspense + Skeleton | ✅ | e.g. dashboard.tsx, profile.tsx use `useGetKpisSuspense`, `useCurrentUserSuspense`, etc., with `Suspense` and `DashboardSkeleton`/`ProfileSkeleton`. |
 | selector() for data | ✅ | e.g. `useGetKpisSuspense(selector())`, `useCurrentUserSuspense(selector())`. |
 | Components under `src/payment_analysis/ui/components/` | ✅ | ui/components/apx, ui/components/ui, etc. |
@@ -128,20 +128,28 @@ From `.cursor/rules/project.mdc` and `.claude/skills/apx/SKILL.md`:
 
 ## 6. Gaps and Recommendations
 
-### 6.1 Add operation_id (and optional response_model) to v1 health routes
+### 6.1 Deep reasoning: previous prompts and behaviour
 
-**Where:** `src/payment_analysis/backend/routes/v1/healthcheck.py`
+Requirements from earlier prompts and their implementation:
 
-**Why:** Project rules require `response_model` and `operation_id` for client generation. All other routes comply; these two do not.
+| Requirement | Implementation |
+|-------------|----------------|
+| OAuth / token from Compute → Apps | `_get_obo_token(request)` reads `X-Forwarded-Access-Token` / `x-forwarded-access-token`; used by `get_workspace_client`, `get_databricks_service`, setup config. |
+| No OAuth scope error (PAT/OBO) | `workspace_client_pat_only(host, token)` unsets `DATABRICKS_CLIENT_ID`/`SECRET` when creating `WorkspaceClient`; used in dependencies, runtime, `DatabricksService`. |
+| Workspace URL when opened from Apps | `workspace_url_from_apps_host(host, app_name)` in `config.py`; used in router, dependencies, setup. |
+| DATABRICKS_HOST optional when from Apps | `_effective_databricks_host(request, bootstrap_host)` in `get_databricks_service` and setup PATCH /config. |
+| Execute (open in Databricks) not Run from UI | Single **Execute** button per step; opens job/pipeline in Databricks; no UI call to run-job/run-pipeline. |
+| Lakebase connection (Cookbook) | `Runtime`: `get_database_instance`, `generate_database_credential()`; instance from `PGAPPNAME`. |
+| Exact dependency versions | `package.json` exact; `pyproject.toml` uses `==`. |
 
-**Change:** Add `operation_id="healthcheck"` and `operation_id="healthDatabase"` (or similar), and optionally a small Pydantic model for the response so OpenAPI is consistent.
+v1 health routes already have `operation_id` and `response_model` (no gap).
 
 ### 6.2 No other structural or “must-fix” gaps
 
-- Cookbook: API prefix, versioning, healthcheck, uvicorn, and app config are correct.
+- Cookbook: API prefix, versioning, healthcheck, Lakebase, uvicorn, and app config are correct.
 - APX: Stack, layout, build, and dev workflow match.
 - AI Dev Kit: Complementary; no conflict.
-- Previous prompts: Only the v1 health endpoints are missing operation_id/response_model; everything else (structure, 3-model, suspense, selector, components, uv/bun, dashboard prepare) is aligned.
+- Previous prompts: All requirements (OBO token, Execute button, env vars, workspace derivation, PAT-only client, v1 health operation_id/response_model) are implemented.
 
 ---
 
@@ -150,6 +158,6 @@ From `.cursor/rules/project.mdc` and `.claude/skills/apx/SKILL.md`:
 - **Apps Cookbook:** The project follows the cookbook’s FastAPI and Databricks Apps patterns (API under `/api`, `/api/v1/healthcheck`, uvicorn, app.yml).  
 - **APX:** The project is an apx-style app (FastAPI + React + TypeScript + shadcn/ui + Vite, uv, OpenAPI client, correct layout and commands).  
 - **AI Dev Kit:** Used as a complementary set of skills and MCP tools; no structural mismatch.  
-- **Previous prompts:** Fully aligned except for the v1 health endpoints, which should get `operation_id` (and optionally `response_model`) for consistency with the rest of the API.
+- **Previous prompts:** Fully aligned; OBO token, Execute button, optional env when from Apps, workspace derivation, PAT-only client, and v1 health operation_id/response_model are all in place.
 
-**Verdict:** The project is **correctly defined** relative to the cookbook, apx, and AI Dev Kit, and to the prior rules. The only recommended change is to add `operation_id` (and optionally `response_model`) to the two v1 health routes.
+**Verdict:** The project is **correctly defined** relative to the [Apps Cookbook](https://apps-cookbook.dev/docs/intro), [apx](https://github.com/databricks-solutions/apx), and [AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit), and to the prior rules. No mandatory changes.
