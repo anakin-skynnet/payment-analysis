@@ -48,81 +48,36 @@ resources:
         #     securable_type: VOLUME
         #     securable_full_name: "${var.catalog}.${var.schema}.reports"
         #     permission: READ_VOLUME
-        # Jobs used by UI (Setup & Run). Order matches execution steps: bootstrap → vector search → gold views → simulator → optional streaming (realtime pipeline + stream processor) → ETL → ML → Genie → agents → publish dashboards.
-        - name: job-lakehouse-bootstrap
-          description: Lakehouse bootstrap (app_config, rules, recommendations)
+        # Jobs used by UI (Setup & Run). Order: 1 Data Repos → 2 Simulator → 3 Ingestion → 4 Dashboards → 5 ML → 6 Agents.
+        - name: job-1-data-repositories
+          description: "1. Create Data Repositories (Lakehouse, Vector Search, Lakebase)"
           job:
-            id: ${resources.jobs.lakehouse_bootstrap_job.id}
+            id: ${resources.jobs.job_1_create_data_repositories.id}
             permission: CAN_MANAGE_RUN
-        - name: job-vector-search-index
-          description: Create Vector Search index for similar-transaction lookup
+        - name: job-2-simulator
+          description: "2. Simulate Transaction Events"
           job:
-            id: ${resources.jobs.vector_search_index_job.id}
+            id: ${resources.jobs.job_2_simulate_transaction_events.id}
             permission: CAN_MANAGE_RUN
-        - name: job-gold-views
-          description: Create gold views
+        - name: job-3-ingestion
+          description: "3. Initialize Ingestion (Gold Views)"
           job:
-            id: ${resources.jobs.create_gold_views_job.id}
+            id: ${resources.jobs.job_3_initialize_ingestion.id}
             permission: CAN_MANAGE_RUN
-        - name: job-simulator
-          description: Transaction stream simulator
+        - name: job-4-dashboards
+          description: "4. Deploy Dashboards"
           job:
-            id: ${resources.jobs.transaction_stream_simulator.id}
+            id: ${resources.jobs.job_4_deploy_dashboards.id}
             permission: CAN_MANAGE_RUN
-        - name: job-train-ml
-          description: Train ML models
+        - name: job-5-train-ml
+          description: "5. Train Models and Serving"
           job:
-            id: ${resources.jobs.train_ml_models_job.id}
+            id: ${resources.jobs.job_5_train_models_and_serving.id}
             permission: CAN_MANAGE_RUN
-        - name: job-genie-sync
-          description: Genie space sync
+        - name: job-6-agents
+          description: "6. Deploy AgentBricks Agents"
           job:
-            id: ${resources.jobs.genie_sync_job.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-test-agent
-          description: Test agent framework
-          job:
-            id: ${resources.jobs.test_agent_framework_job.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-orchestrator-agent
-          description: Orchestrator agent
-          job:
-            id: ${resources.jobs.orchestrator_agent_job.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-smart-routing-agent
-          description: Smart routing agent
-          job:
-            id: ${resources.jobs.smart_routing_agent_job.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-smart-retry-agent
-          description: Smart retry agent
-          job:
-            id: ${resources.jobs.smart_retry_agent_job.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-decline-analyst
-          description: Decline analyst agent
-          job:
-            id: ${resources.jobs.decline_analyst_agent_job.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-risk-assessor-agent
-          description: Risk assessor agent
-          job:
-            id: ${resources.jobs.risk_assessor_agent_job.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-perf-recommender-agent
-          description: Performance recommender agent
-          job:
-            id: ${resources.jobs.performance_recommender_agent_job.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-publish-dashboards
-          description: Publish dashboards (embed credentials for app UI)
-          job:
-            id: ${resources.jobs.publish_dashboards_job.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-stream-processor
-          description: Continuous stream processor
-          job:
-            id: ${resources.jobs.continuous_stream_processor.id}
+            id: ${resources.jobs.job_6_deploy_agents.id}
             permission: CAN_MANAGE_RUN
         # Model serving: commented out so deploy succeeds when model_serving.yml is not included (endpoints don't exist). Uncomment only after including resources/model_serving.yml in databricks.yml.
         # - name: serving-approval-prop
