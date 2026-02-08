@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Play,
   ExternalLink,
   Database,
   GitBranch,
@@ -20,7 +19,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { ensureAbsoluteWorkspaceUrl, getWorkspaceUrl } from "@/config/workspace";
-import { useRunSetupJob, useRunSetupPipeline } from "@/lib/api";
 
 export const Route = createFileRoute("/_sidebar/setup")({
   component: () => <SetupRun />,
@@ -74,8 +72,7 @@ function SetupRun() {
   const [catalog, setCatalog] = useState("");
   const [schema, setSchema] = useState("");
   const [lastResult, setLastResult] = useState<{
-    type: "job" | "pipeline" | "config";
-    url?: string;
+    type: "config";
     message: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -108,64 +105,9 @@ function SetupRun() {
     const id = defaults?.jobs?.[jobKey];
     return !!id && id !== "0";
   };
-  const isPipelineConfigured = (pipelineKey: string) => {
-    const id = defaults?.pipelines?.[pipelineKey];
-    return !!id && id !== "0";
-  };
 
   const saveConfig = () => {
     updateConfigMutation.mutate({ catalog, schema });
-  };
-
-  const runJobMutation = useRunSetupJob({
-    mutation: {
-      onSuccess: (res) => {
-        setLastResult({
-          type: "job",
-          url: res.data.run_page_url,
-          message: res.data.message + (res.data.run_page_url ? " Open the link below to monitor." : ""),
-        });
-        setError(null);
-      },
-      onError: (e: Error) => {
-        setError(e.message);
-        setLastResult(null);
-      },
-    },
-  });
-  const runPipelineMutation = useRunSetupPipeline({
-    mutation: {
-      onSuccess: (res) => {
-        setLastResult({
-          type: "pipeline",
-          url: res.data.pipeline_page_url,
-          message: res.data.message,
-        });
-        setError(null);
-      },
-      onError: (e: Error) => {
-        setError(e.message);
-        setLastResult(null);
-      },
-    },
-  });
-
-  /** Start job run via API (Run now from UI). */
-  const runJobNow = (jobKey: string) => {
-    const id = defaults?.jobs?.[jobKey];
-    if (!id || id === "0") return;
-    runJobMutation.mutate({
-      job_id: id,
-      catalog: catalog || defaults?.catalog || "",
-      schema: schema || defaults?.schema || "",
-      warehouse_id: warehouseId || defaults?.warehouse_id || "",
-    });
-  };
-  /** Start pipeline update via API (Run now from UI). */
-  const runPipelineNow = (pipelineKey: string) => {
-    const id = defaults?.pipelines?.[pipelineKey];
-    if (!id || id === "0") return;
-    runPipelineMutation.mutate({ pipeline_id: id });
   };
 
   // Always use absolute workspace URL so Execute opens the workspace, never the app URL (databricksapps.com).
@@ -184,49 +126,49 @@ function SetupRun() {
       window.open(workspaceId ? `${host}/jobs?o=${workspaceId}` : `${host}/jobs`, "_blank", "noopener,noreferrer");
     }
   };
-  /** Open Databricks workspace: pipeline page when ID is resolved, otherwise pipelines list. */
+  /** Open Databricks workspace: pipeline page when ID is resolved, otherwise pipelines list. Both use ?o= when available. */
   const openPipeline = (pipelineKey: string) => {
     if (!host) return;
     const id = defaults?.pipelines?.[pipelineKey];
+    const q = workspaceId ? `?o=${workspaceId}` : "";
     if (id && id !== "0") {
-      window.open(`${host}/pipelines/${id}`, "_blank", "noopener,noreferrer");
+      window.open(`${host}/pipelines/${id}${q}`, "_blank", "noopener,noreferrer");
     } else {
-      window.open(`${host}/pipelines`, "_blank", "noopener,noreferrer");
+      window.open(`${host}/pipelines${q}`, "_blank", "noopener,noreferrer");
     }
   };
-  /** Open Databricks workspace in a new tab: SQL warehouse. */
+  /** Open Databricks workspace: SQL warehouse (specific resource). */
   const openWarehouse = () => {
     const wid = warehouseId || defaults?.warehouse_id;
-    if (host && wid) window.open(`${host}/sql/warehouses/${wid}`, "_blank", "noopener,noreferrer");
+    if (!host || !wid) return;
+    const q = workspaceId ? `?o=${workspaceId}` : "";
+    window.open(`${host}/sql/warehouses/${wid}${q}`, "_blank", "noopener,noreferrer");
   };
-  /** Open Databricks workspace in a new tab: data explorer for catalog.schema. */
+  /** Open Databricks workspace: data explorer for catalog.schema (specific resource). */
   const openExploreSchema = () => {
     const c = catalog || defaults?.catalog;
     const s = schema || defaults?.schema;
-    if (host && c && s) window.open(`${host}/explore/data/${c}/${s}`, "_blank", "noopener,noreferrer");
+    if (!host || !c || !s) return;
+    const q = workspaceId ? `?o=${workspaceId}` : "";
+    window.open(`${host}/explore/data/${c}/${s}${q}`, "_blank", "noopener,noreferrer");
   };
-  /** Open Databricks workspace in a new tab: Genie. */
+  /** Open Databricks workspace: Genie (specific resource). */
   const openGenie = () => {
-    if (host) window.open(`${host}/genie`, "_blank", "noopener,noreferrer");
+    if (!host) return;
+    const q = workspaceId ? `?o=${workspaceId}` : "";
+    window.open(`${host}/genie${q}`, "_blank", "noopener,noreferrer");
   };
-  /** Open Databricks workspace Jobs list with asset_type=jobs, o=workspace_id, and tags filter. */
+  /** Open Databricks workspace Jobs list (specific resource: /jobs). Use o= when available. */
   const openJobsList = () => {
     if (!host) return;
-    const wid = defaults?.workspace_id?.trim();
-    if (wid) {
-      const params = new URLSearchParams({
-        asset_type: "jobs",
-        o: wid,
-        tags: '"dev":"ariel_hdez"',
-      });
-      window.open(`${host}/jobs?${params.toString()}`, "_blank", "noopener,noreferrer");
-    } else {
-      window.open(`${host}/#job`, "_blank", "noopener,noreferrer");
-    }
+    const q = workspaceId ? `?o=${workspaceId}` : "";
+    window.open(`${host}/jobs${q}`, "_blank", "noopener,noreferrer");
   };
-  /** Open Databricks workspace in a new tab: Pipelines list. */
+  /** Open Databricks workspace Pipelines list (specific resource: /pipelines). Use o= when available. */
   const openPipelinesList = () => {
-    if (host) window.open(`${host}/pipelines`, "_blank", "noopener,noreferrer");
+    if (!host) return;
+    const q = workspaceId ? `?o=${workspaceId}` : "";
+    window.open(`${host}/pipelines${q}`, "_blank", "noopener,noreferrer");
   };
 
   if (loadingDefaults && !defaults) {
@@ -242,7 +184,7 @@ function SetupRun() {
       <div>
         <h1 className="text-2xl font-semibold">Setup & Run</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Follow the steps in order: Lakehouse bootstrap, Vector Search, gold views, events simulator, optional real-time streaming, ingestion ETL, ML training, Genie, AI agents, and update dashboards. Click **Execute** to open each job or pipeline in the Databricks workspace, ready to run.
+          Follow the steps in order. Click **Execute** to open the job or pipeline page in the Databricks workspace, where you can run it directly.
         </p>
       </div>
 
@@ -272,7 +214,7 @@ function SetupRun() {
               variant="outline"
               size="sm"
               className="mt-2"
-              onClick={() => window.open(`${host}/#setting/account`, "_blank", "noopener,noreferrer")}
+              onClick={() => window.open(workspaceId ? `${host}/?o=${workspaceId}#setting/account` : `${host}/#setting/account`, "_blank", "noopener,noreferrer")}
             >
               Open workspace Settings <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
@@ -423,16 +365,6 @@ function SetupRun() {
         <div className="flex items-center gap-2 rounded-lg border border-green-500/50 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>{lastResult.message}</span>
-          {lastResult.type !== "config" && lastResult.url && (
-            <Button
-              variant="link"
-              size="sm"
-              className="ml-auto"
-              onClick={() => window.open(lastResult!.url, "_blank", "noopener,noreferrer")}
-            >
-              Open in Databricks <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-          )}
         </div>
       )}
 
@@ -510,17 +442,8 @@ function SetupRun() {
               onClick={() => openJobRun("lakehouse_bootstrap")}
               disabled={!host}
             >
-              <Play className="h-4 w-4 mr-2" />
               Execute
               <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => runJobNow("lakehouse_bootstrap")}
-              disabled={!host || !isJobConfigured("lakehouse_bootstrap") || runJobMutation.isPending}
-            >
-              {runJobMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run now
             </Button>
             <Button
               variant="outline"
@@ -558,17 +481,8 @@ function SetupRun() {
               onClick={() => openJobRun("vector_search_index")}
               disabled={!host}
             >
-              <Play className="h-4 w-4 mr-2" />
               Execute
               <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => runJobNow("vector_search_index")}
-              disabled={!host || !isJobConfigured("vector_search_index") || runJobMutation.isPending}
-            >
-              {runJobMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run now
             </Button>
           </CardContent>
         </Card>
@@ -598,17 +512,8 @@ function SetupRun() {
               onClick={() => openJobRun("create_gold_views")}
               disabled={!host}
             >
-              <Play className="h-4 w-4 mr-2" />
               Execute
               <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => runJobNow("create_gold_views")}
-              disabled={!host || !isJobConfigured("create_gold_views") || runJobMutation.isPending}
-            >
-              {runJobMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run now
             </Button>
           </CardContent>
         </Card>
@@ -638,17 +543,8 @@ function SetupRun() {
               onClick={() => openJobRun("transaction_stream_simulator")}
               disabled={!host}
             >
-              <Play className="h-4 w-4 mr-2" />
               Execute
               <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => runJobNow("transaction_stream_simulator")}
-              disabled={!host || !isJobConfigured("transaction_stream_simulator") || runJobMutation.isPending}
-            >
-              {runJobMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run now
             </Button>
           </CardContent>
         </Card>
@@ -678,34 +574,16 @@ function SetupRun() {
               onClick={() => openPipeline("payment_realtime_pipeline")}
               disabled={!host}
             >
-              <Play className="h-4 w-4 mr-2" />
               Execute (pipeline)
               <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => runPipelineNow("payment_realtime_pipeline")}
-              disabled={!host || !isPipelineConfigured("payment_realtime_pipeline") || runPipelineMutation.isPending}
-            >
-              {runPipelineMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run now (pipeline)
             </Button>
             <Button
               variant="outline"
               onClick={() => openJobRun("continuous_stream_processor")}
               disabled={!host}
             >
-              <Play className="h-4 w-4 mr-2" />
               Execute (stream processor)
               <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => runJobNow("continuous_stream_processor")}
-              disabled={!host || !isJobConfigured("continuous_stream_processor") || runJobMutation.isPending}
-            >
-              {runJobMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run now (stream)
             </Button>
           </CardContent>
         </Card>
@@ -735,17 +613,8 @@ function SetupRun() {
               onClick={() => openPipeline("payment_analysis_etl")}
               disabled={!host}
             >
-              <Play className="h-4 w-4 mr-2" />
               Execute
               <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => runPipelineNow("payment_analysis_etl")}
-              disabled={!host || !isPipelineConfigured("payment_analysis_etl") || runPipelineMutation.isPending}
-            >
-              {runPipelineMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run now
             </Button>
           </CardContent>
         </Card>
@@ -775,17 +644,8 @@ function SetupRun() {
               onClick={() => openJobRun("train_ml_models")}
               disabled={!host}
             >
-              <Play className="h-4 w-4 mr-2" />
               Execute
               <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => runJobNow("train_ml_models")}
-              disabled={!host || !isJobConfigured("train_ml_models") || runJobMutation.isPending}
-            >
-              {runJobMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run now
             </Button>
           </CardContent>
         </Card>
@@ -815,17 +675,8 @@ function SetupRun() {
               onClick={() => openJobRun("genie_sync")}
               disabled={!host}
             >
-              <Play className="h-4 w-4 mr-2" />
               Execute
               <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => runJobNow("genie_sync")}
-              disabled={!host || !isJobConfigured("genie_sync") || runJobMutation.isPending}
-            >
-              {runJobMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run now
             </Button>
           </CardContent>
         </Card>
@@ -855,17 +706,8 @@ function SetupRun() {
               onClick={() => openJobRun("orchestrator_agent")}
               disabled={!host}
             >
-              <Play className="h-4 w-4 mr-2" />
               Execute
               <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => runJobNow("orchestrator_agent")}
-              disabled={!host || !isJobConfigured("orchestrator_agent") || runJobMutation.isPending}
-            >
-              {runJobMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run now
             </Button>
           </CardContent>
         </Card>
@@ -898,9 +740,8 @@ function SetupRun() {
                 size="sm"
                 onClick={() => openJobRun(key)}
                 disabled={!host}
-                title={`Open ${label} in Databricks to run`}
+                title={`Open ${label} job in Databricks workspace`}
               >
-                <Play className="h-3 w-3 mr-1" />
                 {label}
                 <ExternalLink className="ml-1 h-3 w-3" />
               </Button>
@@ -933,17 +774,8 @@ function SetupRun() {
               onClick={() => openJobRun("publish_dashboards")}
               disabled={!host}
             >
-              <Play className="h-4 w-4 mr-2" />
               Execute
               <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => runJobNow("publish_dashboards")}
-              disabled={!host || !isJobConfigured("publish_dashboards") || runJobMutation.isPending}
-            >
-              {runJobMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run now
             </Button>
           </CardContent>
         </Card>
