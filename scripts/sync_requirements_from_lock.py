@@ -19,7 +19,8 @@ REQUIREMENTS_ORDER = [
     "uvicorn",
     "pydantic-settings",
     "sqlmodel",
-    "psycopg",  # emitted as psycopg[binary]
+    "psycopg",       # emitted as psycopg[binary] (no system libpq)
+    "psycopg-pool",  # pool extra from pyproject.toml psycopg[binary,pool]
     "pydantic",
     "pydantic-core",
     "starlette",

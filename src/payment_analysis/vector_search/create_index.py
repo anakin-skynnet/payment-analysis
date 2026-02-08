@@ -3,7 +3,14 @@
 # MAGIC # Create Vector Search Endpoint and Index
 # MAGIC
 # MAGIC Creates the vector search endpoint and delta-sync index for **similar-transaction lookup**.
-# MAGIC Source table: `transaction_summaries_for_search` (from lakehouse_bootstrap). Run after Lakehouse Bootstrap.
+# MAGIC Source table: `transaction_summaries_for_search` (populated from `payments_enriched_silver`).
+# MAGIC Run after Lakehouse Bootstrap **and** the DLT pipeline so that the silver table has data.
+# MAGIC
+# MAGIC **Steps performed by this notebook:**
+# MAGIC 1. Populate `transaction_summaries_for_search` from `payments_enriched_silver` (MERGE).
+# MAGIC 2. Create the vector search endpoint (if it doesn't exist).
+# MAGIC 3. Create the delta-sync index (if it doesn't exist).
+# MAGIC 4. Trigger a sync so the index picks up the latest data.
 # MAGIC
 # MAGIC **Used to accelerate approval rates:** This index powers similar-case recommendations. AI agents or a scheduled job can query it to find past transactions similar to a given context, then generate recommendations (e.g. retry after 2h; similar cases approved 65%) and write them to `approval_recommendations` with `source_type = 'vector_search'`. The app shows these in the Decisioning page so end-users get actionable recommendations to accelerate approvals.
 
@@ -34,7 +41,69 @@ INDEX_NAME = f"{CATALOG}.{SCHEMA}.similar_transactions_index"
 SOURCE_TABLE = f"{CATALOG}.{SCHEMA}.transaction_summaries_for_search"
 EMBEDDING_MODEL = "databricks-bge-large-en"
 
+SILVER_TABLE = f"{CATALOG}.{SCHEMA}.payments_enriched_silver"
 print(f"Endpoint: {ENDPOINT_NAME}, Index: {INDEX_NAME}, Source: {SOURCE_TABLE}")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Step 1 — Populate source table from Silver
+# MAGIC
+# MAGIC Build a `summary_text` for each transaction by concatenating its key attributes.
+# MAGIC The vector search embedding model will convert this text into a dense vector.
+# MAGIC We use MERGE to avoid duplicates on re-runs and to pick up new transactions.
+
+# COMMAND ----------
+
+row_count_before = spark.sql(f"SELECT COUNT(*) AS cnt FROM {SOURCE_TABLE}").first()["cnt"]  # type: ignore[name-defined]
+print(f"Source table row count BEFORE merge: {row_count_before}")
+
+merge_sql = f"""
+MERGE INTO {SOURCE_TABLE} AS target
+USING (
+    SELECT
+        transaction_id,
+        CONCAT(
+            'Transaction ', transaction_id,
+            ': amount=', CAST(amount AS STRING), ' ', currency,
+            ', merchant_segment=', COALESCE(merchant_segment, 'unknown'),
+            ', network=', COALESCE(card_network, 'unknown'),
+            ', payment_solution=', COALESCE(payment_solution, 'unknown'),
+            ', outcome=', CASE WHEN is_approved THEN 'approved'
+                               ELSE CONCAT('declined:', COALESCE(decline_reason, 'unknown')) END,
+            ', fraud_score=', CAST(ROUND(COALESCE(fraud_score, 0), 3) AS STRING),
+            ', risk_tier=', COALESCE(risk_tier, 'unknown'),
+            ', country=', COALESCE(issuer_country, 'unknown'),
+            ', cross_border=', CAST(COALESCE(is_cross_border, false) AS STRING)
+        ) AS summary_text,
+        CASE WHEN is_approved THEN 'approved' ELSE 'declined' END AS outcome,
+        amount,
+        card_network AS network,
+        merchant_segment,
+        COALESCE(event_time, current_timestamp()) AS created_at
+    FROM {SILVER_TABLE}
+) AS source
+ON target.transaction_id = source.transaction_id
+WHEN NOT MATCHED THEN
+    INSERT (transaction_id, summary_text, outcome, amount, network, merchant_segment, created_at)
+    VALUES (source.transaction_id, source.summary_text, source.outcome, source.amount, source.network, source.merchant_segment, source.created_at)
+WHEN MATCHED THEN
+    UPDATE SET
+        summary_text   = source.summary_text,
+        outcome        = source.outcome,
+        amount         = source.amount,
+        network        = source.network,
+        merchant_segment = source.merchant_segment
+"""
+spark.sql(merge_sql)  # type: ignore[name-defined]
+
+row_count_after = spark.sql(f"SELECT COUNT(*) AS cnt FROM {SOURCE_TABLE}").first()["cnt"]  # type: ignore[name-defined]
+print(f"Source table row count AFTER merge: {row_count_after}  (added {row_count_after - row_count_before} rows)")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Step 2 — Create Vector Search Endpoint & Index
 
 # COMMAND ----------
 
