@@ -180,9 +180,20 @@ async def update_setup_config(request: Request, body: SetupConfigIn) -> SetupCon
         )
     bootstrap = DatabricksConfig.from_environment()
     if not (bootstrap.host and bootstrap.token and bootstrap.warehouse_id):
+        missing = []
+        if not bootstrap.host:
+            missing.append("DATABRICKS_HOST")
+        if not bootstrap.token:
+            missing.append("DATABRICKS_TOKEN")
+        if not bootstrap.warehouse_id:
+            missing.append("DATABRICKS_WAREHOUSE_ID")
         raise HTTPException(
             status_code=503,
-            detail="Databricks credentials not configured; cannot update app_config.",
+            detail=(
+                "Databricks credentials not configured; cannot update app_config. "
+                f"Set in the app environment: {', '.join(missing)}. "
+                "See docs/DEPLOYMENT_GUIDE.md → Deploy app as a Databricks App."
+            ),
         )
     svc = DatabricksService(config=bootstrap)
     ok = await svc.write_app_config(catalog, schema)

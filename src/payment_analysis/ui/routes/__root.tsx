@@ -1,5 +1,6 @@
 import { ThemeProvider } from "@/components/apx/theme-provider";
 import { Button } from "@/components/ui/button";
+import { WorkspaceUrlBootstrapper } from "@/components/apx/workspace-url-bootstrapper";
 import { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
@@ -45,6 +46,7 @@ export const Route = createRootRouteWithContext<{
 }>()({
   component: () => (
     <ThemeProvider defaultTheme="dark" storageKey="apx-ui-theme">
+      <WorkspaceUrlBootstrapper />
       <ErrorBoundary FallbackComponent={RootErrorFallback}>
         {import.meta.env.DEV && (
           <>

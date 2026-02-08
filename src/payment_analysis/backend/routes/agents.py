@@ -4,7 +4,7 @@ Databricks AI Agents Registry - Payment Approval Optimization.
 This module provides AI agents powered by Databricks features:
 - Genie: Natural language SQL analytics
 - Model Serving: ML-powered recommendations
-- Mosaic AI Gateway: LLM routing and prompt engineering
+- Mosaic AI Gateway: LLM routing and prompt engineering (https://learn.microsoft.com/en-us/azure/databricks/ai-gateway/)
 - Custom Agents: Domain-specific payment intelligence
 
 NOTE: Workspace URLs are constructed dynamically based on environment variables.
@@ -201,11 +201,11 @@ AGENTS = [
         ],
     ),
     
-    # AI Gateway - Custom LLM Agents
+    # Mosaic AI Gateway - Custom LLM Agents (https://learn.microsoft.com/en-us/azure/databricks/ai-gateway/)
     AgentInfo(
         id="payment_intelligence_assistant",
         name="Payment Intelligence Assistant",
-        description="LLM-powered conversational agent via AI Gateway (Llama 3.1 70B) that provides natural language explanations of payment data, identifies anomalies, and suggests optimization strategies.",
+        description="LLM-powered conversational agent via Mosaic AI Gateway (Llama 3.1 70B) that provides natural language explanations of payment data, identifies anomalies, and suggests optimization strategies.",
         agent_type=AgentType.AI_GATEWAY,
         capabilities=[
             AgentCapability.CONVERSATIONAL_INSIGHTS,
@@ -213,7 +213,7 @@ AGENTS = [
             AgentCapability.NATURAL_LANGUAGE_ANALYTICS,
         ],
         use_case="Ask complex questions about payment performance, get AI-generated insights, and receive personalized recommendations for improving approval rates based on your specific merchant portfolio.",
-        databricks_resource="AI Gateway: databricks-meta-llama-3-1-70b-instruct",
+        databricks_resource="Mosaic AI Gateway: databricks-meta-llama-3-1-70b-instruct",
         workspace_url=f"{get_workspace_url()}/serving-endpoints/databricks-meta-llama-3-1-70b-instruct",
         tags=["ai-gateway", "llm", "conversational", "insights"],
         example_queries=[
@@ -236,7 +236,7 @@ AGENTS = [
             AgentCapability.REAL_TIME_DECISIONING,
         ],
         use_case="Real-time risk consultation for high-value or suspicious transactions. Get natural language explanations of risk factors and specific recommendations for fraud prevention.",
-        databricks_resource="AI Gateway: databricks-meta-llama-3-1-70b-instruct",
+        databricks_resource="Mosaic AI Gateway: databricks-meta-llama-3-1-70b-instruct",
         workspace_url=f"{get_workspace_url()}/serving-endpoints/databricks-meta-llama-3-1-70b-instruct",
         tags=["ai-gateway", "risk", "fraud", "aml"],
         example_queries=[

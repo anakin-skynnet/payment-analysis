@@ -13,7 +13,7 @@ Payment Analysis — architecture, data flow, bundle resources, and technical re
 
 ## Data layer
 
-Bronze: raw + `_ingested_at`. Silver: quality, risk_tier, amount_bucket, composite_risk_score. Gold: 12+ views. UC default: `ahs_demos_catalog.ahs_demo_payment_analysis_dev`.
+Bronze: raw + `_ingested_at`. Silver: quality, risk_tier, amount_bucket, composite_risk_score. Gold: 12+ views. UC default: `ahs_demos_catalog.payment_analysis` (bundle variables).
 
 **Lakehouse bootstrap:** Run `lakehouse_bootstrap.sql` once (same catalog/schema as gold views). Creates: `app_config`, `transaction_summaries_for_search`, `approval_recommendations`, `approval_rules`, `online_features` and views. Enables Rules, Decisioning, Dashboard. Vector Search: create from `resources/vector_search.yml` after bootstrap.
 
@@ -29,7 +29,7 @@ Models: approval propensity (RF ~92%), risk (~88%), routing (~75%), retry (~81%)
 
 ## AI agents
 
-Genie 2, Model serving 3, Mosaic AI Gateway 2. Jobs: `resources/agents.yml`.
+Genie 2, Model serving 3, [Mosaic AI Gateway](https://learn.microsoft.com/en-us/azure/databricks/ai-gateway/) 2. Jobs: `resources/agents.yml`.
 
 ## Analytics
 
@@ -91,9 +91,10 @@ Managed Postgres for rules, experiments, incidents. Bundle: `resources/lakebase.
 
 | Component | UI location | One-click |
 |-----------|-------------|-----------|
-| Transaction Stream Simulator | Setup & Run step 1 | Run simulator |
-| Payment Analysis ETL | Setup & Run step 2 | Start ETL |
-| Create Gold Views | Setup & Run step 3 | Run job |
+| Transaction Stream Simulator | Setup & Run step 1 | Run simulator (creates `payments_stream_input`) |
+| Payment Analysis ETL | Setup & Run step 2 | Start ETL (reads `payments_stream_input`) |
+| Create Gold Views | Setup & Run step 3 | Run job (uses `.build/transform/gold_views.sql`) |
+| Lakehouse SQL (bootstrap) | Setup & Run step 4 | Run `lakehouse_bootstrap.sql` in SQL Warehouse |
 | Train ML Models | Setup & Run step 5 | Run ML training |
 | Orchestrator + 5 agents | Setup & Run step 6/6b | Run / Open |
 | 12 Dashboards | Dashboards page | Card opens in workspace |

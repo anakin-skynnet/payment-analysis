@@ -4,8 +4,9 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.iam import User as UserOut
 from fastapi import APIRouter, Depends
 
-from .dependencies import get_obo_ws
-from .models import VersionOut
+from .config import WORKSPACE_URL_PLACEHOLDER
+from .dependencies import ConfigDep, get_obo_ws
+from .models import VersionOut, WorkspaceConfigOut
 from .routes.agents import router as agents_router
 from .routes.analytics import router as analytics_router
 from .routes.decision import router as decision_router
@@ -38,6 +39,19 @@ api.include_router(v1_router, prefix="/v1")
 @api.get("/version", response_model=VersionOut, operation_id="version")
 async def version():
     return VersionOut.from_metadata()
+
+
+@api.get(
+    "/config/workspace",
+    response_model=WorkspaceConfigOut,
+    operation_id="getWorkspaceConfig",
+)
+def get_workspace_config(config: ConfigDep):
+    """Return workspace base URL for building links to jobs, pipelines, dashboards, etc. Returns empty when unset so the UI can use window.location.origin on Databricks hosts."""
+    raw = (config.databricks.workspace_url or "").strip().rstrip("/")
+    if not raw or raw.rstrip("/") == WORKSPACE_URL_PLACEHOLDER.rstrip("/"):
+        return WorkspaceConfigOut(workspace_url="")
+    return WorkspaceConfigOut(workspace_url=raw)
 
 
 @api.get("/current-user", response_model=UserOut, operation_id="currentUser")

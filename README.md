@@ -14,7 +14,7 @@ Databricks-powered payment approval optimization: real-time analytics, ML models
 | Reason Codes | E-commerce, Brazil | Consolidated declines, unified taxonomy |
 | Smart Retry | Brazil | Reattempt success rate, effectiveness |
 
-**AI agents (7):** Genie (2), Model Serving (3), Mosaic AI Gateway (2). See [Deployment guide](docs/DEPLOYMENT_GUIDE.md) and [Architecture & reference](docs/ARCHITECTURE_REFERENCE.md).
+**AI agents (7):** Genie (2), Model Serving (3), [Mosaic AI Gateway](https://learn.microsoft.com/en-us/azure/databricks/ai-gateway/) (2). See [Deployment guide](docs/DEPLOYMENT_GUIDE.md) and [Architecture & reference](docs/ARCHITECTURE_REFERENCE.md).
 
 ## Documentation
 
@@ -25,8 +25,18 @@ Databricks-powered payment approval optimization: real-time analytics, ML models
 
 ## Quick start
 
-1. **Deploy:** `./scripts/bundle.sh deploy dev`
-2. **Pipeline:** App **Setup & Run** (steps 2–6): ingestion → ETL → gold views → Lakehouse SQL → ML training → agents.
-3. **App:** **Workspace → Apps**; set `PGAPPNAME`, `DATABRICKS_HOST`, `DATABRICKS_WAREHOUSE_ID`, `DATABRICKS_TOKEN` in app environment.
+1. **Deploy:** `./scripts/bundle.sh deploy dev` (runs dashboard prepare and deploys bundle).
+2. **Setup & Run (in order):** In the app, run step 1 (Transaction Stream Simulator), then step 2 (ETL pipeline), step 3 (Create Gold Views), step 4 (Lakehouse SQL: `lakehouse_bootstrap.sql`), step 5 (Train ML models), then optional Orchestrator/agents.
+3. **App environment:** **Workspace → Apps** → payment-analysis → Edit → set `PGAPPNAME`, `DATABRICKS_HOST`, `DATABRICKS_WAREHOUSE_ID`, `DATABRICKS_TOKEN`.
 
-See [Deployment guide](docs/DEPLOYMENT_GUIDE.md) for details.
+See [Deployment guide](docs/DEPLOYMENT_GUIDE.md) for full steps and troubleshooting.
+
+## Before commit (optional)
+
+To always build the app before each commit (so `__dist__` stays in sync and deploy has a fresh UI), install the pre-commit hook:
+
+```bash
+cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+```
+
+After that, every `git commit` runs `uv run apx build` first; if the build fails, the commit is aborted.

@@ -1,36 +1,49 @@
 /**
  * Workspace Configuration
- * 
- * Dynamically configures Databricks workspace URLs based on environment.
- * This ensures no hardcoded workspace URLs in the frontend code.
+ *
+ * Dynamically configures Databricks workspace URLs based on environment and API.
+ * Used by all UI links to jobs, pipelines, dashboards, Genie, MLflow, etc.
  */
 
+/** Cache for workspace URL from GET /api/config/workspace (set at app load). */
+let workspaceUrlFromApi: string | null = null;
+
+/** Placeholder returned by backend when DATABRICKS_HOST is unset; do not cache so getWorkspaceUrl() can fall back to window.location.origin. */
+const PLACEHOLDER_HOST = "example.databricks.com";
+
 /**
- * Get the Databricks workspace base URL from environment or API.
- * 
- * In production, this would be:
- * 1. Retrieved from the backend API
- * 2. Set via environment variables at build time
- * 3. Configured in a runtime config file
+ * Set workspace base URL from backend (e.g. after GET /api/config/workspace).
+ * Call this once at app load so getWorkspaceUrl() returns the correct host.
+ * Does not cache placeholder URLs so that window.location.origin detection can be used on Databricks domains.
+ */
+export function setWorkspaceUrlFromApi(url: string): void {
+  const normalized = (url || "").trim().replace(/\/+$/, "");
+  if (!normalized || normalized.includes(PLACEHOLDER_HOST)) {
+    workspaceUrlFromApi = null;
+    return;
+  }
+  workspaceUrlFromApi = normalized;
+}
+
+/**
+ * Get the Databricks workspace base URL (no trailing slash).
+ * Order: env → API cache → window.origin when on Databricks host → "".
  */
 export function getWorkspaceUrl(): string {
-  // Try to get from environment variable (set at build time)
   const envUrl = import.meta.env.VITE_DATABRICKS_HOST;
   if (envUrl) {
-    return envUrl;
+    return (envUrl as string).trim().replace(/\/+$/, "");
   }
-  
-  // Fallback: try to detect from window location if running in Databricks
-  if (typeof window !== 'undefined') {
+  if (workspaceUrlFromApi) {
+    return workspaceUrlFromApi;
+  }
+  if (typeof window !== "undefined") {
     const hostname = window.location.hostname;
-    if (hostname.includes('.azuredatabricks.net')) {
-      return `https://${hostname}`;
+    if (hostname.includes("databricks")) {
+      return window.location.origin;
     }
   }
-  
-  // Final fallback: empty string disables external links until configured
-  // Set VITE_DATABRICKS_HOST at build time or the backend will provide the URL
-  return '';
+  return "";
 }
 
 /**

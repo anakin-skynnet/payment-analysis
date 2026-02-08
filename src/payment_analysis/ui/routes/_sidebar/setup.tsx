@@ -18,6 +18,7 @@ import {
   AlertCircle,
   Settings2,
 } from "lucide-react";
+import { getWorkspaceUrl } from "@/config/workspace";
 
 export const Route = createFileRoute("/_sidebar/setup")({
   component: () => <SetupRun />,
@@ -200,7 +201,7 @@ function SetupRun() {
   };
 
   const pending = runJobMutation.isPending || runPipelineMutation.isPending;
-  const host = defaults?.workspace_host || "";
+  const host = defaults?.workspace_host || getWorkspaceUrl();
   const openJobRun = (jobKey: string) => {
     const id = defaults?.jobs?.[jobKey];
     if (id && host) window.open(`${host}/#job/${id}/run`, "_blank");
@@ -387,7 +388,7 @@ function SetupRun() {
       <div className="space-y-4">
         <h2 className="text-lg font-medium">Execution steps (1–7)</h2>
         <p className="text-sm text-muted-foreground">
-          Run in order. Step 4 is SQL in the warehouse; steps 5–6 register models and agents.
+          Run in order. Step 1 creates the table for the ETL pipeline; step 4 is Lakehouse SQL (lakehouse_bootstrap.sql); steps 5–6 are ML training and agents.
         </p>
 
         {/* Step 1: Data ingestion — click opens job run in Databricks */}
@@ -427,7 +428,7 @@ function SetupRun() {
               size="sm"
               onClick={() =>
                 window.open(
-                  `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.transaction_stream_simulator}/run`,
+                  `${host}/#job/${defaults?.jobs?.transaction_stream_simulator}/run`,
                   "_blank"
                 )
               }
@@ -475,7 +476,7 @@ function SetupRun() {
               size="sm"
               onClick={() =>
                 window.open(
-                  `${defaults?.workspace_host || ""}/pipelines/${defaults?.pipelines?.payment_analysis_etl}`,
+                  `${host}/pipelines/${defaults?.pipelines?.payment_analysis_etl}`,
                   "_blank"
                 )
               }
@@ -522,7 +523,7 @@ function SetupRun() {
               size="sm"
               onClick={() =>
                 window.open(
-                  `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.create_gold_views}/run`,
+                  `${host}/#job/${defaults?.jobs?.create_gold_views}/run`,
                   "_blank"
                 )
               }
@@ -537,7 +538,7 @@ function SetupRun() {
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() =>
             window.open(
-              `${defaults?.workspace_host || ""}/sql/warehouses/${warehouseId || defaults?.warehouse_id}`,
+              `${host}/sql/warehouses/${warehouseId || defaults?.warehouse_id}`,
               "_blank"
             )
           }
@@ -546,7 +547,7 @@ function SetupRun() {
           onKeyDown={(e) =>
             e.key === "Enter" &&
             window.open(
-              `${defaults?.workspace_host || ""}/sql/warehouses/${warehouseId || defaults?.warehouse_id}`,
+              `${host}/sql/warehouses/${warehouseId || defaults?.warehouse_id}`,
               "_blank"
             )
           }
@@ -569,7 +570,7 @@ function SetupRun() {
               size="sm"
               onClick={() =>
                 window.open(
-                  `${defaults?.workspace_host || ""}/sql/warehouses/${warehouseId || defaults?.warehouse_id}`,
+                  `${host}/sql/warehouses/${warehouseId || defaults?.warehouse_id}`,
                   "_blank"
                 )
               }
@@ -581,7 +582,7 @@ function SetupRun() {
               size="sm"
               onClick={() =>
                 window.open(
-                  `${defaults?.workspace_host || ""}/explore/data/${catalog || defaults?.catalog}/${schema || defaults?.schema}`,
+                  `${host}/explore/data/${catalog || defaults?.catalog}/${schema || defaults?.schema}`,
                   "_blank"
                 )
               }
@@ -628,7 +629,7 @@ function SetupRun() {
               size="sm"
               onClick={() =>
                 window.open(
-                  `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.train_ml_models}/run`,
+                  `${host}/#job/${defaults?.jobs?.train_ml_models}/run`,
                   "_blank"
                 )
               }
@@ -675,7 +676,7 @@ function SetupRun() {
               size="sm"
               onClick={() =>
                 window.open(
-                  `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.orchestrator_agent}/run`,
+                  `${host}/#job/${defaults?.jobs?.orchestrator_agent}/run`,
                   "_blank"
                 )
               }
@@ -721,7 +722,7 @@ function SetupRun() {
                   variant="ghost"
                   size="sm"
                   className="h-8 px-2"
-                  onClick={() => defaults?.jobs?.[key] && window.open(`${defaults?.workspace_host || ""}/#job/${defaults.jobs[key]}/run`, "_blank")}
+                  onClick={() => defaults?.jobs?.[key] && window.open(`${host}/#job/${defaults.jobs[key]}/run`, "_blank")}
                   disabled={!defaults?.jobs?.[key]}
                 >
                   <ExternalLink className="h-3 w-3" />
@@ -769,7 +770,7 @@ function SetupRun() {
               size="sm"
               onClick={() =>
                 window.open(
-                  `${defaults?.workspace_host || ""}/pipelines/${defaults?.pipelines?.payment_realtime_pipeline}`,
+                  `${host}/pipelines/${defaults?.pipelines?.payment_realtime_pipeline}`,
                   "_blank"
                 )
               }
@@ -794,7 +795,7 @@ function SetupRun() {
             size="sm"
             onClick={() =>
               window.open(
-                `${defaults?.workspace_host || ""}/#job`,
+                `${host}/#job`,
                 "_blank"
               )
             }
@@ -806,7 +807,7 @@ function SetupRun() {
             size="sm"
             onClick={() =>
               window.open(
-                `${defaults?.workspace_host || ""}/pipelines`,
+                `${host}/pipelines`,
                 "_blank"
               )
             }
@@ -818,7 +819,7 @@ function SetupRun() {
             size="sm"
             onClick={() =>
               window.open(
-                `${defaults?.workspace_host || ""}/sql/warehouses/${warehouseId || defaults?.warehouse_id}`,
+                `${host}/sql/warehouses/${warehouseId || defaults?.warehouse_id}`,
                 "_blank"
               )
             }
@@ -830,7 +831,7 @@ function SetupRun() {
             size="sm"
             onClick={() =>
               window.open(
-                `${defaults?.workspace_host || ""}/explore/data/${catalog || defaults?.catalog}/${schema || defaults?.schema}`,
+                `${host}/explore/data/${catalog || defaults?.catalog}/${schema || defaults?.schema}`,
                 "_blank"
               )
             }
@@ -842,7 +843,7 @@ function SetupRun() {
             size="sm"
             onClick={() =>
               window.open(
-                `${defaults?.workspace_host || ""}/genie`,
+                `${host}/genie`,
                 "_blank"
               )
             }
@@ -854,7 +855,7 @@ function SetupRun() {
             size="sm"
             onClick={() =>
               window.open(
-                `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.continuous_stream_processor}/run`,
+                `${host}/#job/${defaults?.jobs?.continuous_stream_processor}/run`,
                 "_blank"
               )
             }
@@ -867,7 +868,7 @@ function SetupRun() {
               size="sm"
               onClick={() =>
                 window.open(
-                  `${defaults?.workspace_host || ""}/#job/${defaults?.jobs?.test_agent_framework}/run`,
+                  `${host}/#job/${defaults?.jobs?.test_agent_framework}/run`,
                   "_blank"
                 )
               }
@@ -878,7 +879,7 @@ function SetupRun() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open(`${defaults?.workspace_host || ""}/#job`, "_blank")}
+            onClick={() => window.open(`${host}/#job`, "_blank")}
           >
             All jobs
           </Button>

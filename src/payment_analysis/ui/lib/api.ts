@@ -604,6 +604,10 @@ export interface VersionOut {
   version: string;
 }
 
+export interface WorkspaceConfigOut {
+  workspace_url: string;
+}
+
 export interface ListAgentsParams {
   agent_type?: AgentType | null;
 }
@@ -1386,6 +1390,29 @@ export function useGetApprovalTrends<TData = { data: ApprovalTrendOut[] }>(optio
 
 export function useGetApprovalTrendsSuspense<TData = { data: ApprovalTrendOut[] }>(options?: { params?: GetApprovalTrendsParams; query?: Omit<UseSuspenseQueryOptions<{ data: ApprovalTrendOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getApprovalTrendsKey(options?.params), queryFn: () => getApprovalTrends(options?.params), ...options?.query });
+}
+
+export const getWorkspaceConfig = async (options?: RequestInit): Promise<{ data: WorkspaceConfigOut }> => {
+  const res = await fetch("/api/config/workspace", { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getWorkspaceConfigKey = () => {
+  return ["/api/config/workspace"] as const;
+};
+
+export function useGetWorkspaceConfig<TData = { data: WorkspaceConfigOut }>(options?: { query?: Omit<UseQueryOptions<{ data: WorkspaceConfigOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getWorkspaceConfigKey(), queryFn: () => getWorkspaceConfig(), ...options?.query });
+}
+
+export function useGetWorkspaceConfigSuspense<TData = { data: WorkspaceConfigOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: WorkspaceConfigOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getWorkspaceConfigKey(), queryFn: () => getWorkspaceConfig(), ...options?.query });
 }
 
 export const currentUser = async (params?: CurrentUserParams, options?: RequestInit): Promise<{ data: User }> => {

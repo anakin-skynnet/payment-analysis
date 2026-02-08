@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Pre-commit hook: build app before commit so __dist__ is up to date.
+# Install: cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+set -e
+cd "$(dirname "$0")/.."
+echo "Running apx build before commit..."
+uv run apx build
+echo "Build OK — proceeding with commit."

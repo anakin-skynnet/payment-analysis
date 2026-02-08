@@ -10,6 +10,9 @@ Databricks workspace (Unity Catalog), SQL Warehouse, CLI configured. Python 3.10
 
 Before every deploy (same catalog/schema for dashboards and Gold Views job):
 
+- Run **Prepare** so `.build/dashboards/` and `.build/transform/gold_views.sql` exist (same catalog/schema as bundle variables). The **Create Gold Views** job runs `.build/transform/gold_views.sql`; without prepare, that file is missing and the job fails.
+- Use the bundle script so prepare runs automatically, or run prepare manually before `databricks bundle deploy`.
+
 ```bash
 ./scripts/bundle.sh validate dev
 databricks bundle deploy -t dev
@@ -22,8 +25,8 @@ Or: `uv run python scripts/dashboards.py prepare` then `databricks bundle valida
 | # | Step | Action |
 |---|------|--------|
 | 1 | Deploy bundle | `./scripts/bundle.sh deploy dev` |
-| 2 | Data ingestion | **Setup & Run** → Run **Transaction Stream Simulator** |
-| 3 | ETL | **Setup & Run** → Start **Payment Analysis ETL** pipeline |
+| 2 | Data ingestion | **Setup & Run** → Run **Transaction Stream Simulator** (creates `payments_stream_input`; run before ETL) |
+| 3 | ETL | **Setup & Run** → Start **Payment Analysis ETL** pipeline (reads from `payments_stream_input`) |
 | 4 | Gold views | **Setup & Run** → Run **Create Payment Analysis Gold Views** |
 | 5 | Lakehouse SQL | Run `lakehouse_bootstrap.sql` (same catalog/schema) |
 | 6 | ML models | **Setup & Run** → Run **Train Payment Approval ML Models** (~10–15 min) |
@@ -47,7 +50,7 @@ Or: `uv run python scripts/dashboards.py prepare` then `databricks bundle valida
 | **PGAPPNAME** | Lakebase instance (e.g. `payment-analysis-db-dev`) |
 | **DATABRICKS_HOST** | Workspace URL |
 | **DATABRICKS_WAREHOUSE_ID** | SQL Warehouse ID (from bundle summary) |
-| **DATABRICKS_TOKEN** | API access (PAT or OAuth) |
+| **DATABRICKS_TOKEN** | API access (PAT). If using a PAT, do **not** set DATABRICKS_CLIENT_ID or DATABRICKS_CLIENT_SECRET in the app environment. |
 | **LAKEBASE_SCHEMA** | Optional. Postgres schema for app tables (default `app`). Use when the app has no CREATE on `public`. |
 
 6. **Optional — override job/pipeline IDs:** Set `DATABRICKS_JOB_ID_*`, `DATABRICKS_PIPELINE_ID_*`, `DATABRICKS_WORKSPACE_ID` per [Architecture & reference](ARCHITECTURE_REFERENCE.md#workspace-components--ui-mapping).
@@ -84,7 +87,7 @@ Validate before deploy: `./scripts/bundle.sh validate dev` (runs dashboard prepa
 
 ## Schema consistency
 
-One catalog/schema (defaults: `ahs_demos_catalog`, `ahs_demo_payment_analysis_dev`). Effective catalog/schema from Lakehouse `app_config`; set via **Setup & Run** → **Save catalog & schema**. See [Architecture & reference](ARCHITECTURE_REFERENCE.md#catalog-and-schema-app_config).
+One catalog/schema (defaults: `ahs_demos_catalog`, `payment_analysis`). Effective catalog/schema from Lakehouse `app_config`; set via **Setup & Run** → **Save catalog & schema**. See [Architecture & reference](ARCHITECTURE_REFERENCE.md#catalog-and-schema-app_config).
 
 ## Resources in the workspace
 
@@ -151,10 +154,32 @@ After any change to the app or bundle config, **redeploy** and **restart** the a
 | Lakebase "Instance name is not unique" | Use unique `lakebase_instance_name` via `--var` or target |
 | Error installing packages (app deploy) | Check **Logs** for the exact pip error. Ensure `requirements.txt` is up to date: run `uv lock` then `uv run python scripts/sync_requirements_from_lock.py`. See [Databricks Apps compatibility](#databricks-apps-compatibility). |
 | **permission denied for schema public** | App tables use schema `app` by default. Set **LAKEBASE_SCHEMA** (e.g. `app`) in the app environment if needed; the app creates the schema if it has permission. |
+| **Databricks credentials not configured; cannot update app_config** | Set **DATABRICKS_HOST**, **DATABRICKS_TOKEN**, and **DATABRICKS_WAREHOUSE_ID** in the app environment. **Compute → Apps → payment-analysis → Edit → Environment**; add the three variables, Save, then restart the app. |
 | **Error loading app spec from app.yml** | Ensure **`app.yml`** exists at project root (runtime spec for the app container). Redeploy. |
 | **Web UI shows "API only" / fallback page** | The app could not find `src/payment_analysis/__dist__`. Ensure `source_code_path` is `${workspace.file_path}` (so the app runs from the synced `files/` folder). (1) Run **`uv run apx build`** then **`databricks bundle deploy -t dev`** so `__dist__` is built and synced. (2) Restart the app from **Compute → Apps**. (3) Check app **Logs** for "UI dist candidate" to see which paths were tried. (4) If needed, set **UI_DIST_DIR** in the app Environment to the full path of the `__dist__` folder. |
 | **Logs show "Uvicorn running on http://0.0.0.0:8000"** | This is **expected** when the app runs as a Databricks App. The process binds to `0.0.0.0:8000` inside the app container; the platform proxies requests to it. You are not running on localhost — the app is deployed in Databricks. |
+| **Provided OAuth token does not have required scopes** | PAT lacks permissions or OAuth env vars conflict. See [Fix: PAT / token scopes](#fix-pat--token-scopes) below. |
 | **Failed to export ... type=mlflowExperiment** | An old MLflow experiment exists under the app path. Delete it in the workspace, then redeploy. See [Fix: export mlflowExperiment](#fix-failed-to-export--typemlflowexperiment) below. |
+
+### Fix: PAT / token scopes
+
+**Error:** `Provided OAuth token does not have required scopes` (with `auth_type=pat`, `DATABRICKS_HOST`, `DATABRICKS_TOKEN` set; sometimes `DATABRICKS_CLIENT_ID`, `DATABRICKS_CLIENT_SECRET` are also set).
+
+The app uses your **PAT** (`DATABRICKS_TOKEN`) for SQL execution, warehouse listing, and reading/writing `app_config`. This error usually means either the PAT lacks permission or the SDK is confused by OAuth env vars.
+
+**Fix (do both):**
+
+1. **Use PAT-only auth in the app**  
+   In **Compute → Apps → payment-analysis → Edit → Environment**, **remove** (or leave empty) **DATABRICKS_CLIENT_ID** and **DATABRICKS_CLIENT_SECRET**. Keep only **DATABRICKS_HOST**, **DATABRICKS_TOKEN**, and **DATABRICKS_WAREHOUSE_ID**. Having client_id/secret set can trigger OAuth-style scope checks even when using a PAT.
+
+2. **Create a new PAT with sufficient scope**  
+   In the workspace: **Settings** → **Developer** → **Access tokens** → **Generate new token**.  
+   - Ensure your user has token permission **“CAN USE”** (or “CAN MANAGE”) — an admin sets this under **Settings** → **Identity and access** → **Token permissions**.  
+   - Create the token with a lifetime you accept.  
+   - Set the new token as **DATABRICKS_TOKEN** in the app environment, then **Save** and **restart** the app.
+
+3. **If the app runs as a service principal**  
+   An admin must grant that SP token permissions (e.g. via **Set token permissions** or workspace UI), then create a PAT for that SP and set it as **DATABRICKS_TOKEN**.
 
 ### Fix: Failed to export … type=mlflowExperiment
 

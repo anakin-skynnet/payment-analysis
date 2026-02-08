@@ -121,7 +121,16 @@ function AIAgents() {
             <div>
               <h1 className="text-3xl font-bold">Databricks AI Agents</h1>
               <p className="text-muted-foreground mt-1">
-                Genie, Model Serving, and Mosaic AI Gateway (LLM) agents. Agent jobs are in agents.yml; run Orchestrator from Setup step 6; agents use Lakehouse Rules to accelerate approvals.
+                Genie, Model Serving, and{" "}
+                <a
+                  href="https://learn.microsoft.com/en-us/azure/databricks/ai-gateway/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:no-underline"
+                >
+                  Mosaic AI Gateway
+                </a>{" "}
+                (LLM) agents. Agent jobs are in agents.yml; run Orchestrator from Setup & Run (step 6); agents use Lakehouse Rules to accelerate approvals.
               </p>
             </div>
           </div>
@@ -204,8 +213,18 @@ function AIAgents() {
                   routing and retry optimization
                 </li>
                 <li>
-                  <strong>Mosaic AI Gateway:</strong> LLM-powered insights and
-                  recommendations (Llama 3.1 70B)
+                  <strong>
+                    <a
+                      href="https://learn.microsoft.com/en-us/azure/databricks/ai-gateway/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:no-underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Mosaic AI Gateway
+                    </a>
+                  </strong>
+                  : LLM-powered insights and recommendations (Llama 3.1 70B)
                 </li>
                 <li>
                   <strong>Custom Agents:</strong> Domain-specific payment

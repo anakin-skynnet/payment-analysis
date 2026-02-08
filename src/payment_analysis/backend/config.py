@@ -27,13 +27,17 @@ if env_file.exists():
         pass
 
 
+# Placeholder when DATABRICKS_HOST is unset; API must not return it so the UI can fall back to window.location.origin.
+WORKSPACE_URL_PLACEHOLDER = "https://example.databricks.com"
+
+
 class DatabricksConfig(BaseSettings):
     """Databricks workspace configuration."""
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         extra="ignore",
     )
     workspace_url: str = Field(
-        default="https://example.databricks.com",
+        default=WORKSPACE_URL_PLACEHOLDER,
         description="Databricks workspace URL",
         validation_alias="DATABRICKS_HOST"
     )
