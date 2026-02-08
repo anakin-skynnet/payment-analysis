@@ -1,16 +1,13 @@
-# Bundle app resource: app name, source path, and bindings (database, warehouse, jobs).
-# Runtime spec: app.yaml and app.yml at project root. Run: Workspace → Apps or databricks bundle run payment_analysis_app -t dev
+# Databricks App resource: name, source path, and resource bindings.
+# Configuration: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/configuration
+# Authorization: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth
+# Runtime: app.yml at project root (command, env). source_code_path = where bundle sync uploads files (workspace.file_path).
 #
-# source_code_path must point to where bundle sync uploads files. Sync goes to workspace.file_path
-# (= ${workspace.root}/files = .../payment-analysis/files), so the app runs from that folder and
-# sees src/, app.yml, etc. There, cwd is .../payment-analysis/files and src/payment_analysis/__dist__ is found.
-#
-# Environment variables (Workspace → Apps → payment-analysis → Edit → Environment):
-#   PGAPPNAME               — Required. Set in app.yml (dev: payment-analysis-db-dev). Must match var.lakebase_instance_name.
-#   DATABRICKS_WAREHOUSE_ID — Required for SQL/analytics. From bundle or sql-warehouse binding (payment_analysis_warehouse).
-#   DATABRICKS_HOST         — Workspace URL. Optional when opened from Compute → Apps (derived from request).
-#   DATABRICKS_TOKEN        — Optional when using user auth: open the app from Compute → Apps so your token is forwarded; set only for app-only or non-OBO use. Do not set DATABRICKS_CLIENT_ID/SECRET when using the forwarded token.
-# Optional: DATABRICKS_WORKSPACE_ID (dashboard URLs); BUNDLE_FOLDER (if var.workspace_folder != payment-analysis).
+# Environment (Workspace → Apps → payment-analysis → Edit → Environment):
+#   PGAPPNAME               — Required. Match var.lakebase_instance_name (dev: payment-analysis-db-dev).
+#   DATABRICKS_WAREHOUSE_ID — Required for SQL/analytics (from sql-warehouse binding).
+#   DATABRICKS_HOST         — Optional when opened from Compute → Apps (workspace URL derived from request headers).
+#   DATABRICKS_TOKEN        — Optional when using user authorization: open from Compute → Apps so token is forwarded (x-forwarded-access-token). Do not set DATABRICKS_CLIENT_ID/SECRET when using forwarded user token.
 
 resources:
   apps:

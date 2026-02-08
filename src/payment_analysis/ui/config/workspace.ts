@@ -1,8 +1,10 @@
 /**
- * Workspace Configuration
+ * Workspace Configuration (Databricks App)
  *
- * Dynamically configures Databricks workspace URLs based on environment and API.
- * Used by all UI links to jobs, pipelines, dashboards, Genie, MLflow, etc.
+ * Resolves the Databricks workspace base URL for all UI links (jobs, pipelines,
+ * dashboards, Genie, MLflow). When the app is opened from Compute → Apps, the
+ * backend returns the workspace URL (derived from request headers). Never use
+ * the app origin (*.databricksapps.com) as workspace URL so links open in the workspace.
  */
 
 /** Cache for workspace URL from GET /api/config/workspace (set at app load). */

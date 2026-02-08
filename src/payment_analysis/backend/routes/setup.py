@@ -1,9 +1,10 @@
 """
-Setup & Run API – defaults, config, and optional run endpoints.
+Setup & Run API – defaults, config, and optional run endpoints (Databricks App).
 
-- GET /setup/defaults: resolved job/pipeline IDs and workspace URL (for Execute buttons).
+- GET /setup/defaults: job/pipeline IDs (resolved when user token is present) and workspace URL for Execute buttons.
 - PATCH /setup/config: save catalog/schema to app_config table.
-- POST /setup/run-job, POST /setup/run-pipeline: optional API to trigger runs; UI uses Execute (open in Databricks) instead.
+- POST /setup/run-job, POST /setup/run-pipeline: trigger runs using user token (x-forwarded-access-token) or DATABRICKS_TOKEN.
+Workspace URL is derived from request when app is opened from Compute → Apps.
 """
 
 from __future__ import annotations

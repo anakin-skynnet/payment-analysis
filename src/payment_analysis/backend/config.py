@@ -1,3 +1,10 @@
+"""Configuration for the payment-analysis Databricks App.
+
+Workspace URL can be set via DATABRICKS_HOST or derived from the request Host when
+the app is served from a Databricks Apps URL (see workspace_url_from_apps_host).
+See: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/configuration
+"""
+
 import os
 import re
 from importlib import resources

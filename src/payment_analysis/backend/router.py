@@ -1,4 +1,9 @@
-"""API router: config, auth, and feature routes."""
+"""API router: config, auth, and feature routes.
+
+All routes are under /api (required for Databricks Apps token-based auth).
+Auth status and workspace config use Databricks Apps HTTP headers (x-forwarded-access-token,
+X-Forwarded-Host). See: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/http-headers
+"""
 
 from typing import Annotated
 
@@ -12,7 +17,7 @@ from .config import (
     ensure_absolute_workspace_url,
     workspace_url_from_apps_host,
 )
-from .dependencies import ConfigDep, get_workspace_client
+from .dependencies import ConfigDep, _request_host_for_derivation, get_workspace_client
 from .models import AuthStatusOut, VersionOut, WorkspaceConfigOut
 from .routes.agents import router as agents_router
 from .routes.analytics import router as analytics_router
@@ -57,10 +62,10 @@ async def version():
     operation_id="getWorkspaceConfig",
 )
 def get_workspace_config(request: Request, config: ConfigDep):
-    """Return workspace base URL for Execute links and dashboard embed. When DATABRICKS_HOST is unset and the request is from a Databricks Apps host, derive URL from the Host header."""
+    """Return workspace base URL for Execute links and dashboard embed. When DATABRICKS_HOST is unset and the request is from a Databricks Apps host, derive URL from X-Forwarded-Host or Host."""
     raw = (config.databricks.workspace_url or "").strip().rstrip("/")
     if not raw or raw.rstrip("/") == WORKSPACE_URL_PLACEHOLDER.rstrip("/"):
-        derived = workspace_url_from_apps_host(request.headers.get("host") or "", app_name)
+        derived = workspace_url_from_apps_host(_request_host_for_derivation(request), app_name)
         if derived:
             return WorkspaceConfigOut(workspace_url=derived)
         return WorkspaceConfigOut(workspace_url="")
@@ -69,7 +74,7 @@ def get_workspace_config(request: Request, config: ConfigDep):
 
 @api.get("/auth/status", response_model=AuthStatusOut, operation_id="getAuthStatus")
 def auth_status(request: Request) -> AuthStatusOut:
-    """Return whether the request has user credentials (X-Forwarded-Access-Token). Used to show Sign in with Databricks when false."""
+    """Return whether the request has user credentials (Databricks Apps: x-forwarded-access-token). Used to show Sign in with Databricks when false."""
     token = (
         request.headers.get("X-Forwarded-Access-Token")
         or request.headers.get("x-forwarded-access-token")

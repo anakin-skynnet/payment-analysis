@@ -1,3 +1,10 @@
+"""FastAPI application entrypoint for the payment-analysis Databricks App.
+
+Serves the React UI at / and the API at /api. When deployed as a Databricks App,
+the platform proxies requests and sets headers (x-forwarded-access-token, X-Forwarded-Host).
+See: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/configuration
+"""
+
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path

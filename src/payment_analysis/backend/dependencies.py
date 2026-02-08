@@ -1,4 +1,13 @@
-"""Dependencies for FastAPI: config, runtime, session, Databricks client and service."""
+"""Dependencies for FastAPI: config, runtime, session, Databricks client and service.
+
+This module implements patterns for Databricks Apps:
+- User authorization (on-behalf-of): token from x-forwarded-access-token header.
+- Workspace URL derivation from X-Forwarded-Host / Host when app is served from Apps.
+See: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/configuration
+     https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth
+     https://docs.databricks.com/aws/en/dev-tools/databricks-apps/http-headers
+Tokens are never logged or exposed in responses.
+"""
 
 import os
 from typing import Annotated, Generator
@@ -92,8 +101,9 @@ def _is_apps_host(host: str) -> bool:
 
 
 def _get_obo_token(request: Request) -> str | None:
-    """User token when app is opened from Compute → Apps (OBO). Check X-Forwarded-Access-Token then Authorization: Bearer (some proxies)."""
-    # Primary: X-Forwarded-Access-Token (case-insensitive)
+    """User token when app is opened from Compute → Apps (user authorization / OBO).
+    Primary: x-forwarded-access-token (Databricks Apps HTTP header). Fallback: Authorization Bearer when on Apps host."""
+    # Primary: x-forwarded-access-token (Databricks Apps; case-insensitive)
     v = request.headers.get("X-Forwarded-Access-Token") or request.headers.get("x-forwarded-access-token")
     if v and str(v).strip():
         return v.strip()
@@ -177,11 +187,11 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 
 def _effective_databricks_host(request: Request, bootstrap_host: str | None) -> str | None:
-    """Host from env or derived from request when app is opened from Compute → Apps."""
+    """Workspace host from env or derived from request (X-Forwarded-Host / Host) when running as a Databricks App."""
     raw = (bootstrap_host or "").strip().rstrip("/")
     if raw and "example.databricks.com" not in raw:
         return raw
-    derived = workspace_url_from_apps_host(request.headers.get("host") or "", app_name).strip().rstrip("/")
+    derived = workspace_url_from_apps_host(_request_host_for_derivation(request), app_name).strip().rstrip("/")
     return derived if derived else None
 
 
