@@ -275,6 +275,17 @@ export interface HTTPValidationError {
   detail?: ValidationError[];
 }
 
+export interface HealthDatabaseOut {
+  connection_healthy: boolean;
+  database_instance_exists: boolean;
+  status: string;
+}
+
+export interface HealthcheckOut {
+  status: string;
+  timestamp: string;
+}
+
 export interface Incident {
   category: string;
   created_at?: string;
@@ -2239,7 +2250,7 @@ export function useRunSetupPipeline(options?: { mutation?: UseMutationOptions<{ 
   return useMutation({ mutationFn: (data) => runSetupPipeline(data), ...options?.mutation });
 }
 
-export const health_database_api_v1_health_database_get = async (options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+export const healthDatabase = async (options?: RequestInit): Promise<{ data: HealthDatabaseOut }> => {
   const res = await fetch("/api/v1/health/database", { ...options, method: "GET" });
   if (!res.ok) {
     const body = await res.text();
@@ -2250,19 +2261,19 @@ export const health_database_api_v1_health_database_get = async (options?: Reque
   return { data: await res.json() };
 };
 
-export const health_database_api_v1_health_database_getKey = () => {
+export const healthDatabaseKey = () => {
   return ["/api/v1/health/database"] as const;
 };
 
-export function useHealth_database_api_v1_health_database_get<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
-  return useQuery({ queryKey: health_database_api_v1_health_database_getKey(), queryFn: () => health_database_api_v1_health_database_get(), ...options?.query });
+export function useHealthDatabase<TData = { data: HealthDatabaseOut }>(options?: { query?: Omit<UseQueryOptions<{ data: HealthDatabaseOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: healthDatabaseKey(), queryFn: () => healthDatabase(), ...options?.query });
 }
 
-export function useHealth_database_api_v1_health_database_getSuspense<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
-  return useSuspenseQuery({ queryKey: health_database_api_v1_health_database_getKey(), queryFn: () => health_database_api_v1_health_database_get(), ...options?.query });
+export function useHealthDatabaseSuspense<TData = { data: HealthDatabaseOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: HealthDatabaseOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: healthDatabaseKey(), queryFn: () => healthDatabase(), ...options?.query });
 }
 
-export const healthcheck_api_v1_healthcheck_get = async (options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+export const healthcheck = async (options?: RequestInit): Promise<{ data: HealthcheckOut }> => {
   const res = await fetch("/api/v1/healthcheck", { ...options, method: "GET" });
   if (!res.ok) {
     const body = await res.text();
@@ -2273,16 +2284,16 @@ export const healthcheck_api_v1_healthcheck_get = async (options?: RequestInit):
   return { data: await res.json() };
 };
 
-export const healthcheck_api_v1_healthcheck_getKey = () => {
+export const healthcheckKey = () => {
   return ["/api/v1/healthcheck"] as const;
 };
 
-export function useHealthcheck_api_v1_healthcheck_get<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
-  return useQuery({ queryKey: healthcheck_api_v1_healthcheck_getKey(), queryFn: () => healthcheck_api_v1_healthcheck_get(), ...options?.query });
+export function useHealthcheck<TData = { data: HealthcheckOut }>(options?: { query?: Omit<UseQueryOptions<{ data: HealthcheckOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: healthcheckKey(), queryFn: () => healthcheck(), ...options?.query });
 }
 
-export function useHealthcheck_api_v1_healthcheck_getSuspense<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
-  return useSuspenseQuery({ queryKey: healthcheck_api_v1_healthcheck_getKey(), queryFn: () => healthcheck_api_v1_healthcheck_get(), ...options?.query });
+export function useHealthcheckSuspense<TData = { data: HealthcheckOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: HealthcheckOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: healthcheckKey(), queryFn: () => healthcheck(), ...options?.query });
 }
 
 export const version = async (options?: RequestInit): Promise<{ data: VersionOut }> => {

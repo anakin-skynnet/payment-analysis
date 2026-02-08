@@ -1,33 +1,43 @@
 """Healthcheck endpoints (Cookbook: /api/v1/healthcheck, /api/v1/health/database)."""
 
 from datetime import datetime, timezone
-from typing import Any
-
 from fastapi import APIRouter, Request
+from pydantic import BaseModel
 from sqlalchemy import text
 
 router = APIRouter()
 
 
-@router.get("/healthcheck")
-async def healthcheck() -> dict[str, Any]:
+class HealthcheckOut(BaseModel):
+    status: str
+    timestamp: str
+
+
+class HealthDatabaseOut(BaseModel):
+    database_instance_exists: bool
+    connection_healthy: bool
+    status: str
+
+
+@router.get("/healthcheck", response_model=HealthcheckOut, operation_id="healthcheck")
+async def healthcheck() -> HealthcheckOut:
     """Return the API status."""
-    return {
-        "status": "OK",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+    return HealthcheckOut(
+        status="OK",
+        timestamp=datetime.now(timezone.utc).isoformat(),
+    )
 
 
-@router.get("/health/database")
-async def health_database(request: Request) -> dict[str, Any]:
+@router.get("/health/database", response_model=HealthDatabaseOut, operation_id="healthDatabase")
+async def health_database(request: Request) -> HealthDatabaseOut:
     """Lakebase connection health (Cookbook: error-handling-and-troubleshooting)."""
     rt = getattr(request.app.state, "runtime", None)
     if not rt:
-        return {
-            "database_instance_exists": False,
-            "connection_healthy": False,
-            "status": "unhealthy",
-        }
+        return HealthDatabaseOut(
+            database_instance_exists=False,
+            connection_healthy=False,
+            status="unhealthy",
+        )
     instance_exists = rt._db_configured()
     connection_healthy = False
     if instance_exists:
@@ -37,8 +47,8 @@ async def health_database(request: Request) -> dict[str, Any]:
             connection_healthy = True
         except Exception:
             pass
-    return {
-        "database_instance_exists": instance_exists,
-        "connection_healthy": connection_healthy,
-        "status": "healthy" if (instance_exists and connection_healthy) else "unhealthy",
-    }
+    return HealthDatabaseOut(
+        database_instance_exists=instance_exists,
+        connection_healthy=connection_healthy,
+        status="healthy" if (instance_exists and connection_healthy) else "unhealthy",
+    )
