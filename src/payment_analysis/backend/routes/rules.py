@@ -78,15 +78,18 @@ async def create_approval_rule(service: DatabricksServiceDep, payload: ApprovalR
     if not service.is_available:
         raise HTTPException(status_code=503, detail="Databricks Lakehouse unavailable; cannot write rules.")
     rule_id = uuid4().hex
-    ok = await service.create_approval_rule(
-        id=rule_id,
-        name=payload.name,
-        rule_type=payload.rule_type,
-        action_summary=payload.action_summary,
-        condition_expression=payload.condition_expression,
-        priority=payload.priority,
-        is_active=payload.is_active,
-    )
+    try:
+        ok = await service.create_approval_rule(
+            id=rule_id,
+            name=payload.name,
+            rule_type=payload.rule_type,
+            action_summary=payload.action_summary,
+            condition_expression=payload.condition_expression,
+            priority=payload.priority,
+            is_active=payload.is_active,
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=f"Failed to write rule to Lakehouse: {e}")
     if not ok:
         raise HTTPException(status_code=502, detail="Failed to write rule to Lakehouse.")
     rows = await service.get_approval_rules(limit=1)
@@ -115,15 +118,18 @@ async def update_approval_rule(
     """Update an approval rule in the Lakehouse."""
     if not service.is_available:
         raise HTTPException(status_code=503, detail="Databricks Lakehouse unavailable; cannot update rules.")
-    ok = await service.update_approval_rule(
-        rule_id,
-        name=payload.name,
-        rule_type=payload.rule_type,
-        condition_expression=payload.condition_expression,
-        action_summary=payload.action_summary,
-        priority=payload.priority,
-        is_active=payload.is_active,
-    )
+    try:
+        ok = await service.update_approval_rule(
+            rule_id,
+            name=payload.name,
+            rule_type=payload.rule_type,
+            condition_expression=payload.condition_expression,
+            action_summary=payload.action_summary,
+            priority=payload.priority,
+            is_active=payload.is_active,
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=f"Failed to update rule in Lakehouse: {e}")
     if not ok:
         raise HTTPException(status_code=502, detail="Failed to update rule in Lakehouse.")
     rows = await service.get_approval_rules(limit=500)
@@ -138,6 +144,9 @@ async def delete_approval_rule(service: DatabricksServiceDep, rule_id: str) -> N
     """Delete an approval rule from the Lakehouse."""
     if not service.is_available:
         raise HTTPException(status_code=503, detail="Databricks Lakehouse unavailable; cannot delete rules.")
-    ok = await service.delete_approval_rule(rule_id)
+    try:
+        ok = await service.delete_approval_rule(rule_id)
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=f"Failed to delete rule from Lakehouse: {e}")
     if not ok:
         raise HTTPException(status_code=502, detail="Failed to delete rule from Lakehouse.")

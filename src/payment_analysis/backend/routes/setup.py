@@ -280,9 +280,12 @@ async def update_setup_config(request: Request, body: SetupConfigIn) -> SetupCon
         schema=bootstrap.schema,
     )
     svc = DatabricksService(config=config)
-    ok = await svc.write_app_config(catalog, schema)
-    if not ok:
-        raise HTTPException(status_code=500, detail="Failed to write app_config.")
+    try:
+        await svc.write_app_config(catalog, schema)
+    except RuntimeError as e:
+        msg = str(e).strip()
+        detail = f"Failed to write app_config: {msg}" if msg else "Failed to write app_config."
+        raise HTTPException(status_code=500, detail=detail)
     request.app.state.uc_config = (catalog, schema)
     return SetupConfigOut(catalog=catalog, schema_name=schema)
 

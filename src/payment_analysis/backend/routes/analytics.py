@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Optional, cast
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import desc, func
 from sqlmodel import select
 from pydantic import BaseModel
@@ -490,15 +490,21 @@ async def submit_insight_feedback(
 
     When Databricks is unavailable, this returns accepted=false.
     """
-    ok = await service.submit_insight_feedback(
-        insight_id=payload.insight_id,
-        insight_type=payload.insight_type,
-        reviewer=payload.reviewer,
-        verdict=payload.verdict,
-        reason=payload.reason,
-        model_version=payload.model_version,
-        prompt_version=payload.prompt_version,
-    )
+    try:
+        ok = await service.submit_insight_feedback(
+            insight_id=payload.insight_id,
+            insight_type=payload.insight_type,
+            reviewer=payload.reviewer,
+            verdict=payload.verdict,
+            reason=payload.reason,
+            model_version=payload.model_version,
+            prompt_version=payload.prompt_version,
+        )
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to submit insight feedback: {e}",
+        )
     return InsightFeedbackOut(accepted=bool(ok))
 
 

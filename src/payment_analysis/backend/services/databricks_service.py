@@ -208,32 +208,43 @@ class DatabricksService:
         Execute a SQL statement that does not return rows (INSERT/UPDATE/DDL).
 
         Returns:
-            True if the statement succeeded, else False (with graceful fallback).
+            True if the statement succeeded.
+
+        Raises:
+            RuntimeError: If client/warehouse unavailable or statement execution failed
+                (includes server error message for app_config and similar callers).
         """
         if not self.is_available:
             logger.warning("Databricks unavailable, skipping non-query execution")
-            return False
+            raise RuntimeError("Databricks connection is not available")
 
         client = self.client
         if client is None:
-            return False
+            raise RuntimeError("Databricks client could not be initialized")
 
-        try:
-            from databricks.sdk.service.sql import StatementState
+        from databricks.sdk.service.sql import StatementState
 
-            warehouse_id = self._get_warehouse_id()
-            if not warehouse_id:
-                raise RuntimeError("No SQL Warehouse available")
-
-            response = client.statement_execution.execute_statement(
-                warehouse_id=warehouse_id,
-                statement=statement,
-                wait_timeout="30s",
+        warehouse_id = self._get_warehouse_id()
+        if not warehouse_id:
+            raise RuntimeError(
+                "No SQL Warehouse available. Set DATABRICKS_WAREHOUSE_ID in the app environment."
             )
-            return bool(response.status and response.status.state == StatementState.SUCCEEDED)
-        except Exception as e:
-            logger.error(f"Non-query execution failed: {e}")
-            return False
+
+        response = client.statement_execution.execute_statement(
+            warehouse_id=warehouse_id,
+            statement=statement,
+            wait_timeout="30s",
+        )
+        if not response.status:
+            raise RuntimeError("Statement execution returned no status")
+        if response.status.state != StatementState.SUCCEEDED:
+            err_obj = getattr(response.status, "error", None)
+            err = (
+                getattr(err_obj, "message", None) if err_obj else None
+            ) or getattr(response.status, "error_message", None) or str(response.status)
+            logger.error("Statement execution failed: %s", err)
+            raise RuntimeError(err or "Statement execution failed")
+        return True
     
     def _get_warehouse_id(self) -> str | None:
         """Get warehouse ID from config or discover first available."""
@@ -567,14 +578,14 @@ class DatabricksService:
             USING DELTA
             TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true')
         """
-        if not await self.execute_non_query(create_sql):
-            return False
+        await self.execute_non_query(create_sql)
         seed_sql = f"""
             INSERT INTO {table} (id, catalog, schema)
             SELECT 1, '{self._escape_sql_string(self.config.catalog)}', '{self._escape_sql_string(self.config.schema)}'
             WHERE (SELECT COUNT(*) FROM {table}) = 0
         """
-        return await self.execute_non_query(seed_sql)
+        await self.execute_non_query(seed_sql)
+        return True
 
     async def write_app_config(self, catalog: str, schema: str) -> bool:
         """
@@ -582,8 +593,7 @@ class DatabricksService:
         Table lives at self.config.full_schema_name (bootstrap from env).
         Creates the table and seed row if they do not exist (so Save works before Lakehouse Bootstrap).
         """
-        if not await self._ensure_app_config_table():
-            return False
+        await self._ensure_app_config_table()
         table = self.config.full_schema_name + ".app_config"
         c, s = self._escape_sql_string(catalog), self._escape_sql_string(schema)
         stmt = f"""
@@ -592,7 +602,8 @@ class DatabricksService:
             WHEN MATCHED THEN UPDATE SET t.catalog = s.catalog, t.schema = s.schema, t.updated_at = current_timestamp()
             WHEN NOT MATCHED THEN INSERT (id, catalog, schema, updated_at) VALUES (1, s.catalog, s.schema, current_timestamp())
         """
-        return await self.execute_non_query(stmt)
+        await self.execute_non_query(stmt)
+        return True
 
     async def get_approval_rules(
         self,
