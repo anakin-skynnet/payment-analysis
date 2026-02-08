@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3, TrendingUp, Shield, DollarSign, Gauge, Users, Calendar, Lock, Award, Zap, ExternalLink, Code2, Activity, MessageSquareText, ArrowRight, Globe, LayoutGrid, ArrowLeft } from "lucide-react";
 import { getWorkspaceUrl, getGenieUrl, openWorkspaceUrl } from "@/config/workspace";
+import { DataSourceBadge } from "@/components/apx/data-source-badge";
 import { friendlyReason } from "@/lib/reasoning";
 import { useListDashboards, useRecentDecisions, getNotebookUrl, useGetDashboardUrl, type DashboardCategory, type DashboardInfo } from "@/lib/api";
 
@@ -180,10 +181,13 @@ export function Component() {
       {/* List view (when not embedding) */}
       {!showEmbedView && (
         <>
-      <div>
-        <h1 className="text-3xl font-bold font-heading">DBSQL dashboards</h1>
-        <p className="text-muted-foreground mt-2 max-w-2xl">
-          AI/BI dashboards for executives and operations: approval rate, decline rate, fraud rate, uplift vs. baseline; visuals by geography, merchant segment, issuer, and payment solution. One Lakehouse-based system for Smart Checkout, Reason Code Performance, and Smart Retry.
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="page-section-title text-3xl font-bold">DBSQL dashboards</h1>
+          <DataSourceBadge />
+        </div>
+        <p className="page-section-description">
+          AI/BI dashboards for executives and operations: approval rate, decline rate, fraud rate, uplift vs. baseline; visuals by geography, merchant segment, issuer, and payment solution. Loaded from your Databricks workspace (Lakeview / DBSQL).
         </p>
       </div>
 

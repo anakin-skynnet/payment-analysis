@@ -95,14 +95,17 @@ function SidebarLayout({ children }: SidebarLayoutProps) {
           </div>
         </SidebarHeader>
         <SidebarContent>{children}</SidebarContent>
-        <SidebarFooter>
+        <SidebarFooter className="border-t border-sidebar-border pt-3">
+          <p className="px-3 pb-2 text-[11px] text-muted-foreground leading-snug" aria-hidden>
+            Data &amp; results from your Databricks workspace
+          </p>
           <SidebarUserFooter />
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
       <SidebarInset className="flex flex-col h-screen">
-        <header className="sticky top-0 z-50 bg-background/85 backdrop-blur-md border-b flex h-16 shrink-0 items-center gap-4 px-4 transition-colors duration-200">
-          <SidebarTrigger className="-ml-1 cursor-pointer rounded-md transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
+        <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border/80 flex h-14 shrink-0 items-center gap-4 px-4 md:px-6 transition-colors duration-200 shadow-sm">
+          <SidebarTrigger className="-ml-1 cursor-pointer rounded-lg p-2 transition-colors hover:bg-sidebar-accent/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" aria-label="Toggle sidebar" />
           <Breadcrumb />
           <div className="flex-1 min-w-0" />
           <CountrySelect className="shrink-0 flex" />
@@ -111,12 +114,12 @@ function SidebarLayout({ children }: SidebarLayoutProps) {
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md">
           Skip to main content
         </a>
-        <div id="main-content" className="flex flex-1 justify-center overflow-auto min-h-0" tabIndex={-1}>
+        <div id="main-content" className="flex flex-1 justify-center overflow-auto min-h-0 main-content-area" tabIndex={-1}>
           <motion.div
             className="flex flex-1 flex-col gap-6 p-6 md:p-8 max-w-7xl w-full"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
           >
             <Outlet />
           </motion.div>

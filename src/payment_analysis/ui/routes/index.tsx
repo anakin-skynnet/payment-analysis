@@ -116,7 +116,7 @@ function Index() {
               variants={item}
               className="text-sm text-muted-foreground"
             >
-              Discover conditions and factors that delay approval rates; get recommendations and automated processes to accelerate them — all in one place.
+              Discover conditions and factors that delay approval rates; get recommendations and automated processes to accelerate them — all in one place. All data and dashboards are loaded from your Databricks workspace.
             </motion.p>
 
             {/* Value proposition */}

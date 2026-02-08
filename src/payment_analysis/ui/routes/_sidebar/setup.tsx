@@ -19,6 +19,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { ensureAbsoluteWorkspaceUrl, getWorkspaceUrl } from "@/config/workspace";
+import { DataSourceBadge } from "@/components/apx/data-source-badge";
 
 export const Route = createFileRoute("/_sidebar/setup")({
   component: () => <SetupRun />,
@@ -181,10 +182,13 @@ function SetupRun() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Setup & Run</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Follow the steps in order. Click **Execute** to open the job or pipeline page in the Databricks workspace, where you can run it directly.
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="page-section-title text-2xl font-semibold">Setup & Run</h1>
+          <DataSourceBadge label="Jobs & pipelines from workspace" />
+        </div>
+        <p className="page-section-description">
+          Follow the steps in order. Click <strong>Execute</strong> to open the job or pipeline page in the Databricks workspace, where you can run it directly.
         </p>
       </div>
 
@@ -419,7 +423,7 @@ function SetupRun() {
 
         {/* Step 1: Lakehouse bootstrap — creates app_config, rules, recommendations */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="card-interactive cursor-pointer"
           onClick={() => openJobRun("lakehouse_bootstrap")}
           role="button"
           tabIndex={0}
@@ -458,7 +462,7 @@ function SetupRun() {
 
         {/* Step 2: Vector Search index */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="card-interactive cursor-pointer"
           onClick={() => openJobRun("vector_search_index")}
           role="button"
           tabIndex={0}
@@ -489,7 +493,7 @@ function SetupRun() {
 
         {/* Step 3: Gold views (data repos) */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="card-interactive cursor-pointer"
           onClick={() => openJobRun("create_gold_views")}
           role="button"
           tabIndex={0}
@@ -520,7 +524,7 @@ function SetupRun() {
 
         {/* Step 4: Events producer simulator */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="card-interactive cursor-pointer"
           onClick={() => openJobRun("transaction_stream_simulator")}
           role="button"
           tabIndex={0}
@@ -551,7 +555,7 @@ function SetupRun() {
 
         {/* Step 5: Optional real-time streaming */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="card-interactive cursor-pointer"
           onClick={() => openPipeline("payment_realtime_pipeline")}
           role="button"
           tabIndex={0}
@@ -590,7 +594,7 @@ function SetupRun() {
 
         {/* Step 6: Ingestion Lakeflow ETL pipeline */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="card-interactive cursor-pointer"
           onClick={() => openPipeline("payment_analysis_etl")}
           role="button"
           tabIndex={0}
@@ -621,7 +625,7 @@ function SetupRun() {
 
         {/* Step 7: Train ML models */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="card-interactive cursor-pointer"
           onClick={() => openJobRun("train_ml_models")}
           role="button"
           tabIndex={0}
@@ -652,7 +656,7 @@ function SetupRun() {
 
         {/* Step 8: Genie space sync — create/prepare Genie space */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="card-interactive cursor-pointer"
           onClick={() => openJobRun("genie_sync")}
           role="button"
           tabIndex={0}
@@ -683,7 +687,7 @@ function SetupRun() {
 
         {/* Step 9: Orchestrator agent */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="card-interactive cursor-pointer"
           onClick={() => openJobRun("orchestrator_agent")}
           role="button"
           tabIndex={0}
@@ -751,7 +755,7 @@ function SetupRun() {
 
         {/* Step 10: Publish dashboards (embed credentials for app UI) */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="card-interactive cursor-pointer"
           onClick={() => openJobRun("publish_dashboards")}
           role="button"
           tabIndex={0}

@@ -42,12 +42,13 @@ function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
     <Link
       to={item.to}
       className={cn(
-        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200",
-        "border-l-2 border-transparent -ml-[2px]",
+        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+        "border-l-[3px] border-transparent -ml-[3px]",
         isActive
-          ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-primary"
-          : "text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
+          ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-primary shadow-sm"
+          : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground hover:border-sidebar-primary/30",
       )}
+      aria-current={isActive ? "page" : undefined}
     >
       {item.icon}
       <span>{item.label}</span>

@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { getDashboardUrl, getGenieUrl, openWorkspaceUrl } from "@/config/workspace";
 import { useEntity } from "@/contexts/entity-context";
+import { DataSourceBadge } from "@/components/apx/data-source-badge";
 
 const dashboardStagger = {
   hidden: { opacity: 0, y: 16 },
@@ -177,12 +178,15 @@ function Dashboard() {
       animate="show"
     >
       {/* Hero: one place to monitor approval rates and discover what’s delaying them */}
-      <motion.div variants={dashboardItem}>
-        <p className="text-base font-medium text-foreground">
-          Monitor approval rates, discover factors delaying approvals, and see where to act.
-        </p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Portfolio performance in the last 30 days — key metrics, trends, and actionable insights for the Getnet team.
+      <motion.div variants={dashboardItem} className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="page-section-title text-2xl md:text-3xl font-bold">
+            KPI overview
+          </h1>
+          <DataSourceBadge />
+        </div>
+        <p className="page-section-description">
+          Monitor approval rates, discover factors delaying approvals, and see where to act. Portfolio performance in the last 30 days — key metrics, trends, and actionable insights from your Databricks Lakehouse.
         </p>
       </motion.div>
 
@@ -217,12 +221,12 @@ function Dashboard() {
         </Card>
       </motion.div>
 
-      {/* Header with Links */}
+      {/* Section: Portfolio KPIs */}
       <motion.div variants={dashboardItem}>
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-heading">
+          <h2 className="page-section-title">
             Portfolio overview
-          </h1>
+          </h2>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={openDashboard}>
               <TrendingUp className="w-4 h-4 mr-2" />

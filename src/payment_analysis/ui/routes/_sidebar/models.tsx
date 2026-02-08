@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, Code2, Brain, TrendingUp, Shield, Waypoints, RotateCcw, AlertCircle } from "lucide-react";
 import { getMLflowUrl, getWorkspaceUrl, openWorkspaceUrl } from "@/config/workspace";
+import { DataSourceBadge } from "@/components/apx/data-source-badge";
 import { useGetModels } from "@/lib/api";
 import { useEntity } from "@/contexts/entity-context";
 
@@ -60,12 +61,15 @@ function Models() {
   return (
     <div className="space-y-6">
       {/* Header with Links */}
-      <div>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">ML Models</h1>
-            <p className="text-sm text-muted-foreground mt-2">
-              Four models (approval propensity, risk, routing, retry) from Setup & Run step 5. Trained on UC data; use in Decisioning and with Rules.
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="page-section-title text-2xl font-semibold">ML Models</h1>
+              <DataSourceBadge label="From UC & MLflow" />
+            </div>
+            <p className="page-section-description">
+              Four models (approval propensity, risk, routing, retry) from Setup & Run step 7. All are <strong>RandomForestClassifier</strong> (scikit-learn), trained in one MLflow experiment on UC data; use in Decisioning and with Rules.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -100,17 +104,17 @@ function Models() {
         </div>
       </div>
 
-      {/* Info Card — real values from Databricks */}
+      {/* Info Card — model types and source */}
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="pt-6">
           <div className="flex gap-3">
             <Brain className="w-5 h-5 text-primary mt-0.5" />
             <div className="space-y-1">
               <p className="text-sm font-medium">
-                All models are trained using scikit-learn and registered to Unity Catalog
+                Model types: all four are RandomForestClassifier (scikit-learn), trained and registered to Unity Catalog
               </p>
               <p className="text-xs text-muted-foreground">
-                Model list, catalog paths, and metrics are fetched from the backend; the backend uses your Databricks config (catalog/schema) for Unity Catalog. Configure DATABRICKS_* for connectivity and data access. Open <strong>MLflow</strong> or <strong>Model Registry</strong> for latest run metrics, or use <strong>Decisioning</strong> for live predictions.
+                Each card shows the purpose of the model experiment, feature set, and catalog path. The backend uses your Databricks config (catalog/schema). Open <strong>MLflow</strong> or <strong>Model Registry</strong> for latest run metrics, or use <strong>Decisioning</strong> for live predictions.
               </p>
             </div>
           </div>
@@ -162,9 +166,12 @@ function Models() {
                   <div className={modelIdColor[model.id] ?? "text-foreground"}>{modelIdIcon[model.id] ?? <Brain className="w-5 h-5" />}</div>
                   {model.name}
                 </CardTitle>
-                <CardDescription className="text-sm leading-relaxed">
-                  {model.description}
-                </CardDescription>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Purpose</p>
+                  <CardDescription className="text-sm leading-relaxed mt-0">
+                    {model.description}
+                  </CardDescription>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Model Type */}
@@ -277,7 +284,7 @@ function Models() {
         <CardHeader>
           <CardTitle className="text-lg">Model Training Pipeline</CardTitle>
           <CardDescription>
-            Automated training workflow using Databricks Jobs and Unity Catalog
+            Automated training workflow (Setup & Run step 7). All four models are RandomForestClassifier; trained in one MLflow experiment and registered to Unity Catalog.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -289,7 +296,7 @@ function Models() {
               <div>
                 <p className="font-medium">Data Loading</p>
                 <p className="text-xs text-muted-foreground">
-                  Loads training data from Unity Catalog Silver tables (payments_enriched_silver)
+                  Loads training data from Unity Catalog Silver table (payments_enriched_silver, last 30 days)
                 </p>
               </div>
             </div>
@@ -300,7 +307,7 @@ function Models() {
               <div>
                 <p className="font-medium">Feature Engineering</p>
                 <p className="text-xs text-muted-foreground">
-                  Extracts and transforms features, handles missing values, encodes categorical variables
+                  Per-model feature sets; missing values filled, categoricals encoded (e.g. decline_reason, merchant_segment one-hot)
                 </p>
               </div>
             </div>
@@ -311,7 +318,7 @@ function Models() {
               <div>
                 <p className="font-medium">Model Training & Evaluation</p>
                 <p className="text-xs text-muted-foreground">
-                  Trains Random Forest models, evaluates using train/test split, logs metrics to MLflow
+                  Trains four RandomForestClassifier models (approval propensity, risk scoring, smart routing, smart retry), train/test split, logs params and metrics to MLflow
                 </p>
               </div>
             </div>
@@ -322,7 +329,7 @@ function Models() {
               <div>
                 <p className="font-medium">Unity Catalog Registration</p>
                 <p className="text-xs text-muted-foreground">
-                  Registers models to Unity Catalog with signatures, making them available for serving and inference
+                  Registers each model to UC with signature (approval_propensity_model, risk_scoring_model, smart_routing_policy, smart_retry_policy) for serving and Decisioning
                 </p>
               </div>
             </div>

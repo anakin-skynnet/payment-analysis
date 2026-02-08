@@ -730,12 +730,14 @@ class DatabricksService:
             return MockDataGenerator.online_features(limit)
 
     async def get_ml_models(self, entity: str = DEFAULT_ENTITY) -> list[dict[str, Any]]:
-        """Return ML model metadata and optional metrics. Catalog path uses config (catalog.schema). entity for future filtering."""
+        """Return ML model metadata and optional metrics. Catalog path uses config (catalog.schema). entity for future filtering.
+        All four models are trained in train_models notebook; model_type and features must match that notebook.
+        """
         base = [
             {
                 "id": "approval_propensity",
                 "name": "Approval Propensity Model",
-                "description": "Predicts the likelihood of transaction approval based on payment characteristics and risk signals. Uses Random Forest Classifier to optimize routing decisions.",
+                "description": "Predicts the probability that a transaction will be approved (binary classification). Used for routing and retry decisions to prioritize high-propensity flows.",
                 "model_type": "RandomForestClassifier",
                 "features": ["amount", "fraud_score", "device_trust_score", "is_cross_border", "retry_count", "uses_3ds"],
                 "model_suffix": "approval_propensity_model",
@@ -744,7 +746,7 @@ class DatabricksService:
             {
                 "id": "risk_scoring",
                 "name": "Risk Scoring Model",
-                "description": "Evaluates transaction risk by combining fraud indicators, AML signals, and behavioral patterns. Identifies high-risk transactions for review.",
+                "description": "Classifies transactions as high-risk (fraud or decline) vs low-risk. Combines fraud score, AML score, and behavioral signals for decline and routing decisions.",
                 "model_type": "RandomForestClassifier",
                 "features": ["amount", "fraud_score", "aml_risk_score", "is_cross_border", "processing_time_ms", "device_trust_score"],
                 "model_suffix": "risk_scoring_model",
@@ -753,7 +755,7 @@ class DatabricksService:
             {
                 "id": "smart_routing",
                 "name": "Smart Routing Policy",
-                "description": "Determines optimal payment solution (standard, 3DS, network token, passkey) based on merchant segment, risk profile, and historical performance.",
+                "description": "Multiclass classifier that recommends payment solution (standard, 3DS, network token, passkey) to maximize approval rate given merchant segment, risk, and 3DS usage.",
                 "model_type": "RandomForestClassifier",
                 "features": ["amount", "fraud_score", "is_cross_border", "uses_3ds", "device_trust_score", "merchant_segment_*"],
                 "model_suffix": "smart_routing_policy",
@@ -762,9 +764,21 @@ class DatabricksService:
             {
                 "id": "smart_retry",
                 "name": "Smart Retry Policy",
-                "description": "Identifies declined transactions with high recovery potential. Recommends optimal retry timing and strategy based on decline reason and transaction context.",
+                "description": "Predicts whether a declined transaction is recoverable (worth retrying). Trained on decline reason, retry context, and merchant policy to recommend retry timing and strategy.",
                 "model_type": "RandomForestClassifier",
-                "features": ["decline_encoded", "retry_count", "amount", "is_recurring", "fraud_score", "device_trust_score"],
+                "features": [
+                    "decline_encoded",
+                    "retry_scenario_encoded",
+                    "retry_count",
+                    "amount",
+                    "is_recurring",
+                    "fraud_score",
+                    "device_trust_score",
+                    "attempt_sequence",
+                    "time_since_last_attempt_seconds",
+                    "prior_approved_count",
+                    "merchant_retry_policy_max_attempts",
+                ],
                 "model_suffix": "smart_retry_policy",
                 "metrics": [],
             },
