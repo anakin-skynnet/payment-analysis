@@ -373,7 +373,7 @@ function SetupRun() {
         {defaults && host && (defaults.jobs?.lakehouse_bootstrap === "0" || !defaults.jobs?.lakehouse_bootstrap) && (
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm text-muted-foreground flex-1 min-w-0">
-              Job and pipeline IDs are resolved from the workspace when you're signed in. If <strong>Execute</strong> is disabled, open this app from <strong>Compute → Apps → payment-analysis</strong> so Databricks forwards your token, then click <strong>Refresh job IDs</strong> below. Or set <code className="rounded bg-muted px-1">DATABRICKS_JOB_ID_*</code> / <code className="rounded bg-muted px-1">DATABRICKS_PIPELINE_ID_*</code> in the app environment (Compute → Apps → payment-analysis → Edit → Environment).
+              <strong>Execute</strong> only enables when the job or pipeline exists in your workspace (IDs are resolved when you are signed in). Each link opens the resource in Databricks (job run page or pipeline page). If Execute is disabled, open this app from <strong>Compute → Apps → payment-analysis</strong> so Databricks forwards your token, then click <strong>Refresh job IDs</strong> below.
             </p>
             <Button
               variant="outline"

@@ -164,7 +164,9 @@ class SetupConfigOut(BaseModel):
 # =============================================================================
 # Resolve job/pipeline IDs by name when env defaults are "0" or missing
 # =============================================================================
-
+# Keys must match DEFAULT_IDS["jobs"] / ["pipelines"] and UI setup step keys.
+# Bundle: ml_jobs.yml (create_gold_views_job, lakehouse_bootstrap_job, etc.),
+# agents.yml, streaming_simulator.yml, genie_spaces.yml; pipelines.yml.
 # Map logical key -> substring that appears in the deployed job/pipeline name (bundle naming).
 _JOB_NAME_SUBSTRINGS: dict[str, str] = {
     "lakehouse_bootstrap": "Lakehouse Bootstrap",
@@ -215,20 +217,14 @@ def _resolve_job_and_pipeline_ids(ws: WorkspaceClient) -> tuple[dict[str, str], 
 
 
 def _merge_resolved_ids(
-    jobs: dict[str, str],
-    pipelines: dict[str, str],
     resolved_jobs: dict[str, str],
     resolved_pipelines: dict[str, str],
+    all_job_keys: dict[str, str],
+    all_pipeline_keys: dict[str, str],
 ) -> tuple[dict[str, str], dict[str, str]]:
-    """Use resolved ID when current value is missing or '0'."""
-    out_jobs = dict(jobs)
-    for key, rid in resolved_jobs.items():
-        if key in out_jobs and (not out_jobs[key] or out_jobs[key] == "0"):
-            out_jobs[key] = rid
-    out_pipelines = dict(pipelines)
-    for key, rid in resolved_pipelines.items():
-        if key in out_pipelines and (not out_pipelines[key] or out_pipelines[key] == "0"):
-            out_pipelines[key] = rid
+    """Return only IDs that were resolved from the workspace (existing resources). Unresolved keys get '0' so Execute is disabled and never opens a non-existent resource."""
+    out_jobs = {k: resolved_jobs.get(k) or "0" for k in all_job_keys}
+    out_pipelines = {k: resolved_pipelines.get(k) or "0" for k in all_pipeline_keys}
     return out_jobs, out_pipelines
 
 
@@ -249,23 +245,29 @@ def get_setup_defaults(
     request: Request,
     ws: WorkspaceClient | None = Depends(get_workspace_client_optional),
 ) -> SetupDefaultsOut:
-    """Return default resource IDs and parameters for the Setup & Run form. When credentials are present, resolves job/pipeline IDs from the workspace by name so steps can be run after deploy without setting env vars."""
+    """Return resource IDs and parameters for Setup & Run. Job/pipeline IDs are only returned when resolved from the workspace (existing resources) so Execute always opens a real job/pipeline in Databricks. Workspace host is always the Databricks workspace URL, never the app URL."""
     host = _get_workspace_host().rstrip("/")
     if not host:
         host = workspace_url_from_apps_host(request.headers.get("host") or "", app_name).rstrip("/")
+    if host and "databricksapps" in host.lower():
+        host = ""  # Never return app URL; links must open in the Databricks workspace
+    host = ensure_absolute_workspace_url(host).rstrip("/") if host else ""
     catalog, schema = _effective_uc_config(request)
-    jobs = dict(DEFAULT_IDS["jobs"])
-    pipelines = dict(DEFAULT_IDS["pipelines"])
-    if ws is not None:
+    if ws is None:
+        jobs = {k: "0" for k in DEFAULT_IDS["jobs"]}
+        pipelines = {k: "0" for k in DEFAULT_IDS["pipelines"]}
+    else:
         resolved_jobs, resolved_pipelines = _resolve_job_and_pipeline_ids(ws)
-        jobs, pipelines = _merge_resolved_ids(jobs, pipelines, resolved_jobs, resolved_pipelines)
+        jobs, pipelines = _merge_resolved_ids(
+            resolved_jobs, resolved_pipelines, DEFAULT_IDS["jobs"], DEFAULT_IDS["pipelines"]
+        )
     return SetupDefaultsOut(
         warehouse_id=DEFAULT_IDS["warehouse_id"],
         catalog=catalog,
         schema_name=schema,
         jobs=jobs,
         pipelines=pipelines,
-        workspace_host=host,
+        workspace_host=host or "",
     )
 
 
