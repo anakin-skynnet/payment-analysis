@@ -17,9 +17,11 @@ import {
   AlertCircle,
   Settings2,
   RefreshCw,
+  Play,
 } from "lucide-react";
 import { ensureAbsoluteWorkspaceUrl, getWorkspaceUrl } from "@/config/workspace";
 import { DataSourceBadge } from "@/components/apx/data-source-badge";
+import { runSetupJob, runSetupPipeline, type RunJobOut, type RunPipelineOut } from "@/lib/api";
 
 export const Route = createFileRoute("/_sidebar/setup")({
   component: () => <SetupRun />,
@@ -77,6 +79,8 @@ function SetupRun() {
     message: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Key of the step currently running (job key or pipeline key) so we show loading on the right button */
+  const [runningStepKey, setRunningStepKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (defaults) {
@@ -102,6 +106,49 @@ function SetupRun() {
     },
   });
 
+  const runJobMutation = useMutation({
+    mutationFn: async (payload: { job_id: string; catalog?: string; schema?: string; warehouse_id?: string }) => {
+      const { data } = await runSetupJob({
+        job_id: payload.job_id,
+        catalog: payload.catalog ?? undefined,
+        schema: payload.schema ?? undefined,
+        warehouse_id: payload.warehouse_id ?? undefined,
+      });
+      return data;
+    },
+    onSuccess: (data: RunJobOut) => {
+      setError(null);
+      if (data.run_page_url) {
+        window.open(data.run_page_url, "_blank", "noopener,noreferrer");
+      }
+      setRunningStepKey(null);
+    },
+    onError: (e: Error) => {
+      setError(e.message);
+      setLastResult(null);
+      setRunningStepKey(null);
+    },
+  });
+
+  const runPipelineMutation = useMutation({
+    mutationFn: async (payload: { pipeline_id: string }) => {
+      const { data } = await runSetupPipeline(payload);
+      return data;
+    },
+    onSuccess: (data: RunPipelineOut) => {
+      setError(null);
+      if (data.pipeline_page_url) {
+        window.open(data.pipeline_page_url, "_blank", "noopener,noreferrer");
+      }
+      setRunningStepKey(null);
+    },
+    onError: (e: Error) => {
+      setError(e.message);
+      setLastResult(null);
+      setRunningStepKey(null);
+    },
+  });
+
   const isJobConfigured = (jobKey: string) => {
     const id = defaults?.jobs?.[jobKey];
     return !!id && id !== "0";
@@ -117,18 +164,42 @@ function SetupRun() {
     ? ensureAbsoluteWorkspaceUrl(rawHost)
     : "";
   const workspaceId = (defaults?.workspace_id || "").trim();
-  /** Open Databricks workspace: job run page when ID is resolved, otherwise jobs list so user can find and run the job. */
-  const openJobRun = (jobKey: string) => {
+  /** Run job via API and open the job run view with the new run_id. */
+  const handleRunJob = (jobKey: string) => {
+    const id = defaults?.jobs?.[jobKey];
+    if (!host || !id || id === "0") return;
+    setRunningStepKey(jobKey);
+    setError(null);
+    runJobMutation.mutate({
+      job_id: id,
+      catalog: catalog || defaults?.catalog,
+      schema: schema || defaults?.schema,
+      warehouse_id: warehouseId || defaults?.warehouse_id,
+    });
+  };
+
+  /** Open Databricks workspace: job page (runs list) when ID is resolved, otherwise jobs list. */
+  const openJobPage = (jobKey: string) => {
     if (!host) return;
     const id = defaults?.jobs?.[jobKey];
     if (id && id !== "0") {
-      window.open(workspaceId ? `${host}/jobs/${id}?o=${workspaceId}` : `${host}/#job/${id}/run`, "_blank", "noopener,noreferrer");
+      const runPath = workspaceId ? `/jobs/${id}?o=${workspaceId}` : `/#job/${id}`;
+      window.open(`${host}${runPath}`, "_blank", "noopener,noreferrer");
     } else {
       window.open(workspaceId ? `${host}/jobs?o=${workspaceId}` : `${host}/jobs`, "_blank", "noopener,noreferrer");
     }
   };
-  /** Open Databricks workspace: pipeline page when ID is resolved, otherwise pipelines list. Both use ?o= when available. */
-  const openPipeline = (pipelineKey: string) => {
+  /** Run pipeline via API and open the pipeline page (shows the update). */
+  const handleRunPipeline = (pipelineKey: string) => {
+    const id = defaults?.pipelines?.[pipelineKey];
+    if (!host || !id || id === "0") return;
+    setRunningStepKey(pipelineKey);
+    setError(null);
+    runPipelineMutation.mutate({ pipeline_id: id });
+  };
+
+  /** Open Databricks workspace: pipeline page when ID is resolved, otherwise pipelines list. */
+  const openPipelinePage = (pipelineKey: string) => {
     if (!host) return;
     const id = defaults?.pipelines?.[pipelineKey];
     const q = workspaceId ? `?o=${workspaceId}` : "";
@@ -188,7 +259,7 @@ function SetupRun() {
           <DataSourceBadge label="Jobs & pipelines from workspace" />
         </div>
         <p className="page-section-description">
-          Follow the steps in order. Click <strong>Execute</strong> to open the job or pipeline page in the Databricks workspace, where you can run it directly.
+          Follow the steps in order. Click <strong>Run</strong> to start the job or pipeline and open the run view in Databricks. Use <strong>Open</strong> to view the job or pipeline in the workspace without running.
         </p>
       </div>
 
@@ -407,7 +478,7 @@ function SetupRun() {
         {defaults && host && (defaults.jobs?.lakehouse_bootstrap === "0" || !defaults.jobs?.lakehouse_bootstrap) && (
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm text-muted-foreground flex-1 min-w-0">
-              <strong>Execute</strong> only enables when the job or pipeline exists in your workspace (IDs are resolved when you are signed in). Each link opens the resource in Databricks (job run page or pipeline page). If Execute is disabled, open this app from <strong>Compute → Apps → payment-analysis</strong> so Databricks forwards your token, then click <strong>Refresh job IDs</strong> below.
+              <strong>Run</strong> starts the job or pipeline and opens the run view in Databricks. It is enabled when the job or pipeline exists in your workspace (IDs are resolved when you are signed in). If Run is disabled, open this app from <strong>Compute → Apps → payment-analysis</strong> so Databricks forwards your token, then click <strong>Refresh job IDs</strong> below.
             </p>
             <Button
               variant="outline"
@@ -424,10 +495,10 @@ function SetupRun() {
         {/* Step 1: Lakehouse bootstrap — creates app_config, rules, recommendations */}
         <Card
           className="card-interactive cursor-pointer"
-          onClick={() => openJobRun("lakehouse_bootstrap")}
+          onClick={() => openJobPage("lakehouse_bootstrap")}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobRun("lakehouse_bootstrap")}
+          onKeyDown={(e) => e.key === "Enter" && openJobPage("lakehouse_bootstrap")}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -443,11 +514,19 @@ function SetupRun() {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <Button
-              onClick={() => openJobRun("lakehouse_bootstrap")}
+              onClick={() => handleRunJob("lakehouse_bootstrap")}
+              disabled={!host || !isJobConfigured("lakehouse_bootstrap")}
+            >
+              {runningStepKey === "lakehouse_bootstrap" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Run
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openJobPage("lakehouse_bootstrap")}
               disabled={!host}
             >
-              Execute
-              <ExternalLink className="ml-1 h-3 w-3" />
+              Open <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
             <Button
               variant="outline"
@@ -463,10 +542,10 @@ function SetupRun() {
         {/* Step 2: Vector Search index */}
         <Card
           className="card-interactive cursor-pointer"
-          onClick={() => openJobRun("vector_search_index")}
+          onClick={() => openJobPage("vector_search_index")}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobRun("vector_search_index")}
+          onKeyDown={(e) => e.key === "Enter" && openJobPage("vector_search_index")}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -482,11 +561,14 @@ function SetupRun() {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <Button
-              onClick={() => openJobRun("vector_search_index")}
-              disabled={!host}
+              onClick={() => handleRunJob("vector_search_index")}
+              disabled={!host || !isJobConfigured("vector_search_index")}
             >
-              Execute
-              <ExternalLink className="ml-1 h-3 w-3" />
+              {runningStepKey === "vector_search_index" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Run
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openJobPage("vector_search_index")} disabled={!host}>
+              Open <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>
@@ -494,10 +576,10 @@ function SetupRun() {
         {/* Step 3: Gold views (data repos) */}
         <Card
           className="card-interactive cursor-pointer"
-          onClick={() => openJobRun("create_gold_views")}
+          onClick={() => openJobPage("create_gold_views")}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobRun("create_gold_views")}
+          onKeyDown={(e) => e.key === "Enter" && openJobPage("create_gold_views")}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -513,11 +595,14 @@ function SetupRun() {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <Button
-              onClick={() => openJobRun("create_gold_views")}
-              disabled={!host}
+              onClick={() => handleRunJob("create_gold_views")}
+              disabled={!host || !isJobConfigured("create_gold_views")}
             >
-              Execute
-              <ExternalLink className="ml-1 h-3 w-3" />
+              {runningStepKey === "create_gold_views" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Run
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openJobPage("create_gold_views")} disabled={!host}>
+              Open <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>
@@ -525,10 +610,10 @@ function SetupRun() {
         {/* Step 4: Events producer simulator */}
         <Card
           className="card-interactive cursor-pointer"
-          onClick={() => openJobRun("transaction_stream_simulator")}
+          onClick={() => openJobPage("transaction_stream_simulator")}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobRun("transaction_stream_simulator")}
+          onKeyDown={(e) => e.key === "Enter" && openJobPage("transaction_stream_simulator")}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -544,11 +629,14 @@ function SetupRun() {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <Button
-              onClick={() => openJobRun("transaction_stream_simulator")}
-              disabled={!host}
+              onClick={() => handleRunJob("transaction_stream_simulator")}
+              disabled={!host || !isJobConfigured("transaction_stream_simulator")}
             >
-              Execute
-              <ExternalLink className="ml-1 h-3 w-3" />
+              {runningStepKey === "transaction_stream_simulator" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Run
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openJobPage("transaction_stream_simulator")} disabled={!host}>
+              Open <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>
@@ -556,10 +644,10 @@ function SetupRun() {
         {/* Step 5: Optional real-time streaming */}
         <Card
           className="card-interactive cursor-pointer"
-          onClick={() => openPipeline("payment_realtime_pipeline")}
+          onClick={() => openPipelinePage("payment_realtime_pipeline")}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openPipeline("payment_realtime_pipeline")}
+          onKeyDown={(e) => e.key === "Enter" && openPipelinePage("payment_realtime_pipeline")}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -575,19 +663,25 @@ function SetupRun() {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <Button
-              onClick={() => openPipeline("payment_realtime_pipeline")}
-              disabled={!host}
+              onClick={() => handleRunPipeline("payment_realtime_pipeline")}
+              disabled={!host || !defaults?.pipelines?.payment_realtime_pipeline || defaults.pipelines.payment_realtime_pipeline === "0"}
             >
-              Execute (pipeline)
-              <ExternalLink className="ml-1 h-3 w-3" />
+              {runningStepKey === "payment_realtime_pipeline" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Run (pipeline)
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openPipelinePage("payment_realtime_pipeline")} disabled={!host}>
+              Open pipeline <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
             <Button
               variant="outline"
-              onClick={() => openJobRun("continuous_stream_processor")}
-              disabled={!host}
+              onClick={() => handleRunJob("continuous_stream_processor")}
+              disabled={!host || !isJobConfigured("continuous_stream_processor")}
             >
-              Execute (stream processor)
-              <ExternalLink className="ml-1 h-3 w-3" />
+              {runningStepKey === "continuous_stream_processor" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Run (stream processor)
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openJobPage("continuous_stream_processor")} disabled={!host}>
+              Open job <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>
@@ -595,10 +689,10 @@ function SetupRun() {
         {/* Step 6: Ingestion Lakeflow ETL pipeline */}
         <Card
           className="card-interactive cursor-pointer"
-          onClick={() => openPipeline("payment_analysis_etl")}
+          onClick={() => openPipelinePage("payment_analysis_etl")}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openPipeline("payment_analysis_etl")}
+          onKeyDown={(e) => e.key === "Enter" && openPipelinePage("payment_analysis_etl")}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -614,11 +708,14 @@ function SetupRun() {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <Button
-              onClick={() => openPipeline("payment_analysis_etl")}
-              disabled={!host}
+              onClick={() => handleRunPipeline("payment_analysis_etl")}
+              disabled={!host || !defaults?.pipelines?.payment_analysis_etl || defaults.pipelines.payment_analysis_etl === "0"}
             >
-              Execute
-              <ExternalLink className="ml-1 h-3 w-3" />
+              {runningStepKey === "payment_analysis_etl" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Run
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openPipelinePage("payment_analysis_etl")} disabled={!host}>
+              Open <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>
@@ -626,10 +723,10 @@ function SetupRun() {
         {/* Step 7: Train ML models */}
         <Card
           className="card-interactive cursor-pointer"
-          onClick={() => openJobRun("train_ml_models")}
+          onClick={() => openJobPage("train_ml_models")}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobRun("train_ml_models")}
+          onKeyDown={(e) => e.key === "Enter" && openJobPage("train_ml_models")}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -645,11 +742,14 @@ function SetupRun() {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <Button
-              onClick={() => openJobRun("train_ml_models")}
-              disabled={!host}
+              onClick={() => handleRunJob("train_ml_models")}
+              disabled={!host || !isJobConfigured("train_ml_models")}
             >
-              Execute
-              <ExternalLink className="ml-1 h-3 w-3" />
+              {runningStepKey === "train_ml_models" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Run
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openJobPage("train_ml_models")} disabled={!host}>
+              Open <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>
@@ -657,10 +757,10 @@ function SetupRun() {
         {/* Step 8: Genie space sync — create/prepare Genie space */}
         <Card
           className="card-interactive cursor-pointer"
-          onClick={() => openJobRun("genie_sync")}
+          onClick={() => openJobPage("genie_sync")}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobRun("genie_sync")}
+          onKeyDown={(e) => e.key === "Enter" && openJobPage("genie_sync")}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -676,11 +776,14 @@ function SetupRun() {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <Button
-              onClick={() => openJobRun("genie_sync")}
-              disabled={!host}
+              onClick={() => handleRunJob("genie_sync")}
+              disabled={!host || !isJobConfigured("genie_sync")}
             >
-              Execute
-              <ExternalLink className="ml-1 h-3 w-3" />
+              {runningStepKey === "genie_sync" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Run
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openJobPage("genie_sync")} disabled={!host}>
+              Open <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>
@@ -688,10 +791,10 @@ function SetupRun() {
         {/* Step 9: Orchestrator agent */}
         <Card
           className="card-interactive cursor-pointer"
-          onClick={() => openJobRun("orchestrator_agent")}
+          onClick={() => openJobPage("orchestrator_agent")}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobRun("orchestrator_agent")}
+          onKeyDown={(e) => e.key === "Enter" && openJobPage("orchestrator_agent")}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -707,11 +810,14 @@ function SetupRun() {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <Button
-              onClick={() => openJobRun("orchestrator_agent")}
-              disabled={!host}
+              onClick={() => handleRunJob("orchestrator_agent")}
+              disabled={!host || !isJobConfigured("orchestrator_agent")}
             >
-              Execute
-              <ExternalLink className="ml-1 h-3 w-3" />
+              {runningStepKey === "orchestrator_agent" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Run
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openJobPage("orchestrator_agent")} disabled={!host}>
+              Open <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>
@@ -738,17 +844,28 @@ function SetupRun() {
               { key: "risk_assessor_agent", label: "Risk Assessor" },
               { key: "performance_recommender_agent", label: "Performance Recommender" },
             ].map(({ key, label }) => (
-              <Button
-                key={key}
-                variant="outline"
-                size="sm"
-                onClick={() => openJobRun(key)}
-                disabled={!host}
-                title={`Open ${label} job in Databricks workspace`}
-              >
-                {label}
-                <ExternalLink className="ml-1 h-3 w-3" />
-              </Button>
+              <span key={key} className="inline-flex items-center gap-1">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => handleRunJob(key)}
+                  disabled={!host || !isJobConfigured(key)}
+                  title={`Run ${label} and open run view`}
+                >
+                  {runningStepKey === key ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Play className="h-3 w-3 mr-1" />}
+                  Run
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openJobPage(key)}
+                  disabled={!host}
+                  title={`Open ${label} job in Databricks workspace`}
+                >
+                  {label}
+                  <ExternalLink className="ml-1 h-3 w-3" />
+                </Button>
+              </span>
             ))}
           </CardContent>
         </Card>
@@ -756,10 +873,10 @@ function SetupRun() {
         {/* Step 10: Publish dashboards (embed credentials for app UI) */}
         <Card
           className="card-interactive cursor-pointer"
-          onClick={() => openJobRun("publish_dashboards")}
+          onClick={() => openJobPage("publish_dashboards")}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobRun("publish_dashboards")}
+          onKeyDown={(e) => e.key === "Enter" && openJobPage("publish_dashboards")}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -775,11 +892,14 @@ function SetupRun() {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <Button
-              onClick={() => openJobRun("publish_dashboards")}
-              disabled={!host}
+              onClick={() => handleRunJob("publish_dashboards")}
+              disabled={!host || !isJobConfigured("publish_dashboards")}
             >
-              Execute
-              <ExternalLink className="ml-1 h-3 w-3" />
+              {runningStepKey === "publish_dashboards" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Run
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openJobPage("publish_dashboards")} disabled={!host}>
+              Open <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>
@@ -837,16 +957,16 @@ function SetupRun() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => openJobRun("continuous_stream_processor")}
+            onClick={() => openJobPage("continuous_stream_processor")}
             disabled={!host}
           >
-            Stream processor (job run) <ExternalLink className="ml-1 h-3 w-3" />
+            Stream processor job <ExternalLink className="ml-1 h-3 w-3" />
           </Button>
           {isJobConfigured("test_agent_framework") && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => openJobRun("test_agent_framework")}
+              onClick={() => openJobPage("test_agent_framework")}
               disabled={!host}
             >
               Test Agent Framework <ExternalLink className="ml-1 h-3 w-3" />

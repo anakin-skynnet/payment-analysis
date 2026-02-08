@@ -12,7 +12,7 @@
 resources:
   jobs:
     smart_routing_agent_job:
-      name: "[${var.environment}] Smart Routing Agent"
+      name: "[${var.environment}] 10. Smart Routing Agent"
       description: "Optimizes payment routing and cascading strategies"
       tasks:
         - task_key: run_smart_routing
@@ -45,7 +45,7 @@ resources:
         agent: smart_routing
 
     smart_retry_agent_job:
-      name: "[${var.environment}] Smart Retry Agent"
+      name: "[${var.environment}] 11. Smart Retry Agent"
       description: "Intelligent payment retry and recovery optimization"
       tasks:
         - task_key: run_smart_retry
@@ -78,7 +78,7 @@ resources:
         agent: smart_retry
 
     decline_analyst_agent_job:
-      name: "[${var.environment}] Decline Analyst Agent"
+      name: "[${var.environment}] 12. Decline Analyst Agent"
       description: "Automated decline pattern analysis and recommendations"
       tasks:
         - task_key: run_decline_analysis
@@ -111,7 +111,7 @@ resources:
         agent: decline_analyst
 
     risk_assessor_agent_job:
-      name: "[${var.environment}] Risk Assessor Agent"
+      name: "[${var.environment}] 13. Risk Assessor Agent"
       description: "Automated risk assessment and fraud detection"
       tasks:
         - task_key: run_risk_assessment
@@ -144,7 +144,7 @@ resources:
         agent: risk_assessor
 
     performance_recommender_agent_job:
-      name: "[${var.environment}] Performance Recommender Agent"
+      name: "[${var.environment}] 14. Performance Recommender Agent"
       description: "Comprehensive performance optimization recommendations"
       tasks:
         - task_key: run_performance_analysis
@@ -177,7 +177,7 @@ resources:
         agent: performance_recommender
 
     orchestrator_agent_job:
-      name: "[${var.environment}] Payment Analysis Orchestrator"
+      name: "[${var.environment}] 09. Payment Analysis Orchestrator"
       description: "Orchestrates all payment analysis agents for comprehensive insights"
       max_concurrent_runs: 1
       tasks:

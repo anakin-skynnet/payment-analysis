@@ -8,7 +8,7 @@
 resources:
   jobs:
     transaction_stream_simulator:
-      name: "[${var.environment}] Transaction Stream Simulator"
+      name: "[${var.environment}] 04. Transaction Stream Simulator"
       description: "Generates payment events at high volume for real-time pipeline testing"
       tasks:
         - task_key: generate_transactions
@@ -41,7 +41,7 @@ resources:
         domain: payment-analytics
 
     continuous_stream_processor:
-      name: "[${var.environment}] Continuous Stream Processor"
+      name: "[${var.environment}] 05. Continuous Stream Processor"
       description: "Always-on job that processes streaming payment events in real-time"
       tasks:
         - task_key: process_stream

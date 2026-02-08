@@ -4,23 +4,18 @@
 # Train ML models, create gold views (SQL), dashboard assets, and test the agent framework.
 # Catalog/schema from variables. Gold views job uses SQL warehouse resource.
 #
-# Execution order (Setup & Run in the app): 1 Lakehouse bootstrap, 2 Vector Search, 3 Gold views,
-# 4 Simulator, 5 Optional real-time streaming, 6 ETL pipeline, 7 Train ML, 8 Genie sync, 9 Agents, 10 Publish dashboards.
-# See docs/DEPLOYMENT_GUIDE.md and the Setup & Run page.
+# Execution order: job names include step prefix (00–15) for recommended run order.
+# 00 Prepare → 01 Lakehouse bootstrap → 02 Vector Search → 03 Gold views → 04 Simulator →
+# 05 Continuous stream → 06 Train ML → 07 Genie sync → 08 Test agent → 09 Orchestrator →
+# 10–14 Specialist agents → 15 Publish dashboards. See docs/DEPLOYMENT_GUIDE.md and Setup & Run.
 #
-# Dashboard job pipeline (no duplicates; each has a distinct purpose):
-#   1. prepare_dashboards_job  — Generates .build/dashboards/*.json and .build/transform/*.sql
-#      (catalog/schema substitution). Run when catalog/schema or source dashboards change.
-#   2. create_gold_views_job   — Executes .build/transform/gold_views.sql to create/refresh
-#      analytical views. Run on schedule or after prepare. Depends on prepare output.
-#   3. publish_dashboards_job  — Publishes deployed dashboards with embed credentials (Lakeview
-#      API). Run after bundle deploy so the app can embed dashboards. Does not run prepare.
+# Dashboard jobs: 00 prepare_dashboards, 03 create_gold_views, 15 publish_dashboards.
 # =============================================================================
 
 resources:
   jobs:
     train_ml_models_job:
-      name: "[${var.environment}] Train Payment Approval ML Models"
+      name: "[${var.environment}] 06. Train Payment Approval ML Models"
       description: "Train approval propensity, risk scoring, smart routing, and smart retry models; registers in Unity Catalog"
       tasks:
         - task_key: train_models
@@ -54,15 +49,26 @@ resources:
         domain: payment-analytics
 
     create_gold_views_job:
-      name: "[${var.environment}] Create Payment Analysis Gold Views"
-      description: "Execute SQL to create all gold-layer analytical views for dashboards and Genie. Uses .build/transform/gold_views.sql (run scripts/dashboards.py prepare first) so views are created in var.catalog.var.schema."
+      name: "[${var.environment}] 03. Create Payment Analysis Gold Views"
+      description: "Execute SQL to create all gold-layer analytical views for dashboards and Genie. Uses notebook that reads from synced src/payment_analysis/transform/gold_views.sql (no .build dependency)."
       tasks:
         - task_key: create_views
           description: "Create gold views for dashboards and analytics"
-          sql_task:
-            warehouse_id: ${resources.sql_warehouses.payment_analysis_warehouse.id}
-            file:
-              path: ${workspace.file_path}/.build/transform/gold_views.sql
+          notebook_task:
+            notebook_path: ${workspace.file_path}/src/payment_analysis/transform/run_gold_views
+            base_parameters:
+              workspace_path: ${workspace.file_path}
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: "Standard_DS3_v2"
+            num_workers: 0
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: "local[*]"
+            custom_tags:
+              ResourceClass: SingleNode
           timeout_seconds: 600
           max_retries: 2
       schedule:
@@ -76,7 +82,7 @@ resources:
         domain: payment-analytics
 
     lakehouse_bootstrap_job:
-      name: "[${var.environment}] Lakehouse Bootstrap (app_config, rules, recommendations)"
+      name: "[${var.environment}] 01. Lakehouse Bootstrap (app_config, rules, recommendations)"
       description: "Run lakehouse_bootstrap.sql once to create app_config, approval_rules, approval_recommendations, online_features. Uses notebook that reads from synced src/payment_analysis/transform/lakehouse_bootstrap.sql (no .build dependency)."
       tasks:
         - task_key: bootstrap
@@ -109,7 +115,7 @@ resources:
         domain: payment-analytics
 
     vector_search_index_job:
-      name: "[${var.environment}] Create Vector Search Index"
+      name: "[${var.environment}] 02. Create Vector Search Index"
       description: "Create vector search endpoint and delta-sync index for similar-transaction lookup. Source: transaction_summaries_for_search. Run after Lakehouse Bootstrap."
       tasks:
         - task_key: create_index
@@ -142,7 +148,7 @@ resources:
         domain: payment-analytics
 
     prepare_dashboards_job:
-      name: "[${var.environment}] Prepare Dashboard Assets"
+      name: "[${var.environment}] 00. Prepare Dashboard Assets"
       description: "Run scripts/dashboards.py prepare to copy dashboard JSONs to .build/dashboards and gold_views.sql to .build/transform with catalog/schema substitution. Run before or after deploy to generate dashboard assets in the workspace."
       tasks:
         - task_key: prepare
@@ -175,7 +181,7 @@ resources:
         domain: payment-analytics
 
     publish_dashboards_job:
-      name: "[${var.environment}] Publish Dashboards (Embed Credentials)"
+      name: "[${var.environment}] 15. Publish Dashboards (Embed Credentials)"
       description: "List dashboards under the workspace dashboards folder and publish each with embed credentials so they can be embedded in the app UI. Run after bundle deploy or when you need to refresh published state."
       tasks:
         - task_key: publish_dashboards
@@ -206,7 +212,7 @@ resources:
         domain: payment-analytics
 
     test_agent_framework_job:
-      name: "[${var.environment}] Test AI Agent Framework"
+      name: "[${var.environment}] 08. Test AI Agent Framework"
       description: "Verify multi-agent framework with orchestrator and specialist agents"
       tasks:
         - task_key: test_agents
