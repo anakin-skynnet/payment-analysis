@@ -8,13 +8,13 @@ parameters (catalog, schema, warehouse_id). Used by the Setup & Run page.
 from __future__ import annotations
 
 import os
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from ..config import AppConfig
-from ..dependencies import get_obo_ws
+from ..dependencies import AUTH_REQUIRED_DETAIL, get_workspace_client
 from ..services.databricks_service import DatabricksConfig, DatabricksService
 from databricks.sdk import WorkspaceClient
 
@@ -59,7 +59,10 @@ DEFAULT_IDS: _DefaultIds = {
     "jobs": {
         "transaction_stream_simulator": os.getenv(_job_id_env_key("transaction_stream_simulator"), "782493643247677") or "782493643247677",
         "create_gold_views": os.getenv(_job_id_env_key("create_gold_views"), "775632375108394") or "775632375108394",
+        "lakehouse_bootstrap": os.getenv(_job_id_env_key("lakehouse_bootstrap"), "0") or "0",
+        "vector_search_index": os.getenv(_job_id_env_key("vector_search_index"), "0") or "0",
         "train_ml_models": os.getenv(_job_id_env_key("train_ml_models"), "231255282351595") or "231255282351595",
+        "genie_sync": os.getenv(_job_id_env_key("genie_sync"), "0") or "0",
         "orchestrator_agent": os.getenv(_job_id_env_key("orchestrator_agent"), "582671124403091") or "582671124403091",
         "smart_routing_agent": os.getenv(_job_id_env_key("smart_routing_agent"), "767448715494660") or "767448715494660",
         "smart_retry_agent": os.getenv(_job_id_env_key("smart_retry_agent"), "109985467901177") or "109985467901177",
@@ -170,7 +173,7 @@ def get_setup_defaults(request: Request) -> SetupDefaultsOut:
 
 @router.patch("/config", response_model=SetupConfigOut, operation_id="updateSetupConfig")
 async def update_setup_config(request: Request, body: SetupConfigIn) -> SetupConfigOut:
-    """Update effective catalog and schema in app_config table and app state."""
+    """Update effective catalog and schema in app_config table and app state. Uses your credentials when logged in (OBO) or DATABRICKS_TOKEN when set."""
     catalog = (body.catalog or "").strip()
     schema = (body.schema_name or "").strip()
     if not catalog or not schema:
@@ -179,23 +182,24 @@ async def update_setup_config(request: Request, body: SetupConfigIn) -> SetupCon
             detail="catalog and schema are required and must be non-empty.",
         )
     bootstrap = DatabricksConfig.from_environment()
-    if not (bootstrap.host and bootstrap.token and bootstrap.warehouse_id):
-        missing = []
-        if not bootstrap.host:
-            missing.append("DATABRICKS_HOST")
-        if not bootstrap.token:
-            missing.append("DATABRICKS_TOKEN")
-        if not bootstrap.warehouse_id:
-            missing.append("DATABRICKS_WAREHOUSE_ID")
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Databricks credentials not configured; cannot update app_config. "
-                f"Set in the app environment: {', '.join(missing)}. "
-                "See docs/DEPLOYMENT_GUIDE.md → Deploy app as a Databricks App."
-            ),
-        )
-    svc = DatabricksService(config=bootstrap)
+    obo_token = request.headers.get("X-Forwarded-Access-Token")
+    if not obo_token and not bootstrap.token:
+        raise HTTPException(status_code=401, detail=AUTH_REQUIRED_DETAIL)
+    missing = []
+    if not bootstrap.host:
+        missing.append("DATABRICKS_HOST")
+    if not bootstrap.warehouse_id:
+        missing.append("DATABRICKS_WAREHOUSE_ID")
+    if missing:
+        raise HTTPException(status_code=503, detail=f"Set in the app environment: {', '.join(missing)}.")
+    config = DatabricksConfig(
+        host=bootstrap.host,
+        token=obo_token or bootstrap.token,
+        warehouse_id=bootstrap.warehouse_id,
+        catalog=bootstrap.catalog,
+        schema=bootstrap.schema,
+    )
+    svc = DatabricksService(config=config)
     ok = await svc.write_app_config(catalog, schema)
     if not ok:
         raise HTTPException(status_code=500, detail="Failed to write app_config.")
@@ -207,7 +211,7 @@ async def update_setup_config(request: Request, body: SetupConfigIn) -> SetupCon
 def run_setup_job(
     request: Request,
     body: RunJobIn,
-    obo_ws: WorkspaceClient = Depends(get_obo_ws),
+    ws: WorkspaceClient = Depends(get_workspace_client),
 ) -> RunJobOut:
     """Run a Databricks job with optional notebook/SQL parameters."""
     host = _get_workspace_host().rstrip("/")
@@ -226,7 +230,7 @@ def run_setup_job(
         notebook_params["duration_minutes"] = body.duration_minutes
 
     try:
-        run = obo_ws.jobs.run_now(
+        run = ws.jobs.run_now(
             job_id=int(body.job_id),
             notebook_params=notebook_params,
             python_params=None,
@@ -248,13 +252,14 @@ def run_setup_job(
 
 @router.post("/run-pipeline", response_model=RunPipelineOut, operation_id="runSetupPipeline")
 def run_setup_pipeline(
+    request: Request,
     body: RunPipelineIn,
-    obo_ws: WorkspaceClient = Depends(get_obo_ws),
+    ws: WorkspaceClient = Depends(get_workspace_client),
 ) -> RunPipelineOut:
     """Start a Lakeflow pipeline update."""
     host = _get_workspace_host().rstrip("/")
     try:
-        update = obo_ws.pipelines.start_update(pipeline_id=body.pipeline_id)
+        update = ws.pipelines.start_update(pipeline_id=body.pipeline_id)
         update_id = update.update_id or "unknown"
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

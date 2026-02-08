@@ -14,3 +14,9 @@ class WorkspaceConfigOut(BaseModel):
     """Workspace URL for building links to jobs, pipelines, dashboards, etc."""
 
     workspace_url: str
+
+
+class AuthStatusOut(BaseModel):
+    """Whether the request is authenticated (e.g. via Databricks user authorization / OBO)."""
+
+    authenticated: bool

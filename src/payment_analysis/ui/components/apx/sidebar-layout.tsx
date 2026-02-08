@@ -17,8 +17,8 @@ import Logo from "@/components/apx/logo";
 
 const PATH_LABELS: Record<string, string> = {
   "/dashboard": "KPI overview",
+  "/dashboards": "Dashboards",
   "/setup": "Setup & run",
-  "/dashboards": "DBSQL dashboards",
   "/notebooks": "Notebooks",
   "/models": "ML models",
   "/ai-agents": "AI agents",
@@ -26,9 +26,9 @@ const PATH_LABELS: Record<string, string> = {
   "/rules": "Rules",
   "/experiments": "Experiments",
   "/incidents": "Incidents",
-  "/declines": "Declines",
+  "/declines": "Declines & insights",
   "/smart-checkout": "Smart Checkout",
-  "/reason-codes": "Reason codes",
+  "/reason-codes": "Reason Codes",
   "/smart-retry": "Smart Retry",
   "/profile": "Profile",
 };

@@ -194,7 +194,7 @@ function Dashboard() {
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2 pt-0">
             <Button variant="outline" size="sm" asChild>
-              <Link to="/dashboards">
+              <Link to="/dashboards" search={{}}>
                 DBSQL dashboards <ArrowRight className="w-3 h-3 ml-1" />
               </Link>
             </Button>

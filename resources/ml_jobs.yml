@@ -1,8 +1,16 @@
 # =============================================================================
 # ML and Analytics Jobs
 # =============================================================================
-# Train ML models, create gold views (SQL), and test the agent framework.
+# Train ML models, create gold views (SQL), dashboard assets, and test the agent framework.
 # Catalog/schema from variables. Gold views job uses SQL warehouse resource.
+#
+# Dashboard job pipeline (no duplicates; each has a distinct purpose):
+#   1. prepare_dashboards_job  — Generates .build/dashboards/*.json and .build/transform/*.sql
+#      (catalog/schema substitution). Run when catalog/schema or source dashboards change.
+#   2. create_gold_views_job   — Executes .build/transform/gold_views.sql to create/refresh
+#      analytical views. Run on schedule or after prepare. Depends on prepare output.
+#   3. publish_dashboards_job  — Publishes deployed dashboards with embed credentials (Lakeview
+#      API). Run after bundle deploy so the app can embed dashboards. Does not run prepare.
 # =============================================================================
 
 resources:
@@ -61,6 +69,125 @@ resources:
         environment: ${var.environment}
         project: payment-analysis
         component: gold-views
+        domain: payment-analytics
+
+    lakehouse_bootstrap_job:
+      name: "[${var.environment}] Lakehouse Bootstrap (app_config, rules, recommendations)"
+      description: "Run lakehouse_bootstrap.sql once to create app_config, approval_rules, approval_recommendations, online_features. Uses .build/transform/lakehouse_bootstrap.sql (from scripts/dashboards.py prepare)."
+      tasks:
+        - task_key: bootstrap
+          description: "Create Lakehouse tables and views for Rules, Decisioning, and Dashboard"
+          sql_task:
+            warehouse_id: ${resources.sql_warehouses.payment_analysis_warehouse.id}
+            file:
+              path: ${workspace.file_path}/.build/transform/lakehouse_bootstrap.sql
+          timeout_seconds: 300
+          max_retries: 2
+      schedule:
+        quartz_cron_expression: "0 0 1 1 1 ?"
+        timezone_id: "UTC"
+        pause_status: "PAUSED"
+      tags:
+        environment: ${var.environment}
+        project: payment-analysis
+        component: lakehouse-bootstrap
+        domain: payment-analytics
+
+    vector_search_index_job:
+      name: "[${var.environment}] Create Vector Search Index"
+      description: "Create vector search endpoint and delta-sync index for similar-transaction lookup. Source: transaction_summaries_for_search. Run after Lakehouse Bootstrap."
+      tasks:
+        - task_key: create_index
+          description: "Create endpoint and index (or trigger sync)"
+          notebook_task:
+            notebook_path: ${workspace.file_path}/src/payment_analysis/vector_search/create_index
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              environment: ${var.environment}
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: "Standard_DS3_v2"
+            num_workers: 0
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: "local[*]"
+            custom_tags:
+              ResourceClass: SingleNode
+          timeout_seconds: 1200
+          max_retries: 1
+      schedule:
+        quartz_cron_expression: "0 0 2 1 1 ?"
+        timezone_id: "UTC"
+        pause_status: "PAUSED"
+      tags:
+        environment: ${var.environment}
+        project: payment-analysis
+        component: vector-search
+        domain: payment-analytics
+
+    prepare_dashboards_job:
+      name: "[${var.environment}] Prepare Dashboard Assets"
+      description: "Run scripts/dashboards.py prepare to copy dashboard JSONs to .build/dashboards and gold_views.sql to .build/transform with catalog/schema substitution. Run before or after deploy to generate dashboard assets in the workspace."
+      tasks:
+        - task_key: prepare
+          description: "Prepare dashboard assets (catalog/schema substitution)"
+          notebook_task:
+            notebook_path: ${workspace.file_path}/src/payment_analysis/transform/prepare_dashboards
+            base_parameters:
+              workspace_path: ${workspace.file_path}
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: "Standard_DS3_v2"
+            num_workers: 0
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: "local[*]"
+            custom_tags:
+              ResourceClass: SingleNode
+          timeout_seconds: 600
+          max_retries: 2
+      schedule:
+        quartz_cron_expression: "0 0 11 * * ?"
+        timezone_id: "UTC"
+        pause_status: "PAUSED"
+      tags:
+        environment: ${var.environment}
+        project: payment-analysis
+        component: dashboards
+        domain: payment-analytics
+
+    publish_dashboards_job:
+      name: "[${var.environment}] Publish Dashboards (Embed Credentials)"
+      description: "List dashboards under the workspace dashboards folder and publish each with embed credentials so they can be embedded in the app UI. Run after bundle deploy or when you need to refresh published state."
+      tasks:
+        - task_key: publish_dashboards
+          description: "Publish all AI/BI dashboards with embed credentials"
+          notebook_task:
+            notebook_path: ${workspace.file_path}/src/payment_analysis/transform/publish_dashboards
+            base_parameters:
+              dashboards_path: ${workspace.root_path}/dashboards
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: "Standard_DS3_v2"
+            num_workers: 0
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: "local[*]"
+            custom_tags:
+              ResourceClass: SingleNode
+          timeout_seconds: 1200
+          max_retries: 1
+      schedule:
+        quartz_cron_expression: "0 0 12 * * ?"
+        timezone_id: "UTC"
+        pause_status: "PAUSED"
+      tags:
+        environment: ${var.environment}
+        project: payment-analysis
+        component: dashboards
         domain: payment-analytics
 
     test_agent_framework_job:

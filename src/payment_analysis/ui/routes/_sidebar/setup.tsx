@@ -224,9 +224,40 @@ function SetupRun() {
       <div>
         <h1 className="text-2xl font-semibold">Setup & Run</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Follow steps 1–6 in order: deploy bundle first, then data ingestion, ETL, gold views, Lakehouse SQL, ML training, and optional AI agents. See docs for full guide.
+          Follow the steps in order: deploy bundle first, then data ingestion, ETL, gold views, Lakehouse bootstrap, Vector Search, ML training, Genie space, and AI agents. All jobs and pipelines can be run from this page.
         </p>
       </div>
+
+      {/* Connect to Databricks — token (OAuth or PAT) required to run jobs from UI */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Settings2 className="h-4 w-4" />
+            Connect to Databricks (run jobs from UI)
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            To trigger jobs and pipelines from this UI, use one of:
+          </p>
+        </CardHeader>
+        <CardContent className="text-sm space-y-2">
+          <p>
+            <strong>1. Your credentials (recommended):</strong> Open this app from <strong>Compute → Apps → payment-analysis</strong> so Databricks forwards your token. No PAT needed when user authorization (OBO) is enabled for the app.
+          </p>
+          <p>
+            <strong>2. Personal Access Token (PAT):</strong> In the workspace go to <strong>Settings → Developer → Access tokens</strong>, create a token, then set <code className="rounded bg-muted px-1">DATABRICKS_TOKEN</code> in <strong>Compute → Apps → payment-analysis → Edit → Environment</strong>. Also set <code className="rounded bg-muted px-1">DATABRICKS_HOST</code> and <code className="rounded bg-muted px-1">DATABRICKS_WAREHOUSE_ID</code>.
+          </p>
+          {host && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => window.open(`${host}/#setting/account`, "_blank")}
+            >
+              Open workspace Settings <ExternalLink className="ml-1 h-3 w-3" />
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Databricks resources overview */}
       <Card>
@@ -384,11 +415,11 @@ function SetupRun() {
         </div>
       )}
 
-      {/* Steps — order matches docs/DEPLOYMENT_GUIDE.md (Demo setup) */}
+      {/* Steps — order matches solution: simulator → ETL → gold → bootstrap → vector search → ML → Genie → agents → pipelines */}
       <div className="space-y-4">
-        <h2 className="text-lg font-medium">Execution steps (1–7)</h2>
+        <h2 className="text-lg font-medium">Execution steps (1–10)</h2>
         <p className="text-sm text-muted-foreground">
-          Run in order. Step 1 creates the table for the ETL pipeline; step 4 is Lakehouse SQL (lakehouse_bootstrap.sql); steps 5–6 are ML training and agents.
+          Run in order. Steps 1–4: data and lakehouse; 5–6: Vector Search and ML; 7–8: Genie and AI agents; 9–10: optional streaming pipelines.
         </p>
 
         {/* Step 1: Data ingestion — click opens job run in Databricks */}
@@ -533,38 +564,50 @@ function SetupRun() {
           </CardContent>
         </Card>
 
-        {/* Step 4: Lakehouse tables (SQL) — open SQL Warehouse to run scripts */}
+        {/* Step 4: Lakehouse bootstrap (job) — creates app_config, rules, recommendations */}
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() =>
-            window.open(
-              `${host}/sql/warehouses/${warehouseId || defaults?.warehouse_id}`,
-              "_blank"
-            )
-          }
+          onClick={() => openJobRun("lakehouse_bootstrap")}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) =>
-            e.key === "Enter" &&
-            window.open(
-              `${host}/sql/warehouses/${warehouseId || defaults?.warehouse_id}`,
-              "_blank"
-            )
-          }
+          onKeyDown={(e) => e.key === "Enter" && openJobRun("lakehouse_bootstrap")}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <Database className="h-4 w-4" />
-                4. Lakehouse tables (SQL)
+                4. Lakehouse bootstrap
               </CardTitle>
-              <Badge variant="outline">SQL</Badge>
+              <Badge variant="secondary">Job</Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              In SQL Warehouse run lakehouse_bootstrap.sql (same catalog/schema). Enables Rules, recommendations, and Dashboard features.
+              Run once to create app_config, approval_rules, approval_recommendations, and online_features. Enables Rules, Decisioning, and Dashboard.
             </p>
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <Button
+              onClick={() => triggerJob("lakehouse_bootstrap")}
+              disabled={pending}
+            >
+              {runJobMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Play className="h-4 w-4 mr-2" />
+              )}
+              Run Lakehouse Bootstrap
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                window.open(
+                  `${host}/#job/${defaults?.jobs?.lakehouse_bootstrap}/run`,
+                  "_blank"
+                )
+              }
+            >
+              Open job (run) <ExternalLink className="ml-1 h-3 w-3" />
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -575,24 +618,59 @@ function SetupRun() {
                 )
               }
             >
-              Open SQL Warehouse <ExternalLink className="ml-1 h-3 w-3" />
+              SQL Warehouse
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Step 5: Vector Search index — similar-transaction lookup */}
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => openJobRun("vector_search_index")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && openJobRun("vector_search_index")}
+        >
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                5. Vector Search index
+              </CardTitle>
+              <Badge variant="secondary">Job</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Create endpoint and delta-sync index from transaction_summaries_for_search. Powers similar-case recommendations in Decisioning. Run after Lakehouse Bootstrap.
+            </p>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <Button
+              onClick={() => triggerJob("vector_search_index")}
+              disabled={pending}
+            >
+              {runJobMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Play className="h-4 w-4 mr-2" />
+              )}
+              Run Vector Search index job
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() =>
                 window.open(
-                  `${host}/explore/data/${catalog || defaults?.catalog}/${schema || defaults?.schema}`,
+                  `${host}/#job/${defaults?.jobs?.vector_search_index}/run`,
                   "_blank"
                 )
               }
             >
-              Explore schema
+              Open job (run) <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>
 
-        {/* Step 5: Train ML models — click opens job run in Databricks */}
+        {/* Step 6: Train ML models — click opens job run in Databricks */}
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => openJobRun("train_ml_models")}
@@ -604,7 +682,7 @@ function SetupRun() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <Brain className="h-4 w-4" />
-                5. Train ML models
+                6. Train ML models
               </CardTitle>
               <Badge variant="secondary">Job</Badge>
             </div>
@@ -639,7 +717,54 @@ function SetupRun() {
           </CardContent>
         </Card>
 
-        {/* Step 5: Orchestrator agent — click opens job run in Databricks */}
+        {/* Step 7: Genie space sync — create/prepare Genie space */}
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => openJobRun("genie_sync")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && openJobRun("genie_sync")}
+        >
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <LayoutDashboard className="h-4 w-4" />
+                7. Genie space sync
+              </CardTitle>
+              <Badge variant="secondary">Job</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Sync Genie space configuration and sample questions for natural language analytics over payment data.
+            </p>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <Button
+              onClick={() => triggerJob("genie_sync")}
+              disabled={pending}
+            >
+              {runJobMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Play className="h-4 w-4 mr-2" />
+              )}
+              Run Genie sync
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                window.open(
+                  `${host}/#job/${defaults?.jobs?.genie_sync}/run`,
+                  "_blank"
+                )
+              }
+            >
+              Open job (run) <ExternalLink className="ml-1 h-3 w-3" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Step 8: Orchestrator agent — click opens job run in Databricks */}
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => openJobRun("orchestrator_agent")}
@@ -651,7 +776,7 @@ function SetupRun() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <Bot className="h-4 w-4" />
-                6. Run AI orchestrator
+                8. Run AI orchestrator
               </CardTitle>
               <Badge variant="secondary">Job</Badge>
             </div>
@@ -686,13 +811,13 @@ function SetupRun() {
           </CardContent>
         </Card>
 
-        {/* Step 6b: Run specialist agents (one-click each) */}
+        {/* Step 8b: Run specialist agents (one-click each) */}
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <Bot className="h-4 w-4" />
-                6b. Run specialist agents
+                8b. Run specialist agents
               </CardTitle>
               <Badge variant="secondary">Jobs</Badge>
             </div>
@@ -732,7 +857,7 @@ function SetupRun() {
           </CardContent>
         </Card>
 
-        {/* Step 7: Real-time Lakeflow pipeline (optional) — click opens pipeline in Databricks */}
+        {/* Step 9: Real-time Lakeflow pipeline (optional) */}
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => openPipeline("payment_realtime_pipeline")}
@@ -744,7 +869,7 @@ function SetupRun() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <GitBranch className="h-4 w-4" />
-                7. Real-time streaming (Lakeflow pipeline, optional)
+                9. Real-time streaming (Lakeflow pipeline, optional)
               </CardTitle>
               <Badge variant="outline">Pipeline</Badge>
             </div>
@@ -776,6 +901,54 @@ function SetupRun() {
               }
             >
               Open pipeline <ExternalLink className="ml-1 h-3 w-3" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Step 10: Continuous stream processor (optional) */}
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => openJobRun("continuous_stream_processor")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && openJobRun("continuous_stream_processor")}
+        >
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <GitBranch className="h-4 w-4" />
+                10. Continuous stream processor (optional)
+              </CardTitle>
+              <Badge variant="outline">Job (continuous)</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Always-on job that processes streaming payment events in real time. Start from the job run page in the workspace.
+            </p>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="secondary"
+              onClick={() => triggerJob("continuous_stream_processor")}
+              disabled={pending}
+            >
+              {runJobMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Play className="h-4 w-4 mr-2" />
+              )}
+              Run stream processor
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                window.open(
+                  `${host}/#job/${defaults?.jobs?.continuous_stream_processor}/run`,
+                  "_blank"
+                )
+              }
+            >
+              Open job (run) <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>
         </Card>

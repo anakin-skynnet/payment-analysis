@@ -15,7 +15,7 @@ Payment Analysis — architecture, data flow, bundle resources, and technical re
 
 Bronze: raw + `_ingested_at`. Silver: quality, risk_tier, amount_bucket, composite_risk_score. Gold: 12+ views. UC default: `ahs_demos_catalog.payment_analysis` (bundle variables).
 
-**Lakehouse bootstrap:** Run `lakehouse_bootstrap.sql` once (same catalog/schema as gold views). Creates: `app_config`, `transaction_summaries_for_search`, `approval_recommendations`, `approval_rules`, `online_features` and views. Enables Rules, Decisioning, Dashboard. Vector Search: create from `resources/vector_search.yml` after bootstrap.
+**Lakehouse bootstrap:** Run the **Lakehouse Bootstrap** job once from Setup & Run (or run `lakehouse_bootstrap.sql` in SQL Warehouse; same catalog/schema as gold views). Creates: `app_config`, `transaction_summaries_for_search`, `approval_recommendations`, `approval_rules`, `online_features` and views. Enables Rules, Decisioning, Dashboard. Job uses `.build/transform/lakehouse_bootstrap.sql` (from `scripts/dashboards.py prepare`). Vector Search: create from `resources/vector_search.yml` after bootstrap.
 
 **Catalog and schema (app_config):** Effective catalog/schema in `app_config`. Bootstrap from `DATABRICKS_CATALOG` / `DATABRICKS_SCHEMA`. UI: **Setup & Run** → **Save catalog & schema** (`PATCH /api/setup/config`).
 
@@ -94,7 +94,7 @@ Managed Postgres for rules, experiments, incidents. Bundle: `resources/lakebase.
 | Transaction Stream Simulator | Setup & Run step 1 | Run simulator (creates `payments_stream_input`) |
 | Payment Analysis ETL | Setup & Run step 2 | Start ETL (reads `payments_stream_input`) |
 | Create Gold Views | Setup & Run step 3 | Run job (uses `.build/transform/gold_views.sql`) |
-| Lakehouse SQL (bootstrap) | Setup & Run step 4 | Run `lakehouse_bootstrap.sql` in SQL Warehouse |
+| Lakehouse Bootstrap | Setup & Run step 4 | Run job (uses `.build/transform/lakehouse_bootstrap.sql`) |
 | Train ML Models | Setup & Run step 5 | Run ML training |
 | Orchestrator + 5 agents | Setup & Run step 6/6b | Run / Open |
 | 12 Dashboards | Dashboards page | Card opens in workspace |

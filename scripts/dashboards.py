@@ -28,6 +28,7 @@ DEV_CATALOG_SCHEMA = "ahs_demos_catalog.ahs_demo_payment_analysis_dev"
 SOURCE_DIR = REPO_ROOT / "resources" / "dashboards"
 OUT_DIR = REPO_ROOT / ".build" / "dashboards"
 GOLD_VIEWS_SOURCE = REPO_ROOT / "src" / "payment_analysis" / "transform" / "gold_views.sql"
+LAKEHOUSE_BOOTSTRAP_SOURCE = REPO_ROOT / "src" / "payment_analysis" / "transform" / "lakehouse_bootstrap.sql"
 GOLD_VIEWS_OUT_DIR = REPO_ROOT / ".build" / "transform"
 
 ASSETS = [
@@ -66,7 +67,10 @@ def cmd_prepare(catalog: str, schema: str) -> None:
     GOLD_VIEWS_OUT_DIR.mkdir(parents=True, exist_ok=True)
     header = f"-- Catalog/schema for this run (must match dashboard asset_name)\nUSE CATALOG {catalog};\nUSE SCHEMA {schema};\n\n"
     (GOLD_VIEWS_OUT_DIR / "gold_views.sql").write_text(header + GOLD_VIEWS_SOURCE.read_text(encoding="utf-8"), encoding="utf-8")
-    print(f"Prepared gold_views.sql in {GOLD_VIEWS_OUT_DIR} with USE CATALOG {catalog}; USE SCHEMA {schema};")
+    (GOLD_VIEWS_OUT_DIR / "lakehouse_bootstrap.sql").write_text(
+        header + LAKEHOUSE_BOOTSTRAP_SOURCE.read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    print(f"Prepared gold_views.sql and lakehouse_bootstrap.sql in {GOLD_VIEWS_OUT_DIR} with USE CATALOG {catalog}; USE SCHEMA {schema};")
 
 
 def cmd_validate_assets(catalog: str, schema: str) -> None:

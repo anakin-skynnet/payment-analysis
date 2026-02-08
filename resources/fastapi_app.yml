@@ -67,6 +67,16 @@ resources:
           job:
             id: ${resources.jobs.create_gold_views_job.id}
             permission: CAN_MANAGE_RUN
+        - name: job-lakehouse-bootstrap
+          description: Lakehouse bootstrap (app_config, rules, recommendations)
+          job:
+            id: ${resources.jobs.lakehouse_bootstrap_job.id}
+            permission: CAN_MANAGE_RUN
+        - name: job-vector-search-index
+          description: Create Vector Search index for similar-transaction lookup
+          job:
+            id: ${resources.jobs.vector_search_index_job.id}
+            permission: CAN_MANAGE_RUN
         - name: job-train-ml
           description: Train ML models
           job:

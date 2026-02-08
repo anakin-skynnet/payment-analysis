@@ -2,11 +2,11 @@ from typing import Annotated
 
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.iam import User as UserOut
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from .config import WORKSPACE_URL_PLACEHOLDER
-from .dependencies import ConfigDep, get_obo_ws
-from .models import VersionOut, WorkspaceConfigOut
+from .dependencies import ConfigDep, get_workspace_client
+from .models import AuthStatusOut, VersionOut, WorkspaceConfigOut
 from .routes.agents import router as agents_router
 from .routes.analytics import router as analytics_router
 from .routes.decision import router as decision_router
@@ -54,6 +54,14 @@ def get_workspace_config(config: ConfigDep):
     return WorkspaceConfigOut(workspace_url=raw)
 
 
+@api.get("/auth/status", response_model=AuthStatusOut, operation_id="getAuthStatus")
+def auth_status(request: Request) -> AuthStatusOut:
+    """Return whether the request has user credentials (X-Forwarded-Access-Token). Use this to show Sign in with Databricks when false."""
+    token = request.headers.get("X-Forwarded-Access-Token")
+    return AuthStatusOut(authenticated=bool(token and token.strip()))
+
+
 @api.get("/current-user", response_model=UserOut, operation_id="currentUser")
-def me(obo_ws: Annotated[WorkspaceClient, Depends(get_obo_ws)]):
-    return obo_ws.current_user.me()
+def me(ws: Annotated[WorkspaceClient, Depends(get_workspace_client)]):
+    """Return current Databricks user (uses your credentials when logged in or DATABRICKS_TOKEN)."""
+    return ws.current_user.me()

@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/apx/navbar";
 import Logo from "@/components/apx/logo";
 import { motion } from "motion/react";
-import { BarChart3, ShieldAlert, ArrowRight, CheckCircle2 } from "lucide-react";
+import { BarChart3, ShieldAlert, ArrowRight, CheckCircle2, LogIn, CreditCard, ListChecks, RotateCcw, Database } from "lucide-react";
 import { BubbleBackground } from "@/components/backgrounds/bubble";
+import { getWorkspaceUrl } from "@/config/workspace";
+import { useGetAuthStatus } from "@/lib/api";
 
 export const Route = createFileRoute("/")({
   component: () => <Index />,
@@ -30,7 +32,33 @@ const valueProps = [
   "Actionable insights so you know where to act next.",
 ];
 
+const initiatives = [
+  {
+    to: "/smart-checkout",
+    title: "Smart Checkout",
+    description: "Payment Link (Brazil). Optimize approval rates with the right service mix: Antifraud, 3DS, Network Token, IdPay, Passkey.",
+    icon: CreditCard,
+  },
+  {
+    to: "/reason-codes",
+    title: "Reason Codes",
+    description: "Unified decline intelligence across entry systems (Checkout, PD, WS, SEP). Standardize reason codes and drive actionable insights.",
+    icon: ListChecks,
+  },
+  {
+    to: "/smart-retry",
+    title: "Smart Retry",
+    description: "Recurrence & reattempts (Brazil). Payment recurrence and cardholder retries — 1M+ transactions/month. Recover more approvals.",
+    icon: RotateCcw,
+  },
+];
+
 function Index() {
+  const { data } = useGetAuthStatus();
+  const workspaceUrl = getWorkspaceUrl();
+  const authenticated = data?.data?.authenticated ?? null;
+  const showSignIn = authenticated === false && workspaceUrl;
+
   return (
     <div className="relative h-screen w-screen overflow-hidden flex flex-col bg-background">
       <Navbar leftContent={<Logo to="/" showText />} />
@@ -45,6 +73,29 @@ function Index() {
             initial="hidden"
             animate="show"
           >
+            {showSignIn && (
+              <motion.div
+                variants={item}
+                className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-left"
+              >
+                <p className="text-sm font-medium text-foreground mb-2">
+                  Use your Databricks credentials
+                </p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Open the app from your workspace (Compute → Apps → payment-analysis) so the app can use your identity. No token needs to be set when user authorization (OBO) is enabled.
+                </p>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="gap-2"
+                  onClick={() => window.open(workspaceUrl, "_blank")}
+                >
+                  <LogIn className="h-4 w-4" />
+                  Open workspace to sign in
+                </Button>
+              </motion.div>
+            )}
+
             {/* Executive message — 1–2 lines, business value */}
             <motion.div variants={item} className="space-y-1">
               <p className="text-base md:text-lg font-medium text-primary">
@@ -77,40 +128,75 @@ function Index() {
               </ul>
             </motion.div>
 
-            {/* Teaser metric */}
+            {/* Data foundation & geography */}
             <motion.div
               variants={item}
-              className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-medium text-primary"
+              className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground"
             >
-              <span>Portfolio approval rate</span>
-              <span className="font-bold tabular-nums">— live in dashboard</span>
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/80 px-2.5 py-1">
+                <Database className="h-3.5 w-3.5" />
+                Data foundation for all initiatives
+              </span>
+              <span className="rounded-md bg-muted/80 px-2.5 py-1">
+                Brazil · ~70% of Getnet volume
+              </span>
             </motion.div>
 
-            {/* CTAs */}
+            {/* Initiative cards — one per business objective */}
+            <motion.div variants={item} className="space-y-3">
+              <p className="text-sm font-semibold text-foreground">Key initiatives</p>
+              <div className="grid gap-3 sm:grid-cols-1">
+                {initiatives.map((init) => {
+                  const Icon = init.icon;
+                  return (
+                    <Link
+                      key={init.to}
+                      to={init.to}
+                      className="group flex items-start gap-4 rounded-xl border border-border/80 bg-card p-4 text-left transition-all hover:border-primary/40 hover:shadow-md hover:bg-card/95"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-foreground group-hover:text-primary">
+                          {init.title}
+                        </p>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                          {init.description}
+                        </p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+                  );
+                })}
+              </div>
+            </motion.div>
+
+            {/* Primary CTAs */}
             <motion.div
               variants={item}
               className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start pt-2"
             >
               <Button
                 size="lg"
-                className="gap-2 min-w-[240px] h-12 text-base font-semibold shadow-lg hover:shadow-xl hover:shadow-primary/20 transition-all duration-200"
+                className="gap-2 min-w-[220px] h-12 text-base font-semibold shadow-lg hover:shadow-xl hover:shadow-primary/20 transition-all duration-200"
                 asChild
               >
                 <Link to="/dashboard">
                   <BarChart3 className="h-5 w-5" />
-                  Explore portfolio performance
+                  KPI overview
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button
                 size="lg"
                 variant="outline"
-                className="gap-2 min-w-[200px] h-12 text-base font-medium"
+                className="gap-2 min-w-[180px] h-12 text-base font-medium"
                 asChild
               >
                 <Link to="/declines">
                   <ShieldAlert className="h-5 w-5" />
-                  View risk insights
+                  Declines & insights
                 </Link>
               </Button>
             </motion.div>

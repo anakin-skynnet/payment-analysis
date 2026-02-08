@@ -1,15 +1,18 @@
 import React, { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, TrendingUp, Shield, DollarSign, Gauge, Users, Calendar, Lock, Award, Zap, ExternalLink, Code2, Activity, MessageSquareText, ArrowRight, Globe } from "lucide-react";
+import { BarChart3, TrendingUp, Shield, DollarSign, Gauge, Users, Calendar, Lock, Award, Zap, ExternalLink, Code2, Activity, MessageSquareText, ArrowRight, Globe, LayoutGrid, ArrowLeft } from "lucide-react";
 import { getWorkspaceUrl, getGenieUrl } from "@/config/workspace";
 import { friendlyReason } from "@/lib/reasoning";
-import { useListDashboards, useRecentDecisions, getNotebookUrl, type DashboardCategory, type DashboardInfo } from "@/lib/api";
+import { useListDashboards, useRecentDecisions, getNotebookUrl, useGetDashboardUrl, type DashboardCategory, type DashboardInfo } from "@/lib/api";
 
 export const Route = createFileRoute("/_sidebar/dashboards")({
+  validateSearch: (s: Record<string, unknown>): { embed?: string } => ({
+    embed: typeof s.embed === "string" ? s.embed : undefined,
+  }),
   component: Component,
 });
 
@@ -56,9 +59,17 @@ const dashboardNotebooks: Record<string, string[]> = {
 
 export function Component() {
   const [selectedCategory, setSelectedCategory] = useState<DashboardCategory | null>(null);
+  const search = useSearch({ from: "/_sidebar/dashboards" });
+  const navigate = useNavigate();
+  const embedId = search.embed;
 
   const { data: dashboardList, isLoading: loading, isError } = useListDashboards({
     params: selectedCategory ? { category: selectedCategory } : undefined,
+  });
+
+  const { data: embedUrlData, isLoading: embedLoading, isError: embedError } = useGetDashboardUrl({
+    params: { dashboard_id: embedId!, embed: true },
+    query: { enabled: !!embedId },
   });
 
   const dashboards = dashboardList?.data.dashboards ?? [];
@@ -72,6 +83,16 @@ export function Component() {
       window.open(databricksUrl, "_blank");
     }
   };
+
+  const embedDashboard = embedId ? dashboards.find((d) => d.id === embedId) : null;
+  const iframeSrc =
+    embedUrlData?.data?.full_embed_url ||
+    (embedUrlData?.data?.embed_url && getWorkspaceUrl()
+      ? `${getWorkspaceUrl()}${embedUrlData.data.embed_url as string}`
+      : null);
+  const showEmbedView = !!embedId;
+  const goBack = () => navigate({ to: "/dashboards", search: {} });
+  const openEmbed = (id: string) => navigate({ to: "/dashboards", search: { embed: id } });
 
   const handleNotebookClick = async (notebookId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -107,7 +128,62 @@ export function Component() {
 
   return (
     <div className="space-y-8">
-      {/* Header & storytelling */}
+      {/* Embedded dashboard view (when ?embed=id) */}
+      {showEmbedView && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={goBack} className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to list
+            </Button>
+            {embedDashboard && (
+              <span className="text-sm font-medium text-muted-foreground">
+                {embedDashboard.name}
+              </span>
+            )}
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 overflow-hidden" style={{ minHeight: "70vh" }}>
+            {embedLoading ? (
+              <div className="flex items-center justify-center h-[70vh]">
+                <Skeleton className="h-full w-full max-w-md" />
+              </div>
+            ) : iframeSrc ? (
+              <iframe
+                title={embedDashboard?.name || "Dashboard"}
+                src={String(iframeSrc)}
+                className="w-full h-[78vh] border-0"
+                allowFullScreen
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[70vh] text-muted-foreground gap-2 p-4">
+                <p className="text-center">
+                  {embedError ? "Dashboard not found or embed not available." : "Dashboard embed is not available. Set DATABRICKS_HOST and DATABRICKS_WORKSPACE_ID, or open in a new tab."}
+                </p>
+                {embedId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      window.open(
+                        getWorkspaceUrl()
+                          ? `${getWorkspaceUrl()}/sql/dashboards/${embedId}`
+                          : "#",
+                        "_blank"
+                      )
+                    }
+                  >
+                    Open in new tab
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* List view (when not embedding) */}
+      {!showEmbedView && (
+        <>
       <div>
         <h1 className="text-3xl font-bold font-heading">DBSQL dashboards</h1>
         <p className="text-muted-foreground mt-2 max-w-2xl">
@@ -173,9 +249,15 @@ export function Component() {
                         </div>
                       </div>
                     )}
-                    <Button className="w-full" size="sm">
-                      Open dashboard
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button className="flex-1" size="sm" onClick={(e) => { e.stopPropagation(); openEmbed(dashboard.id); }}>
+                        <LayoutGrid className="w-3.5 h-3.5 mr-1.5" />
+                        View in app
+                      </Button>
+                      <Button className="flex-1" size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleDashboardClick(dashboard); }}>
+                        Open in new tab <ExternalLink className="w-3 h-3 ml-1" />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -299,9 +381,15 @@ export function Component() {
                             </div>
                           </div>
                         )}
-                        <Button className="w-full" size="sm">
-                          Open Dashboard
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button className="flex-1" size="sm" onClick={(e) => { e.stopPropagation(); openEmbed(dashboard.id); }}>
+                            <LayoutGrid className="w-3.5 h-3.5 mr-1.5" />
+                            View in app
+                          </Button>
+                          <Button className="flex-1" size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleDashboardClick(dashboard); }}>
+                            Open in new tab <ExternalLink className="w-3 h-3 ml-1" />
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   );
@@ -367,9 +455,15 @@ export function Component() {
                           </div>
                         </div>
                       )}
-                      <Button className="w-full" size="sm">
-                        Open Dashboard
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button className="flex-1" size="sm" onClick={(e) => { e.stopPropagation(); openEmbed(dashboard.id); }}>
+                          <LayoutGrid className="w-3.5 h-3.5 mr-1.5" />
+                          View in app
+                        </Button>
+                        <Button className="flex-1" size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleDashboardClick(dashboard); }}>
+                          Open in new tab <ExternalLink className="w-3 h-3 ml-1" />
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 );
@@ -460,7 +554,7 @@ export function Component() {
         <CardContent className="text-sm text-muted-foreground">
           <p>
             All dashboards are powered by Databricks AI/BI and provide real-time insights into
-            your payment processing operations. Click any dashboard to open it in a new tab.
+            your payment processing operations. View in app to embed, or open in a new tab.
           </p>
           <ul className="list-disc list-inside mt-2 space-y-1">
             <li>Data refreshes automatically based on your Lakeflow schedule</li>
@@ -470,6 +564,8 @@ export function Component() {
           </ul>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 }

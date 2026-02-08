@@ -81,6 +81,9 @@ sync:
     - src/payment_analysis/transform
     - src/payment_analysis/agents
     - src/payment_analysis/genie
+    - src/payment_analysis/vector_search
+    - scripts
+    - resources/dashboards
   exclude:
     - "**/__pycache__"
     - "**/*.pyc"

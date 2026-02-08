@@ -58,24 +58,24 @@ function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
 function Layout() {
   const location = useLocation();
 
-  // Executive: KPI tiles + DBSQL dashboards hub (for executives and high-level storytelling)
-  const executiveItems: NavItem[] = [
+  // Overview: single place for KPIs and deep-dive dashboards (CEO-friendly)
+  const overviewItems: NavItem[] = [
     { to: "/dashboard", label: "KPI overview", icon: <BarChart3 size={16} />, match: (p) => p === "/dashboard" },
-    { to: "/dashboards", label: "DBSQL dashboards", icon: <LayoutDashboard size={16} />, match: (p) => p === "/dashboards" },
+    { to: "/dashboards", label: "Dashboards", icon: <LayoutDashboard size={16} />, match: (p) => p === "/dashboards" },
   ];
 
-  // Performance & analytics: Smart Checkout + Reason Codes + Smart Retry + Declines (one approval-accelerator system)
-  const performanceItems: NavItem[] = [
+  // Initiatives: Smart Checkout, Reason Codes, Smart Retry (Getnet business objectives)
+  const initiativeItems: NavItem[] = [
     { to: "/smart-checkout", label: "Smart Checkout", icon: <CreditCard size={16} />, match: (p) => p === "/smart-checkout" },
-    { to: "/reason-codes", label: "Reason codes", icon: <ListChecks size={16} />, match: (p) => p === "/reason-codes" },
+    { to: "/reason-codes", label: "Reason Codes", icon: <ListChecks size={16} />, match: (p) => p === "/reason-codes" },
     { to: "/smart-retry", label: "Smart Retry", icon: <RotateCcw size={16} />, match: (p) => p === "/smart-retry" },
-    { to: "/declines", label: "Declines", icon: <BadgeX size={16} />, match: (p) => p === "/declines" },
+    { to: "/declines", label: "Declines & insights", icon: <BadgeX size={16} />, match: (p) => p === "/declines" },
   ];
 
-  // Genie & agents: natural language and agent interaction (analysts, PMs)
-  const genieItems: NavItem[] = [
-    { to: "/ai-agents", label: "AI agents", icon: <Bot size={16} />, match: (p) => p === "/ai-agents" },
+  // AI & decisioning: Genie and agent-driven recommendations
+  const decisioningItems: NavItem[] = [
     { to: "/decisioning", label: "Decisioning & Genie", icon: <MessageSquareText size={16} />, match: (p) => p === "/decisioning" },
+    { to: "/ai-agents", label: "AI agents", icon: <Bot size={16} />, match: (p) => p === "/ai-agents" },
   ];
 
   // Operations: setup, notebooks, models, incidents, experiments, rules
@@ -83,9 +83,9 @@ function Layout() {
     { to: "/setup", label: "Setup & run", icon: <Rocket size={16} />, match: (p) => p === "/setup" },
     { to: "/notebooks", label: "Notebooks", icon: <Code2 size={16} />, match: (p) => p === "/notebooks" },
     { to: "/models", label: "ML models", icon: <Brain size={16} />, match: (p) => p === "/models" },
+    { to: "/rules", label: "Rules", icon: <ScrollText size={16} />, match: (p) => p === "/rules" },
     { to: "/incidents", label: "Incidents", icon: <AlertTriangle size={16} />, match: (p) => p === "/incidents" },
     { to: "/experiments", label: "Experiments", icon: <FlaskConical size={16} />, match: (p) => p === "/experiments" },
-    { to: "/rules", label: "Rules", icon: <ScrollText size={16} />, match: (p) => p === "/rules" },
   ];
 
   const settingsItems: NavItem[] = [
@@ -96,11 +96,11 @@ function Layout() {
     <SidebarLayout>
       <SidebarGroup>
         <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2">
-          Executive
+          Overview
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {executiveItems.map((item) => (
+            {overviewItems.map((item) => (
               <SidebarMenuItem key={item.to}>
                 <NavLink item={item} isActive={item.match(location.pathname)} />
               </SidebarMenuItem>
@@ -110,11 +110,11 @@ function Layout() {
       </SidebarGroup>
       <SidebarGroup>
         <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2">
-          Performance & analytics
+          Initiatives
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {performanceItems.map((item) => (
+            {initiativeItems.map((item) => (
               <SidebarMenuItem key={item.to}>
                 <NavLink item={item} isActive={item.match(location.pathname)} />
               </SidebarMenuItem>
@@ -124,11 +124,11 @@ function Layout() {
       </SidebarGroup>
       <SidebarGroup>
         <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2">
-          Genie & agents
+          AI & decisioning
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {genieItems.map((item) => (
+            {decisioningItems.map((item) => (
               <SidebarMenuItem key={item.to}>
                 <NavLink item={item} isActive={item.match(location.pathname)} />
               </SidebarMenuItem>

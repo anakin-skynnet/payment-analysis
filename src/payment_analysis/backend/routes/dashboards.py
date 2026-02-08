@@ -277,7 +277,7 @@ async def get_dashboard_url(
         embed: If True, returns URL suitable for iframe embedding
         
     Returns:
-        Dictionary with URL and embed information
+        Dictionary with URL, embed_url (path), and full_embed_url (absolute URL for iframe)
         
     Raises:
         HTTPException: If dashboard not found
@@ -286,20 +286,24 @@ async def get_dashboard_url(
     
     # Relative path; frontend can prepend workspace URL from config
     base_url = dashboard.url_path
-    
+    workspace_host = (config.databricks.workspace_url or "").strip().rstrip("/")
+    is_placeholder = not workspace_host or "example.databricks.com" in workspace_host
+
     if embed:
-        # Embed URL: optional workspace ID (o=) from DATABRICKS_WORKSPACE_ID so embed works in any workspace
-        embed_url = f"{base_url}?embed=true"
+        # Embed path: optional workspace ID (o=) from DATABRICKS_WORKSPACE_ID so embed works in any workspace
+        embed_path = f"{base_url}?embed=true"
         if config.databricks.workspace_id:
-            embed_url = f"{base_url}?o={config.databricks.workspace_id}&embed=true"
+            embed_path = f"{base_url}?o={config.databricks.workspace_id}&embed=true"
+        full_embed_url = f"{workspace_host}{embed_path}" if workspace_host and not is_placeholder else None
         return {
             "dashboard_id": dashboard_id,
             "url": base_url,
-            "embed_url": embed_url,
+            "embed_url": embed_path,
+            "full_embed_url": full_embed_url,
             "embed": True,
-            "instructions": "Use embed_url in an iframe to display the dashboard",
+            "instructions": "Use full_embed_url in an iframe when set; otherwise use workspace URL + embed_url",
         }
-    
+
     return {
         "dashboard_id": dashboard_id,
         "url": base_url,

@@ -115,6 +115,10 @@ export const AuthPath = {
 
 export type AuthPath = (typeof AuthPath)[keyof typeof AuthPath];
 
+export interface AuthStatusOut {
+  authenticated: boolean;
+}
+
 export interface AuthorizationEvent {
   amount_minor: number;
   attempt_number?: number;
@@ -670,10 +674,6 @@ export interface GetApprovalTrendsParams {
   hours?: number;
 }
 
-export interface CurrentUserParams {
-  "X-Forwarded-Access-Token"?: string | null;
-}
-
 export interface ListDashboardsParams {
   category?: DashboardCategory | null;
   tag?: string | null;
@@ -755,14 +755,6 @@ export interface UpdateApprovalRuleParams {
 
 export interface DeleteApprovalRuleParams {
   rule_id: string;
-}
-
-export interface RunSetupJobParams {
-  "X-Forwarded-Access-Token"?: string | null;
-}
-
-export interface RunSetupPipelineParams {
-  "X-Forwarded-Access-Token"?: string | null;
 }
 
 export class ApiError extends Error {
@@ -1392,6 +1384,29 @@ export function useGetApprovalTrendsSuspense<TData = { data: ApprovalTrendOut[] 
   return useSuspenseQuery({ queryKey: getApprovalTrendsKey(options?.params), queryFn: () => getApprovalTrends(options?.params), ...options?.query });
 }
 
+export const getAuthStatus = async (options?: RequestInit): Promise<{ data: AuthStatusOut }> => {
+  const res = await fetch("/api/auth/status", { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getAuthStatusKey = () => {
+  return ["/api/auth/status"] as const;
+};
+
+export function useGetAuthStatus<TData = { data: AuthStatusOut }>(options?: { query?: Omit<UseQueryOptions<{ data: AuthStatusOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getAuthStatusKey(), queryFn: () => getAuthStatus(), ...options?.query });
+}
+
+export function useGetAuthStatusSuspense<TData = { data: AuthStatusOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: AuthStatusOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getAuthStatusKey(), queryFn: () => getAuthStatus(), ...options?.query });
+}
+
 export const getWorkspaceConfig = async (options?: RequestInit): Promise<{ data: WorkspaceConfigOut }> => {
   const res = await fetch("/api/config/workspace", { ...options, method: "GET" });
   if (!res.ok) {
@@ -1415,8 +1430,8 @@ export function useGetWorkspaceConfigSuspense<TData = { data: WorkspaceConfigOut
   return useSuspenseQuery({ queryKey: getWorkspaceConfigKey(), queryFn: () => getWorkspaceConfig(), ...options?.query });
 }
 
-export const currentUser = async (params?: CurrentUserParams, options?: RequestInit): Promise<{ data: User }> => {
-  const res = await fetch("/api/current-user", { ...options, method: "GET", headers: { ...(params?.["X-Forwarded-Access-Token"] != null && { "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"] }), ...options?.headers } });
+export const currentUser = async (options?: RequestInit): Promise<{ data: User }> => {
+  const res = await fetch("/api/current-user", { ...options, method: "GET" });
   if (!res.ok) {
     const body = await res.text();
     let parsed: unknown;
@@ -1426,16 +1441,16 @@ export const currentUser = async (params?: CurrentUserParams, options?: RequestI
   return { data: await res.json() };
 };
 
-export const currentUserKey = (params?: CurrentUserParams) => {
-  return ["/api/current-user", params] as const;
+export const currentUserKey = () => {
+  return ["/api/current-user"] as const;
 };
 
-export function useCurrentUser<TData = { data: User }>(options?: { params?: CurrentUserParams; query?: Omit<UseQueryOptions<{ data: User }, ApiError, TData>, "queryKey" | "queryFn"> }) {
-  return useQuery({ queryKey: currentUserKey(options?.params), queryFn: () => currentUser(options?.params), ...options?.query });
+export function useCurrentUser<TData = { data: User }>(options?: { query?: Omit<UseQueryOptions<{ data: User }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: currentUserKey(), queryFn: () => currentUser(), ...options?.query });
 }
 
-export function useCurrentUserSuspense<TData = { data: User }>(options?: { params?: CurrentUserParams; query?: Omit<UseSuspenseQueryOptions<{ data: User }, ApiError, TData>, "queryKey" | "queryFn"> }) {
-  return useSuspenseQuery({ queryKey: currentUserKey(options?.params), queryFn: () => currentUser(options?.params), ...options?.query });
+export function useCurrentUserSuspense<TData = { data: User }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: User }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: currentUserKey(), queryFn: () => currentUser(), ...options?.query });
 }
 
 export const listDashboards = async (params?: ListDashboardsParams, options?: RequestInit): Promise<{ data: DashboardList }> => {
@@ -2097,8 +2112,8 @@ export function useGetSetupDefaultsSuspense<TData = { data: SetupDefaultsOut }>(
   return useSuspenseQuery({ queryKey: getSetupDefaultsKey(), queryFn: () => getSetupDefaults(), ...options?.query });
 }
 
-export const runSetupJob = async (data: RunJobIn, params?: RunSetupJobParams, options?: RequestInit): Promise<{ data: RunJobOut }> => {
-  const res = await fetch("/api/setup/run-job", { ...options, method: "POST", headers: { "Content-Type": "application/json", ...(params?.["X-Forwarded-Access-Token"] != null && { "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"] }), ...options?.headers }, body: JSON.stringify(data) });
+export const runSetupJob = async (data: RunJobIn, options?: RequestInit): Promise<{ data: RunJobOut }> => {
+  const res = await fetch("/api/setup/run-job", { ...options, method: "POST", headers: { "Content-Type": "application/json", ...options?.headers }, body: JSON.stringify(data) });
   if (!res.ok) {
     const body = await res.text();
     let parsed: unknown;
@@ -2108,12 +2123,12 @@ export const runSetupJob = async (data: RunJobIn, params?: RunSetupJobParams, op
   return { data: await res.json() };
 };
 
-export function useRunSetupJob(options?: { mutation?: UseMutationOptions<{ data: RunJobOut }, ApiError, { params: RunSetupJobParams; data: RunJobIn }> }) {
-  return useMutation({ mutationFn: (vars) => runSetupJob(vars.data, vars.params), ...options?.mutation });
+export function useRunSetupJob(options?: { mutation?: UseMutationOptions<{ data: RunJobOut }, ApiError, RunJobIn> }) {
+  return useMutation({ mutationFn: (data) => runSetupJob(data), ...options?.mutation });
 }
 
-export const runSetupPipeline = async (data: RunPipelineIn, params?: RunSetupPipelineParams, options?: RequestInit): Promise<{ data: RunPipelineOut }> => {
-  const res = await fetch("/api/setup/run-pipeline", { ...options, method: "POST", headers: { "Content-Type": "application/json", ...(params?.["X-Forwarded-Access-Token"] != null && { "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"] }), ...options?.headers }, body: JSON.stringify(data) });
+export const runSetupPipeline = async (data: RunPipelineIn, options?: RequestInit): Promise<{ data: RunPipelineOut }> => {
+  const res = await fetch("/api/setup/run-pipeline", { ...options, method: "POST", headers: { "Content-Type": "application/json", ...options?.headers }, body: JSON.stringify(data) });
   if (!res.ok) {
     const body = await res.text();
     let parsed: unknown;
@@ -2123,8 +2138,8 @@ export const runSetupPipeline = async (data: RunPipelineIn, params?: RunSetupPip
   return { data: await res.json() };
 };
 
-export function useRunSetupPipeline(options?: { mutation?: UseMutationOptions<{ data: RunPipelineOut }, ApiError, { params: RunSetupPipelineParams; data: RunPipelineIn }> }) {
-  return useMutation({ mutationFn: (vars) => runSetupPipeline(vars.data, vars.params), ...options?.mutation });
+export function useRunSetupPipeline(options?: { mutation?: UseMutationOptions<{ data: RunPipelineOut }, ApiError, RunPipelineIn> }) {
+  return useMutation({ mutationFn: (data) => runSetupPipeline(data), ...options?.mutation });
 }
 
 export const health_database_api_v1_health_database_get = async (options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {

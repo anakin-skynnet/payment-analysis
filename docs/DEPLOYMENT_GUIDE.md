@@ -8,39 +8,39 @@ Databricks workspace (Unity Catalog), SQL Warehouse, CLI configured. Python 3.10
 
 ## Quick start
 
-Before every deploy (same catalog/schema for dashboards and Gold Views job):
-
-- Run **Prepare** so `.build/dashboards/` and `.build/transform/gold_views.sql` exist (same catalog/schema as bundle variables). The **Create Gold Views** job runs `.build/transform/gold_views.sql`; without prepare, that file is missing and the job fails.
-- Use the bundle script so prepare runs automatically, or run prepare manually before `databricks bundle deploy`.
+One command deploys the bundle and generates all required files (dashboards and SQL for jobs):
 
 ```bash
-./scripts/bundle.sh validate dev
-databricks bundle deploy -t dev
+./scripts/bundle.sh deploy dev
 ```
 
-Or: `uv run python scripts/dashboards.py prepare` then `databricks bundle validate -t dev` and `databricks bundle deploy -t dev`. For prod use `./scripts/bundle.sh validate prod` then deploy.
+This runs **prepare** (writes `.build/dashboards/` and `.build/transform/gold_views.sql` + `lakehouse_bootstrap.sql` with catalog/schema) then deploys. After deploy, run steps 2–6 from the app **Setup & Run** in order. To validate without deploying: `./scripts/bundle.sh validate dev`.
 
 ## Steps at a glance
 
 | # | Step | Action |
 |---|------|--------|
-| 1 | Deploy bundle | `./scripts/bundle.sh deploy dev` |
-| 2 | Data ingestion | **Setup & Run** → Run **Transaction Stream Simulator** (creates `payments_stream_input`; run before ETL) |
-| 3 | ETL | **Setup & Run** → Start **Payment Analysis ETL** pipeline (reads from `payments_stream_input`) |
+| 1 | Deploy bundle | `./scripts/bundle.sh deploy dev` (includes prepare; no missing files) |
+| 2 | Data ingestion | **Setup & Run** → Run **Transaction Stream Simulator** (produces streaming data; run before ETL) |
+| 3 | ETL | **Setup & Run** → Start **Payment Analysis ETL** pipeline (ingests into raw/silver/gold) |
 | 4 | Gold views | **Setup & Run** → Run **Create Payment Analysis Gold Views** |
-| 5 | Lakehouse SQL | Run `lakehouse_bootstrap.sql` (same catalog/schema) |
-| 6 | ML models | **Setup & Run** → Run **Train Payment Approval ML Models** (~10–15 min) |
-| 7 | Dashboards & app | 12 dashboards + app deployed by bundle |
-| 8 | Model serving | After step 6: uncomment `resources/model_serving.yml`, redeploy |
-| 9 | AI agents (optional) | Run **Orchestrator** / agents from **Setup & Run** |
-| 10 | Verify | **Dashboard**, **Rules**, **Decisioning**, **ML Models** in app |
+| 5 | Lakehouse bootstrap | **Setup & Run** → Run **Lakehouse Bootstrap** (app_config, rules, recommendations; run once) |
+| 6 | Vector Search index | **Setup & Run** → Run **Create Vector Search Index** (similar-transaction lookup; run after bootstrap) |
+| 7 | ML models | **Setup & Run** → Run **Train Payment Approval ML Models** (~10–15 min); registers in Unity Catalog |
+| 8 | Genie space | **Setup & Run** → Run **Genie Space Sync** (create/prepare Genie space) |
+| 9 | AI agents | **Setup & Run** → Run **Orchestrator** and specialist agents |
+| 10 | Optional pipelines | **Setup & Run** → Start **Real-time** pipeline and/or **Continuous stream processor** |
+| — | Dashboards & app | 12 dashboards + app deployed by bundle |
+| — | Model serving | After step 7: uncomment `resources/model_serving.yml`, redeploy |
+| — | Verify | **Dashboard**, **Rules**, **Decisioning**, **ML Models** in app |
+
+All jobs and pipelines can be run from the UI. To connect: use your credentials (open app from **Compute → Apps**) or set **DATABRICKS_TOKEN** (PAT) in the app environment. See **Setup & Run → Connect to Databricks**.
 
 ## Deploy app as a Databricks App
 
 **Deploy into Databricks App** (create/update the app in the workspace and make the UI available):
 
-1. **Build (so UI is included):** Run `uv run apx build` so `src/payment_analysis/__dist__` exists. The bundle deploy step also runs this via `artifacts.default.build`.
-2. **Deploy bundle:** Run `uv run python scripts/dashboards.py prepare` then `databricks bundle deploy -t dev` (or `./scripts/bundle.sh deploy dev`). This uploads files (including `src/payment_analysis/__dist__` per `sync.include`) to the workspace and registers the app.
+1. **Deploy bundle:** Run `./scripts/bundle.sh deploy dev`. This runs prepare (generates `.build/dashboards/`, `.build/transform/gold_views.sql`, `.build/transform/lakehouse_bootstrap.sql`), builds the UI (`uv run apx build` via `artifacts.default.build`), and deploys. All job SQL files exist after deploy.
 3. **Start the app:** In the workspace go to **Compute → Apps → payment-analysis → Start**, or run `databricks bundle run payment_analysis_app -t dev`. The app runs in Databricks (not on your machine). Logs showing **"Uvicorn running on http://0.0.0.0:8000"** are expected: the app binds to that address inside the container and the Databricks platform proxies external traffic to it.
 4. **App URL:** Open the app from the Apps page or use the URL from **databricks bundle summary**.
 5. **Required env (Workspace → Apps → payment-analysis → Edit → Environment):**
@@ -50,8 +50,10 @@ Or: `uv run python scripts/dashboards.py prepare` then `databricks bundle valida
 | **PGAPPNAME** | Lakebase instance (e.g. `payment-analysis-db-dev`) |
 | **DATABRICKS_HOST** | Workspace URL |
 | **DATABRICKS_WAREHOUSE_ID** | SQL Warehouse ID (from bundle summary) |
-| **DATABRICKS_TOKEN** | API access (PAT). If using a PAT, do **not** set DATABRICKS_CLIENT_ID or DATABRICKS_CLIENT_SECRET in the app environment. |
+| **DATABRICKS_TOKEN** | Optional when **user authorization (OBO)** is enabled. The app uses your credentials when you open it from Compute → Apps (no token in env). Set a PAT only if OBO is not enabled or for app-only operations. If using a PAT, do **not** set DATABRICKS_CLIENT_ID or DATABRICKS_CLIENT_SECRET. |
 | **LAKEBASE_SCHEMA** | Optional. Postgres schema for app tables (default `app`). Use when the app has no CREATE on `public`. |
+
+**Use your credentials (no token):** Enable user authorization (OBO) for the app in the workspace; then open the app from **Compute → Apps** so the platform forwards your token. The main page shows “Use your Databricks credentials” when no token is present; open the workspace to sign in. No PAT needs to be set in the app environment.
 
 6. **Optional — override job/pipeline IDs:** Set `DATABRICKS_JOB_ID_*`, `DATABRICKS_PIPELINE_ID_*`, `DATABRICKS_WORKSPACE_ID` per [Architecture & reference](ARCHITECTURE_REFERENCE.md#workspace-components--ui-mapping).
 
@@ -66,11 +68,11 @@ App resource: `resources/fastapi_app.yml`. Runtime spec: `app.yml` at project ro
 **Paths:**  
 - Workspace root: `/Workspace/Users/${user}/${var.workspace_folder}` (default folder: `payment-analysis`).  
 - Notebooks/jobs: `${workspace.file_path}/src/payment_analysis/...` (e.g. `ml/train_models`, `streaming/transaction_simulator`, `agents/agent_framework`).  
-- Gold views SQL: `${workspace.file_path}/.build/transform/gold_views.sql` (from `scripts/dashboards.py prepare`).  
+- SQL for jobs: `${workspace.file_path}/.build/transform/gold_views.sql` and `lakehouse_bootstrap.sql` (both generated by `scripts/dashboards.py prepare` with USE CATALOG/SCHEMA).  
 - Dashboards: `file_path` in `resources/dashboards.yml` is `../.build/dashboards/*.lvdash.json` (relative to `resources/`).  
 - Sync (uploaded to workspace): `.build`, `src/payment_analysis/ml`, `streaming`, `transform`, `agents`, `genie`.
 
-**App bindings:** database (Lakebase), sql-warehouse (`payment_analysis_warehouse`), 12 jobs (simulator, stream processor, gold views, train ML, test agent, 6 agent jobs, genie sync). Optional: genie-space, model serving endpoints (see comments in `fastapi_app.yml`).
+**App bindings:** database (Lakebase), sql-warehouse (`payment_analysis_warehouse`), jobs (simulator, stream processor, gold views, **lakehouse bootstrap**, train ML, test agent, 6 agent jobs, genie sync). Optional: genie-space, model serving endpoints (see comments in `fastapi_app.yml`).
 
 Validate before deploy: `./scripts/bundle.sh validate dev` (runs dashboard prepare then `databricks bundle validate`).
 
@@ -91,7 +93,7 @@ One catalog/schema (defaults: `ahs_demos_catalog`, `payment_analysis`). Effectiv
 
 ## Resources in the workspace
 
-By default: Workspace folder, Lakebase, Jobs (simulator, gold views, ML, agents, stream, Genie sync), 2 pipelines, SQL warehouse, Unity Catalog, 12 dashboards, Databricks App. **Optional:** Uncomment `resources/model_serving.yml` after Step 6; create Vector Search manually from `resources/vector_search.yml`.
+By default: Workspace folder, Lakebase, Jobs (simulator, gold views, **lakehouse bootstrap**, ML, agents, stream, Genie sync), 2 pipelines, SQL warehouse, Unity Catalog, 12 dashboards, Databricks App. **Optional:** Uncomment `resources/model_serving.yml` after Step 6; create Vector Search manually from `resources/vector_search.yml`.
 
 ## Where to find resources
 
@@ -101,7 +103,7 @@ By default: Workspace folder, Lakebase, Jobs (simulator, gold views, ML, agents,
 - **SQL Warehouse:** **SQL** → **Warehouses**
 - **Catalog / Dashboards:** **Data** → Catalogs; **SQL** → **Dashboards**
 
-**Dashboard TABLE_OR_VIEW_NOT_FOUND:** Run **Create Gold Views** in the same catalog.schema as `dashboards.py prepare`. Validate: `uv run python scripts/dashboards.py validate-assets --catalog X --schema Y`.
+**Dashboard TABLE_OR_VIEW_NOT_FOUND:** Run **Create Gold Views** (and **Lakehouse Bootstrap** if Rules/Decisioning are empty) in the same catalog.schema as prepare. Validate: `uv run python scripts/dashboards.py validate-assets --catalog X --schema Y`.
 
 ## Databricks Apps compatibility
 
@@ -154,7 +156,7 @@ After any change to the app or bundle config, **redeploy** and **restart** the a
 | Lakebase "Instance name is not unique" | Use unique `lakebase_instance_name` via `--var` or target |
 | Error installing packages (app deploy) | Check **Logs** for the exact pip error. Ensure `requirements.txt` is up to date: run `uv lock` then `uv run python scripts/sync_requirements_from_lock.py`. See [Databricks Apps compatibility](#databricks-apps-compatibility). |
 | **permission denied for schema public** | App tables use schema `app` by default. Set **LAKEBASE_SCHEMA** (e.g. `app`) in the app environment if needed; the app creates the schema if it has permission. |
-| **Databricks credentials not configured; cannot update app_config** | Set **DATABRICKS_HOST**, **DATABRICKS_TOKEN**, and **DATABRICKS_WAREHOUSE_ID** in the app environment. **Compute → Apps → payment-analysis → Edit → Environment**; add the three variables, Save, then restart the app. |
+| **Databricks credentials not configured; cannot update app_config** | Either enable **user authorization (OBO)** and open the app from Compute → Apps (so your token is used), or set **DATABRICKS_HOST**, **DATABRICKS_WAREHOUSE_ID**, and optionally **DATABRICKS_TOKEN** in the app environment. **Compute → Apps → payment-analysis → Edit → Environment**; add variables, Save, then restart the app. |
 | **Error loading app spec from app.yml** | Ensure **`app.yml`** exists at project root (runtime spec for the app container). Redeploy. |
 | **Web UI shows "API only" / fallback page** | The app could not find `src/payment_analysis/__dist__`. Ensure `source_code_path` is `${workspace.file_path}` (so the app runs from the synced `files/` folder). (1) Run **`uv run apx build`** then **`databricks bundle deploy -t dev`** so `__dist__` is built and synced. (2) Restart the app from **Compute → Apps**. (3) Check app **Logs** for "UI dist candidate" to see which paths were tried. (4) If needed, set **UI_DIST_DIR** in the app Environment to the full path of the `__dist__` folder. |
 | **Logs show "Uvicorn running on http://0.0.0.0:8000"** | This is **expected** when the app runs as a Databricks App. The process binds to `0.0.0.0:8000` inside the app container; the platform proxies requests to it. You are not running on localhost — the app is deployed in Databricks. |
@@ -196,13 +198,17 @@ Runtime loads **`app.yml`** at deployed app root (command, env). After edits run
 
 | Script | Purpose |
 |--------|---------|
-| **bundle.sh** | `./scripts/bundle.sh deploy [dev\|prod]` — prepare dashboards then deploy. `validate` / `verify` for checks. |
-| **dashboards.py** | **prepare** (by bundle.sh), **validate-assets**, **publish** (optional). Run: `uv run python scripts/dashboards.py` |
+| **bundle.sh** | `./scripts/bundle.sh deploy [dev\|prod]` — runs prepare (dashboards + `gold_views.sql` + `lakehouse_bootstrap.sql` in `.build/transform/`) then deploy. `validate` / `verify` for checks. |
+| **dashboards.py** | **prepare** (by bundle.sh): writes `.build/dashboards/`, `.build/transform/gold_views.sql`, `.build/transform/lakehouse_bootstrap.sql` with catalog/schema. **validate-assets**, **publish** (optional). Run: `uv run python scripts/dashboards.py` |
 | **sync_requirements_from_lock.py** | Generate `requirements.txt` from `uv.lock` for the Databricks App. Run after `uv lock`: `uv run python scripts/sync_requirements_from_lock.py` |
 
 ## Demo setup & one-click run
 
-Order: (1) Deploy bundle (2) Simulator (3) ETL pipeline (4) Gold views job (5) `lakehouse_bootstrap.sql` (6) Train ML (7–8) Optional real-time pipeline, agents. **Estimated time:** 45–60 min. Job/pipeline IDs: **Workflows** / **Lakeflow** or `databricks bundle run <job_name> -t dev`.
+1. **Deploy once:** `./scripts/bundle.sh deploy dev` (prepare + build + deploy; all job files present).
+2. **Run in order from the app:** Open the app → **Setup & Run** → run step 2 (Simulator), step 3 (ETL pipeline), step 4 (Gold views), step 5 (Lakehouse Bootstrap), step 6 (Train ML). Optional: steps 6b (agents), step 7 (real-time pipeline).
+3. **Optional:** Set `DATABRICKS_JOB_ID_LAKEHOUSE_BOOTSTRAP` in the app environment to the job ID from **Workflows** if step 5 Run uses a different workspace.
+
+**Estimated time:** 45–60 min. Job/pipeline IDs: **Workflows** / **Lakeflow** or `databricks bundle run <job_name> -t dev`.
 
 ---
 
