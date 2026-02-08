@@ -88,7 +88,7 @@ function Index() {
                   size="sm"
                   variant="secondary"
                   className="gap-2"
-                  onClick={() => window.open(workspaceUrl, "_blank")}
+                  onClick={() => window.open(workspaceUrl, "_blank", "noopener,noreferrer")}
                 >
                   <LogIn className="h-4 w-4" />
                   Open workspace to sign in

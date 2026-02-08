@@ -55,7 +55,7 @@ const dashboardItem = {
 };
 
 const openInDatabricks = (url: string) => {
-  if (url) window.open(url, "_blank");
+  if (url) window.open(url, "_blank", "noopener,noreferrer");
 };
 
 export const Route = createFileRoute("/_sidebar/dashboard")({
@@ -70,7 +70,7 @@ const openNotebook = async (notebookId: string) => {
   try {
     const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
     const data = await response.json();
-    window.open(data.url, "_blank");
+    window.open(data.url, "_blank", "noopener,noreferrer");
   } catch (error) {
     console.error("Failed to open notebook:", error);
   }
@@ -78,7 +78,7 @@ const openNotebook = async (notebookId: string) => {
 
 const openDashboard = () => {
   const dashboardUrl = getDashboardUrl("/sql/dashboards/executive_overview");
-  window.open(dashboardUrl, "_blank");
+  if (dashboardUrl) window.open(dashboardUrl, "_blank", "noopener,noreferrer");
 };
 
 function DashboardSkeleton() {

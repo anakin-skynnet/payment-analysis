@@ -15,7 +15,7 @@ import { useEntity } from "@/contexts/entity-context";
 import { ExternalLink, CheckCircle2, AlertTriangle, Target } from "lucide-react";
 
 const openInDatabricks = (url: string) => {
-  if (url) window.open(url, "_blank");
+  if (url) window.open(url, "_blank", "noopener,noreferrer");
 };
 
 export const Route = createFileRoute("/_sidebar/reason-codes")({

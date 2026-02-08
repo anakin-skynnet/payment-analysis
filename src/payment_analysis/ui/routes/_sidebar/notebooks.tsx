@@ -52,7 +52,7 @@ export function Component() {
   const handleNotebookClick = async (notebookId: string) => {
     try {
       const { data } = await getNotebookUrl({ notebook_id: notebookId });
-      window.open(data.url, "_blank");
+      window.open(data.url, "_blank", "noopener,noreferrer");
     } catch (error) {
       console.error("Failed to open notebook:", error);
     }
@@ -260,10 +260,10 @@ export function Component() {
 
         <Card
           className="border-yellow-200 dark:border-yellow-800 cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => getWorkspaceUrl() && window.open(getWorkspaceUrl(), "_blank")}
+          onClick={() => { const u = getWorkspaceUrl(); if (u) window.open(u, "_blank", "noopener,noreferrer"); }}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && getWorkspaceUrl() && window.open(getWorkspaceUrl(), "_blank")}
+          onKeyDown={(e) => { if (e.key === "Enter") { const u = getWorkspaceUrl(); if (u) window.open(u, "_blank", "noopener,noreferrer"); } }}
         >
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -278,10 +278,10 @@ export function Component() {
 
         <Card
           className="border-green-200 dark:border-green-800 cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => getWorkspaceUrl() && window.open(getWorkspaceUrl(), "_blank")}
+          onClick={() => { const u = getWorkspaceUrl(); if (u) window.open(u, "_blank", "noopener,noreferrer"); }}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && getWorkspaceUrl() && window.open(getWorkspaceUrl(), "_blank")}
+          onKeyDown={(e) => { if (e.key === "Enter") { const u = getWorkspaceUrl(); if (u) window.open(u, "_blank", "noopener,noreferrer"); } }}
         >
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -296,10 +296,10 @@ export function Component() {
 
         <Card
           className="border-orange-200 dark:border-orange-800 cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => getWorkspaceUrl() && window.open(getWorkspaceUrl(), "_blank")}
+          onClick={() => { const u = getWorkspaceUrl(); if (u) window.open(u, "_blank", "noopener,noreferrer"); }}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && getWorkspaceUrl() && window.open(getWorkspaceUrl(), "_blank")}
+          onKeyDown={(e) => { if (e.key === "Enter") { const u = getWorkspaceUrl(); if (u) window.open(u, "_blank", "noopener,noreferrer"); } }}
         >
           <CardHeader>
             <div className="flex items-center gap-2">

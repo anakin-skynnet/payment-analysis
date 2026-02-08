@@ -16,7 +16,7 @@ const openNotebook = async (notebookId: string) => {
   try {
     const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
     const data = await response.json();
-    window.open(data.url, "_blank");
+    window.open(data.url, "_blank", "noopener,noreferrer");
   } catch (error) {
     console.error("Failed to open notebook:", error);
   }
@@ -26,7 +26,7 @@ const openFolder = async (folderId: string) => {
   try {
     const response = await fetch(`/api/notebooks/notebooks/folders/${folderId}/url`);
     const data = await response.json();
-    window.open(data.url, "_blank");
+    window.open(data.url, "_blank", "noopener,noreferrer");
   } catch (error) {
     console.error("Failed to open folder:", error);
   }
@@ -34,12 +34,12 @@ const openFolder = async (folderId: string) => {
 
 const openMLflow = () => {
   const mlflowUrl = getMLflowUrl();
-  window.open(mlflowUrl, "_blank");
+  if (mlflowUrl) window.open(mlflowUrl, "_blank", "noopener,noreferrer");
 };
 
 const openModelInRegistry = (catalogPath: string) => {
   const base = getWorkspaceUrl();
-  window.open(`${base}/ml/models/${catalogPath}`, "_blank");
+  if (base && catalogPath) window.open(`${base}/ml/models/${catalogPath}`, "_blank", "noopener,noreferrer");
 };
 
 const modelIdIcon: Record<string, React.ReactNode> = {
@@ -244,10 +244,10 @@ function Models() {
       {/* Combined business impact — click opens Financial Impact dashboard */}
       <Card
         className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => getWorkspaceUrl() && window.open(getWorkspaceUrl() + "/sql/dashboards/financial_impact", "_blank")}
+        onClick={() => { const u = getWorkspaceUrl(); if (u) window.open(u + "/sql/dashboards/financial_impact", "_blank", "noopener,noreferrer"); }}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && getWorkspaceUrl() && window.open(getWorkspaceUrl() + "/sql/dashboards/financial_impact", "_blank")}
+        onKeyDown={(e) => { if (e.key === "Enter") { const u = getWorkspaceUrl(); if (u) window.open(u + "/sql/dashboards/financial_impact", "_blank", "noopener,noreferrer"); } }}
       >
         <CardHeader>
           <CardTitle className="text-lg">Combined business impact</CardTitle>
@@ -257,11 +257,11 @@ function Models() {
         </CardHeader>
         <CardContent onClick={(e) => e.stopPropagation()}>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => window.open(getWorkspaceUrl() + "/sql/dashboards/financial_impact", "_blank")}>
+            <Button variant="outline" size="sm" onClick={() => { const u = getWorkspaceUrl(); if (u) window.open(u + "/sql/dashboards/financial_impact", "_blank", "noopener,noreferrer"); }}>
               Financial Impact dashboard
               <ExternalLink className="w-3 h-3 ml-2" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => window.open(getWorkspaceUrl() + "/sql/dashboards/routing_optimization", "_blank")}>
+            <Button variant="outline" size="sm" onClick={() => { const u = getWorkspaceUrl(); if (u) window.open(u + "/sql/dashboards/routing_optimization", "_blank", "noopener,noreferrer"); }}>
               Smart Routing dashboard
               <ExternalLink className="w-3 h-3 ml-2" />
             </Button>
@@ -272,10 +272,10 @@ function Models() {
       {/* Model Training Pipeline — click opens MLflow in Databricks */}
       <Card
         className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => getMLflowUrl() && window.open(getMLflowUrl(), "_blank")}
+        onClick={() => { const u = getMLflowUrl(); if (u) window.open(u, "_blank", "noopener,noreferrer"); }}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && getMLflowUrl() && window.open(getMLflowUrl(), "_blank")}
+        onKeyDown={(e) => { if (e.key === "Enter") { const u = getMLflowUrl(); if (u) window.open(u, "_blank", "noopener,noreferrer"); } }}
       >
         <CardHeader>
           <CardTitle className="text-lg">Model Training Pipeline</CardTitle>

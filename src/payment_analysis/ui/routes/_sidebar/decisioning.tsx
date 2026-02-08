@@ -33,7 +33,7 @@ const openNotebook = async (notebookId: string) => {
   try {
     const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
     const data = await response.json();
-    window.open(data.url, "_blank");
+    window.open(data.url, "_blank", "noopener,noreferrer");
   } catch (error) {
     console.error("Failed to open notebook:", error);
   }

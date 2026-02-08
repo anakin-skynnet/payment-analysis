@@ -12,7 +12,7 @@ import { useEntity } from "@/contexts/entity-context";
 import { ExternalLink, Shield, CreditCard, Fingerprint, Key, Database } from "lucide-react";
 
 const openInDatabricks = (url: string) => {
-  if (url) window.open(url, "_blank");
+  if (url) window.open(url, "_blank", "noopener,noreferrer");
 };
 
 export const Route = createFileRoute("/_sidebar/smart-checkout")({

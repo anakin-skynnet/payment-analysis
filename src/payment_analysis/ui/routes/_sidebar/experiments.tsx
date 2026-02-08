@@ -24,7 +24,7 @@ const openNotebook = async (notebookId: string) => {
   try {
     const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
     const data = await response.json();
-    window.open(data.url, "_blank");
+    window.open(data.url, "_blank", "noopener,noreferrer");
   } catch (error) {
     console.error("Failed to open notebook:", error);
   }
@@ -130,7 +130,7 @@ function ExperimentRow({
   const id = exp.id ?? "";
   const openInWorkspace = () => {
     const url = getMLflowUrl();
-    if (url) window.open(url, "_blank");
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
   };
   return (
     <Card

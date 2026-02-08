@@ -7,7 +7,7 @@ import { getDashboardUrl } from "@/config/workspace";
 import { ExternalLink, RefreshCw, Calendar, Repeat } from "lucide-react";
 
 const openInDatabricks = (url: string) => {
-  if (url) window.open(url, "_blank");
+  if (url) window.open(url, "_blank", "noopener,noreferrer");
 };
 
 export const Route = createFileRoute("/_sidebar/smart-retry")({

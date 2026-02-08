@@ -22,7 +22,7 @@ const openNotebook = async (notebookId: string) => {
   try {
     const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
     const data = await response.json();
-    window.open(data.url, "_blank");
+    window.open(data.url, "_blank", "noopener,noreferrer");
   } catch (error) {
     console.error("Failed to open notebook:", error);
   }
@@ -30,7 +30,7 @@ const openNotebook = async (notebookId: string) => {
 
 const openDashboard = () => {
   const dashboardUrl = getDashboardUrl("/sql/dashboards/realtime_monitoring");
-  window.open(dashboardUrl, "_blank");
+  if (dashboardUrl) window.open(dashboardUrl, "_blank", "noopener,noreferrer");
 };
 
 function Incidents() {
@@ -111,7 +111,7 @@ const MONITORING_DASHBOARD_PATH = "/sql/dashboards/realtime_monitoring";
 function IncidentRow({ inc }: { inc: Incident }) {
   const openInWorkspace = () => {
     const url = getDashboardUrl(MONITORING_DASHBOARD_PATH);
-    if (url) window.open(url, "_blank");
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
   };
   return (
     <Card
