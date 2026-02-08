@@ -87,3 +87,13 @@ export function getMLflowUrl(path: string = '/ml/experiments'): string {
 export function getGenieUrl(): string {
   return getWorkspacePath('/genie');
 }
+
+/**
+ * Open a Databricks resource URL in a new tab only if it is an absolute URL.
+ * Use for all notebook, folder, job, pipeline, and dashboard links so they open in the workspace.
+ */
+export function openWorkspaceUrl(url: string | null | undefined): void {
+  if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}

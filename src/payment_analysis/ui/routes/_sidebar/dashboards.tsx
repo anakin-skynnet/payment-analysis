@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3, TrendingUp, Shield, DollarSign, Gauge, Users, Calendar, Lock, Award, Zap, ExternalLink, Code2, Activity, MessageSquareText, ArrowRight, Globe, LayoutGrid, ArrowLeft } from "lucide-react";
-import { getWorkspaceUrl, getGenieUrl } from "@/config/workspace";
+import { getWorkspaceUrl, getGenieUrl, openWorkspaceUrl } from "@/config/workspace";
 import { friendlyReason } from "@/lib/reasoning";
 import { useListDashboards, useRecentDecisions, getNotebookUrl, useGetDashboardUrl, type DashboardCategory, type DashboardInfo } from "@/lib/api";
 
@@ -98,7 +98,7 @@ export function Component() {
     e.stopPropagation();
     try {
       const { data } = await getNotebookUrl({ notebook_id: notebookId });
-      window.open(data.url, "_blank", "noopener,noreferrer");
+      openWorkspaceUrl(data?.url);
     } catch (error) {
       console.error("Failed to open notebook:", error);
     }

@@ -37,7 +37,7 @@ import {
   AlertCircle,
   Target,
 } from "lucide-react";
-import { getDashboardUrl, getGenieUrl } from "@/config/workspace";
+import { getDashboardUrl, getGenieUrl, openWorkspaceUrl } from "@/config/workspace";
 import { useEntity } from "@/contexts/entity-context";
 
 const dashboardStagger = {
@@ -54,9 +54,7 @@ const dashboardItem = {
   show: { opacity: 1, y: 0 },
 };
 
-const openInDatabricks = (url: string) => {
-  if (url) window.open(url, "_blank", "noopener,noreferrer");
-};
+const openInDatabricks = (url: string) => openWorkspaceUrl(url);
 
 export const Route = createFileRoute("/_sidebar/dashboard")({
   component: () => (
@@ -70,16 +68,13 @@ const openNotebook = async (notebookId: string) => {
   try {
     const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
     const data = await response.json();
-    window.open(data.url, "_blank", "noopener,noreferrer");
+    openWorkspaceUrl(data?.url);
   } catch (error) {
     console.error("Failed to open notebook:", error);
   }
 };
 
-const openDashboard = () => {
-  const dashboardUrl = getDashboardUrl("/sql/dashboards/executive_overview");
-  if (dashboardUrl) window.open(dashboardUrl, "_blank", "noopener,noreferrer");
-};
+const openDashboard = () => openWorkspaceUrl(getDashboardUrl("/sql/dashboards/executive_overview"));
 
 function DashboardSkeleton() {
   return (

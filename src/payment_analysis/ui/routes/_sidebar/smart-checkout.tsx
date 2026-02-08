@@ -7,13 +7,11 @@ import {
   useGetThreeDsFunnel,
   useGetSmartCheckoutPathPerformance,
 } from "@/lib/api";
-import { getDashboardUrl } from "@/config/workspace";
+import { getDashboardUrl, openWorkspaceUrl } from "@/config/workspace";
 import { useEntity } from "@/contexts/entity-context";
 import { ExternalLink, Shield, CreditCard, Fingerprint, Key, Database } from "lucide-react";
 
-const openInDatabricks = (url: string) => {
-  if (url) window.open(url, "_blank", "noopener,noreferrer");
-};
+const openInDatabricks = (url: string) => openWorkspaceUrl(url);
 
 export const Route = createFileRoute("/_sidebar/smart-checkout")({
   component: () => <SmartCheckout />,

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, Code2, Brain, TrendingUp, Shield, Waypoints, RotateCcw, AlertCircle } from "lucide-react";
-import { getMLflowUrl, getWorkspaceUrl } from "@/config/workspace";
+import { getMLflowUrl, getWorkspaceUrl, openWorkspaceUrl } from "@/config/workspace";
 import { useGetModels } from "@/lib/api";
 import { useEntity } from "@/contexts/entity-context";
 
@@ -16,7 +16,7 @@ const openNotebook = async (notebookId: string) => {
   try {
     const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
     const data = await response.json();
-    window.open(data.url, "_blank", "noopener,noreferrer");
+    openWorkspaceUrl(data?.url);
   } catch (error) {
     console.error("Failed to open notebook:", error);
   }
@@ -26,20 +26,17 @@ const openFolder = async (folderId: string) => {
   try {
     const response = await fetch(`/api/notebooks/notebooks/folders/${folderId}/url`);
     const data = await response.json();
-    window.open(data.url, "_blank", "noopener,noreferrer");
+    openWorkspaceUrl(data?.url);
   } catch (error) {
     console.error("Failed to open folder:", error);
   }
 };
 
-const openMLflow = () => {
-  const mlflowUrl = getMLflowUrl();
-  if (mlflowUrl) window.open(mlflowUrl, "_blank", "noopener,noreferrer");
-};
+const openMLflow = () => openWorkspaceUrl(getMLflowUrl());
 
 const openModelInRegistry = (catalogPath: string) => {
   const base = getWorkspaceUrl();
-  if (base && catalogPath) window.open(`${base}/ml/models/${catalogPath}`, "_blank", "noopener,noreferrer");
+  if (base && catalogPath) openWorkspaceUrl(`${base}/ml/models/${catalogPath}`);
 };
 
 const modelIdIcon: Record<string, React.ReactNode> = {
@@ -244,10 +241,10 @@ function Models() {
       {/* Combined business impact — click opens Financial Impact dashboard */}
       <Card
         className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => { const u = getWorkspaceUrl(); if (u) window.open(u + "/sql/dashboards/financial_impact", "_blank", "noopener,noreferrer"); }}
+        onClick={() => openWorkspaceUrl(getWorkspaceUrl() ? `${getWorkspaceUrl()}/sql/dashboards/financial_impact` : undefined)}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter") { const u = getWorkspaceUrl(); if (u) window.open(u + "/sql/dashboards/financial_impact", "_blank", "noopener,noreferrer"); } }}
+        onKeyDown={(e) => { if (e.key === "Enter") openWorkspaceUrl(getWorkspaceUrl() ? `${getWorkspaceUrl()}/sql/dashboards/financial_impact` : undefined); }}
       >
         <CardHeader>
           <CardTitle className="text-lg">Combined business impact</CardTitle>
@@ -257,11 +254,11 @@ function Models() {
         </CardHeader>
         <CardContent onClick={(e) => e.stopPropagation()}>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => { const u = getWorkspaceUrl(); if (u) window.open(u + "/sql/dashboards/financial_impact", "_blank", "noopener,noreferrer"); }}>
+            <Button variant="outline" size="sm" onClick={() => openWorkspaceUrl(getWorkspaceUrl() ? `${getWorkspaceUrl()}/sql/dashboards/financial_impact` : undefined)}>
               Financial Impact dashboard
               <ExternalLink className="w-3 h-3 ml-2" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => { const u = getWorkspaceUrl(); if (u) window.open(u + "/sql/dashboards/routing_optimization", "_blank", "noopener,noreferrer"); }}>
+            <Button variant="outline" size="sm" onClick={() => openWorkspaceUrl(getWorkspaceUrl() ? `${getWorkspaceUrl()}/sql/dashboards/routing_optimization` : undefined)}>
               Smart Routing dashboard
               <ExternalLink className="w-3 h-3 ml-2" />
             </Button>
@@ -272,10 +269,10 @@ function Models() {
       {/* Model Training Pipeline — click opens MLflow in Databricks */}
       <Card
         className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => { const u = getMLflowUrl(); if (u) window.open(u, "_blank", "noopener,noreferrer"); }}
+        onClick={() => openWorkspaceUrl(getMLflowUrl())}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter") { const u = getMLflowUrl(); if (u) window.open(u, "_blank", "noopener,noreferrer"); } }}
+        onKeyDown={(e) => { if (e.key === "Enter") openWorkspaceUrl(getMLflowUrl()); }}
       >
         <CardHeader>
           <CardTitle className="text-lg">Model Training Pipeline</CardTitle>

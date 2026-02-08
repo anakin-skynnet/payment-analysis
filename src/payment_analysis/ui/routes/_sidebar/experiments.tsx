@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Code2, FlaskConical } from "lucide-react";
-import { getMLflowUrl } from "@/config/workspace";
+import { getMLflowUrl, openWorkspaceUrl } from "@/config/workspace";
 
 export const Route = createFileRoute("/_sidebar/experiments")({
   component: () => <Experiments />,
@@ -24,7 +24,7 @@ const openNotebook = async (notebookId: string) => {
   try {
     const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
     const data = await response.json();
-    window.open(data.url, "_blank", "noopener,noreferrer");
+    openWorkspaceUrl(data?.url);
   } catch (error) {
     console.error("Failed to open notebook:", error);
   }
@@ -128,10 +128,7 @@ function ExperimentRow({
   onStop: () => void;
 }) {
   const id = exp.id ?? "";
-  const openInWorkspace = () => {
-    const url = getMLflowUrl();
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
-  };
+  const openInWorkspace = () => openWorkspaceUrl(getMLflowUrl());
   return (
     <Card
       className="cursor-pointer hover:shadow-md transition-shadow"

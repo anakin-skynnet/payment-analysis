@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Code2, AlertTriangle } from "lucide-react";
-import { getDashboardUrl } from "@/config/workspace";
+import { getDashboardUrl, openWorkspaceUrl } from "@/config/workspace";
 
 export const Route = createFileRoute("/_sidebar/incidents")({
   component: () => <Incidents />,
@@ -22,15 +22,14 @@ const openNotebook = async (notebookId: string) => {
   try {
     const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
     const data = await response.json();
-    window.open(data.url, "_blank", "noopener,noreferrer");
+    openWorkspaceUrl(data?.url);
   } catch (error) {
     console.error("Failed to open notebook:", error);
   }
 };
 
 const openDashboard = () => {
-  const dashboardUrl = getDashboardUrl("/sql/dashboards/realtime_monitoring");
-  if (dashboardUrl) window.open(dashboardUrl, "_blank", "noopener,noreferrer");
+  openWorkspaceUrl(getDashboardUrl("/sql/dashboards/realtime_monitoring"));
 };
 
 function Incidents() {
@@ -111,7 +110,7 @@ const MONITORING_DASHBOARD_PATH = "/sql/dashboards/realtime_monitoring";
 function IncidentRow({ inc }: { inc: Incident }) {
   const openInWorkspace = () => {
     const url = getDashboardUrl(MONITORING_DASHBOARD_PATH);
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
+    openWorkspaceUrl(url);
   };
   return (
     <Card

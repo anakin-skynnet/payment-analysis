@@ -111,7 +111,8 @@ class SetupDefaultsOut(BaseModel):
     pipelines: dict[str, str] = Field(..., description="Pipeline ID by logical name")
     workspace_host: str = Field(..., description="Databricks workspace URL")
     workspace_id: str = Field("", description="Workspace ID (for Jobs URL query param o=). From DATABRICKS_WORKSPACE_ID or derived from host.")
-    token_received: bool = Field(False, description="True when X-Forwarded-Access-Token was present (OBO); use to show why Execute is disabled.")
+    token_received: bool = Field(False, description="True when OBO token was present (X-Forwarded-Access-Token or Authorization Bearer when on Apps host).")
+    workspace_url_derived: bool = Field(False, description="True when workspace URL was set (env or derived from request host); used to show why Execute is disabled.")
 
     model_config = {"populate_by_name": True}
 
@@ -257,6 +258,7 @@ def get_setup_defaults(
     if host and "databricksapps" in host.lower():
         host = ""  # Never return app URL; links must open in the Databricks workspace
     host = ensure_absolute_workspace_url(host).rstrip("/") if host else ""
+    workspace_url_derived = bool(host)
     workspace_id = (_app_config.databricks.workspace_id or "").strip() or (workspace_id_from_workspace_url(host) or "")
     catalog, schema = _effective_uc_config(request)
     if ws is None:
@@ -276,6 +278,7 @@ def get_setup_defaults(
         workspace_host=host or "",
         workspace_id=workspace_id,
         token_received=token_received,
+        workspace_url_derived=workspace_url_derived,
     )
 
 

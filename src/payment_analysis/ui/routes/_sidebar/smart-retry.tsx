@@ -3,12 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useGetRetryPerformance } from "@/lib/api";
-import { getDashboardUrl } from "@/config/workspace";
+import { getDashboardUrl, openWorkspaceUrl } from "@/config/workspace";
 import { ExternalLink, RefreshCw, Calendar, Repeat } from "lucide-react";
 
-const openInDatabricks = (url: string) => {
-  if (url) window.open(url, "_blank", "noopener,noreferrer");
-};
+const openInDatabricks = (url: string) => openWorkspaceUrl(url);
 
 export const Route = createFileRoute("/_sidebar/smart-retry")({
   component: () => <SmartRetry />,

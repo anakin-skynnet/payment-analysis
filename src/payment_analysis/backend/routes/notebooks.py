@@ -14,14 +14,32 @@ import os
 from enum import Enum
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from ..config import AppConfig
+from ..config import (
+    AppConfig,
+    WORKSPACE_URL_PLACEHOLDER,
+    app_name,
+    ensure_absolute_workspace_url,
+    workspace_url_from_apps_host,
+)
+from ..dependencies import ConfigDep, _request_host_for_derivation
 
 router = APIRouter(tags=["notebooks"])
 
 _databricks_config = AppConfig().databricks
+
+
+def _workspace_base_url_for_request(request: Request, config: AppConfig) -> str:
+    """Return absolute Databricks workspace base URL for links (notebooks, folders). Same logic as GET /api/config/workspace."""
+    raw = (config.databricks.workspace_url or "").strip().rstrip("/")
+    if not raw or raw.rstrip("/") == WORKSPACE_URL_PLACEHOLDER.rstrip("/"):
+        host_header = _request_host_for_derivation(request)
+        raw = workspace_url_from_apps_host(host_header, app_name).strip().rstrip("/")
+    if not raw or "databricksapps" in raw.lower():
+        return ""
+    return ensure_absolute_workspace_url(raw).rstrip("/")
 
 
 # =============================================================================
@@ -234,13 +252,16 @@ class NotebookUrlOut(BaseModel):
 
 
 @router.get("/notebooks/{notebook_id}/url", response_model=NotebookUrlOut, operation_id="getNotebookUrl")
-async def get_notebook_url(notebook_id: str) -> NotebookUrlOut:
-    """Get the Databricks workspace URL for a notebook."""
+async def get_notebook_url(
+    notebook_id: str,
+    request: Request,
+    config: ConfigDep,
+) -> NotebookUrlOut:
+    """Return absolute Databricks workspace URL for the notebook (opens in workspace)."""
     notebook = await get_notebook(notebook_id)
-    base_url = _databricks_config.workspace_url
+    base_url = _workspace_base_url_for_request(request, config)
     workspace_path = notebook.workspace_path
-    full_url = f"{base_url}/workspace{workspace_path}"
-    
+    full_url = f"{base_url}/workspace{workspace_path}" if base_url else ""
     return NotebookUrlOut(
         notebook_id=notebook_id,
         name=notebook.name,
@@ -267,12 +288,12 @@ class FolderUrlOut(BaseModel):
 
 
 @router.get("/notebooks/folders/{folder_id}/url", response_model=FolderUrlOut, operation_id="getNotebookFolderUrl")
-async def get_folder_url(folder_id: str) -> FolderUrlOut:
-    """
-    Get the Databricks workspace URL for a folder containing notebooks.
-
-    Use this to open the ML folder, streaming folder, etc. in the workspace.
-    """
+async def get_folder_url(
+    folder_id: str,
+    request: Request,
+    config: ConfigDep,
+) -> FolderUrlOut:
+    """Return absolute Databricks workspace URL for the folder (opens in workspace)."""
     if folder_id not in WORKSPACE_FOLDERS:
         raise HTTPException(
             status_code=404,
@@ -280,8 +301,8 @@ async def get_folder_url(folder_id: str) -> FolderUrlOut:
         )
     relative = WORKSPACE_FOLDERS[folder_id]
     workspace_path = get_notebook_path(relative)
-    base_url = _databricks_config.workspace_url
-    full_url = f"{base_url}/workspace{workspace_path}"
+    base_url = _workspace_base_url_for_request(request, config)
+    full_url = f"{base_url}/workspace{workspace_path}" if base_url else ""
     return FolderUrlOut(
         folder_id=folder_id,
         url=full_url,

@@ -547,6 +547,7 @@ export interface SetupDefaultsOut {
   warehouse_id: string;
   workspace_host: string;
   workspace_id?: string;
+  workspace_url_derived?: boolean;
 }
 
 export interface SmartCheckoutPathPerformanceOut {

@@ -36,6 +36,7 @@ type SetupDefaults = {
   workspace_host: string;
   workspace_id?: string;
   token_received?: boolean;
+  workspace_url_derived?: boolean;
 };
 
 async function fetchDefaults(): Promise<SetupDefaults> {
@@ -384,8 +385,24 @@ function SetupRun() {
           </p>
         )}
         {defaults && defaults.token_received === false && (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm text-amber-600 dark:text-amber-500 flex-1 min-w-0">
+              Token not received: enable <strong>user authorization (on-behalf-of-user)</strong> in <strong>Compute → Apps → payment-analysis → Edit → Configure → Authorization</strong>, add scopes (e.g. <code className="rounded bg-muted px-1">sql</code>, <code className="rounded bg-muted px-1">Jobs</code>, <code className="rounded bg-muted px-1">Pipelines</code>), then open this app again from <strong>Compute → Apps</strong>. Click <strong>Refresh job IDs</strong> after enabling.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchDefaults()}
+              disabled={refetchingDefaults}
+            >
+              {refetchingDefaults ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              Refresh job IDs
+            </Button>
+          </div>
+        )}
+        {defaults && defaults.token_received === true && defaults.workspace_url_derived === false && (
           <p className="text-sm text-amber-600 dark:text-amber-500">
-            Token not received: enable <strong>user authorization (on-behalf-of-user)</strong> in <strong>Compute → Apps → payment-analysis → Edit → Configure → Authorization</strong>, add scopes (e.g. <code className="rounded bg-muted px-1">sql</code>, <code className="rounded bg-muted px-1">Jobs</code>, <code className="rounded bg-muted px-1">Pipelines</code>), then open this app again from <strong>Compute → Apps</strong>.
+            Token received but workspace URL could not be derived. Set <code className="rounded bg-muted px-1">DATABRICKS_HOST</code> in the app environment (Compute → Apps → Edit → Environment), or ensure you opened the app from the Apps URL (e.g. <code className="rounded bg-muted px-1">payment-analysis-*.databricksapps.com</code>).
           </p>
         )}
         {defaults && host && (defaults.jobs?.lakehouse_bootstrap === "0" || !defaults.jobs?.lakehouse_bootstrap) && (

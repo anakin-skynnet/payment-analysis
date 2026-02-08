@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Code2, TrendingUp, Target, ArrowRight } from "lucide-react";
-import { getDashboardUrl } from "@/config/workspace";
+import { getDashboardUrl, openWorkspaceUrl } from "@/config/workspace";
 import { useEntity } from "@/contexts/entity-context";
 
 export const Route = createFileRoute("/_sidebar/declines")({
@@ -17,15 +17,14 @@ const openNotebook = async (notebookId: string) => {
   try {
     const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
     const data = await response.json();
-    window.open(data.url, "_blank", "noopener,noreferrer");
+    openWorkspaceUrl(data?.url);
   } catch (error) {
     console.error("Failed to open notebook:", error);
   }
 };
 
 const openDashboard = () => {
-  const dashboardUrl = getDashboardUrl("/sql/dashboards/decline_analysis");
-  if (dashboardUrl) window.open(dashboardUrl, "_blank", "noopener,noreferrer");
+  openWorkspaceUrl(getDashboardUrl("/sql/dashboards/decline_analysis"));
 };
 
 function Declines() {

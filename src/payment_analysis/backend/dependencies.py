@@ -78,17 +78,36 @@ def get_obo_ws(
     return workspace_client_pat_only(host=host, token=token)
 
 
+def _request_host_for_derivation(request: Request) -> str:
+    """Host value to use for deriving workspace URL (X-Forwarded-Host when present, else Host)."""
+    forwarded = request.headers.get("X-Forwarded-Host") or request.headers.get("x-forwarded-host")
+    if forwarded and str(forwarded).strip():
+        return str(forwarded).strip().split(",")[0].strip()
+    return request.headers.get("host") or ""
+
+
+def _is_apps_host(host: str) -> bool:
+    """True if host looks like a Databricks Apps URL (e.g. payment-analysis-xxx.databricksapps.com)."""
+    return bool(host and "databricksapps" in (host or "").lower())
+
+
 def _get_obo_token(request: Request) -> str | None:
-    """User token when app is opened from Compute → Apps (OBO). Check header (case-insensitive)."""
-    # Direct check first (Starlette headers are case-insensitive; both work)
+    """User token when app is opened from Compute → Apps (OBO). Check X-Forwarded-Access-Token then Authorization: Bearer (some proxies)."""
+    # Primary: X-Forwarded-Access-Token (case-insensitive)
     v = request.headers.get("X-Forwarded-Access-Token") or request.headers.get("x-forwarded-access-token")
     if v and str(v).strip():
         return v.strip()
-    # Fallback: scan all headers in case proxy uses non-standard casing
-    want = "x-forwarded-access-token"
     for name, value in request.headers.items():
-        if name.lower() == want and value and str(value).strip():
+        if name.lower() == "x-forwarded-access-token" and value and str(value).strip():
             return value.strip()
+    # Fallback when request is clearly from Apps: Authorization: Bearer (some proxies inject user token here)
+    host = _request_host_for_derivation(request)
+    if _is_apps_host(host):
+        auth = request.headers.get("Authorization") or request.headers.get("authorization")
+        if auth and str(auth).strip().lower().startswith("bearer "):
+            token = str(auth).strip()[7:].strip()
+            if token:
+                return token
     return None
 
 
@@ -116,14 +135,6 @@ def get_workspace_client(request: Request) -> WorkspaceClient:
         )
     host = ensure_absolute_workspace_url(raw)
     return workspace_client_pat_only(host=host, token=token)
-
-
-def _request_host_for_derivation(request: Request) -> str:
-    """Host value to use for deriving workspace URL (X-Forwarded-Host when present, else Host)."""
-    forwarded = request.headers.get("X-Forwarded-Host") or request.headers.get("x-forwarded-host")
-    if forwarded and str(forwarded).strip():
-        return str(forwarded).strip().split(",")[0].strip()
-    return request.headers.get("host") or ""
 
 
 def get_workspace_client_optional(request: Request) -> WorkspaceClient | None:

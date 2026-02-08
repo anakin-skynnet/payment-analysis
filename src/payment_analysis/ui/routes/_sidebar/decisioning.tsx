@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@tanstack/react-router";
 import { ExternalLink, Code2, Brain, Database, Sparkles, ArrowRight, Target } from "lucide-react";
+import { openWorkspaceUrl } from "@/config/workspace";
 
 export const Route = createFileRoute("/_sidebar/decisioning")({
   component: () => <Decisioning />,
@@ -33,7 +34,7 @@ const openNotebook = async (notebookId: string) => {
   try {
     const response = await fetch(`/api/notebooks/notebooks/${notebookId}/url`);
     const data = await response.json();
-    window.open(data.url, "_blank", "noopener,noreferrer");
+    openWorkspaceUrl(data?.url);
   } catch (error) {
     console.error("Failed to open notebook:", error);
   }
