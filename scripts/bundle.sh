@@ -29,6 +29,8 @@ case "$CMD" in
     echo "Validation OK!"
     ;;
   deploy)
+    echo "Building web UI (required for app to serve frontend)..."
+    uv run apx build
     prepare_dashboards
     echo "Deploying bundle (-t $TARGET)..."
     EXTRA_VARS=()

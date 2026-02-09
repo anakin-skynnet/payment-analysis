@@ -55,6 +55,12 @@ def _resolve_ui_dist() -> Path | None:
         base = Path(app_root).resolve()
         candidates.insert(0, base / "src" / "payment_analysis" / "__dist__")
         candidates.insert(0, base / "files" / "src" / "payment_analysis" / "__dist__")
+    # Databricks Apps runtime: workspace path may be in BUNDLE_ROOT or source under a different mount
+    bundle_root = os.environ.get("BUNDLE_ROOT")
+    if bundle_root:
+        base = Path(bundle_root).resolve()
+        candidates.insert(0, base / "files" / "src" / "payment_analysis" / "__dist__")
+        candidates.insert(0, base / "src" / "payment_analysis" / "__dist__")
     # Optional explicit UI dist path (e.g. for custom deploys)
     ui_dist_env = os.environ.get("UI_DIST_DIR")
     if ui_dist_env:
@@ -176,7 +182,8 @@ else:
               <li><a href="/api/docs">OpenAPI (Swagger) docs</a></li>
               <li><a href="/api/redoc">ReDoc</a></li>
             </ul>
-            <p>To serve the UI, run <code>uv run apx build</code> before deploying the bundle.</p>
+            <p>To fix: run <code>./scripts/bundle.sh deploy dev</code> from the repo (it builds the UI first, then deploys). 
+            Or run <code>uv run apx build</code> then redeploy the bundle so <code>src/payment_analysis/__dist__</code> is synced.</p>
             </body></html>"""
         )
 
