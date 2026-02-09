@@ -162,7 +162,7 @@ resources:
           notebook_task:
             notebook_path: ${workspace.root_path}/src/payment_analysis/transform/publish_dashboards
             base_parameters:
-              dashboards_path: ${workspace.root_path}/.build/dashboards
+              dashboards_path: ${workspace.root_path}/dashboards
           timeout_seconds: 1200
           max_retries: 1
       schedule:

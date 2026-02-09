@@ -7,7 +7,7 @@ Usage:
   uv run python scripts/dashboards.py validate-assets [--catalog X] [--schema Y]
   uv run python scripts/dashboards.py publish [--path /Workspace/Users/.../payment-analysis] [--dry-run]
 
-Prepare: copies dashboard JSONs to .build/dashboards/ and gold_views.sql to .build/transform/ with catalog/schema.
+Prepare: copies dashboard JSONs to dashboards/ (workspace root) and gold_views.sql to .build/transform/ with catalog/schema.
 Validate-assets: lists tables/views required by dashboards (no DB connection).
 Publish: after deploy, publishes all 12 dashboards with embed credentials (Databricks CLI).
 """
@@ -26,7 +26,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # Default prepare uses --catalog ahs_demos_catalog --schema payment_analysis (matches bundle variables).
 DEV_CATALOG_SCHEMA = "ahs_demos_catalog.ahs_demo_payment_analysis_dev"
 SOURCE_DIR = REPO_ROOT / "resources" / "dashboards"
-OUT_DIR = REPO_ROOT / ".build" / "dashboards"
+OUT_DIR = REPO_ROOT / "dashboards"
 GOLD_VIEWS_SOURCE = REPO_ROOT / "src" / "payment_analysis" / "transform" / "gold_views.sql"
 LAKEHOUSE_BOOTSTRAP_SOURCE = REPO_ROOT / "src" / "payment_analysis" / "transform" / "lakehouse_bootstrap.sql"
 GOLD_VIEWS_OUT_DIR = REPO_ROOT / ".build" / "transform"
@@ -172,7 +172,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Dashboard operations: prepare, validate-assets, publish")
     sub = parser.add_subparsers(dest="cmd", required=True)
     # prepare
-    p_prepare = sub.add_parser("prepare", help="Copy dashboards and gold_views.sql to .build/ with catalog/schema")
+    p_prepare = sub.add_parser("prepare", help="Copy dashboard JSONs to dashboards/ and gold_views.sql to .build/transform/ with catalog/schema")
     p_prepare.add_argument("--catalog", default=os.environ.get("BUNDLE_VAR_catalog", "ahs_demos_catalog"))
     p_prepare.add_argument("--schema", default=os.environ.get("BUNDLE_VAR_schema", "payment_analysis"))
     # validate-assets

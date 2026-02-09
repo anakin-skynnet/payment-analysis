@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Prepare Dashboard Assets
 # MAGIC
-# MAGIC Runs `scripts/dashboards.py prepare` to copy dashboard JSONs to `.build/dashboards/`
+# MAGIC Runs `scripts/dashboards.py prepare` to copy dashboard JSONs to `dashboards/`
 # MAGIC and gold_views.sql to `.build/transform/` with catalog/schema substitution.
 # MAGIC Use this job when you want to (re)generate dashboard assets in the workspace
 # MAGIC before or after deploy. For local deploy, you can instead run:
@@ -31,4 +31,4 @@ result = subprocess.run(
 if result.returncode != 0:
     sys.exit(result.returncode)
 
-print("Prepare completed. .build/dashboards and .build/transform are updated.")
+print("Prepare completed. dashboards/ and .build/transform are updated.")
