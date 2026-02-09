@@ -353,11 +353,7 @@
             "height": 8
           }
         }
-      ],
-      "pageType": "PAGE_TYPE_CANVAS"
+      ]
     }
-  ],
-  "uiSettings": {
-    "applyModeEnabled": false
-  }
+  ]
 }

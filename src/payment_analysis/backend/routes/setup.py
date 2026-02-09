@@ -179,9 +179,9 @@ class SetupSettingsOut(BaseModel):
 # =============================================================================
 # Resolve job/pipeline IDs by name when env defaults are "0" or missing
 # =============================================================================
-# Jobs are consolidated into 6 steps (1–6). Each step has one job; multiple logical
-# keys map to the same job_id. Substring must appear in the deployed job name.
-# Bundle: ml_jobs.yml (steps 1,3,4,5), streaming_simulator.yml (step 2), agents.yml (step 6).
+# Jobs use numeric prefix in name for logical execution order (1 → 2 → 3 → 4 → 5 → 6 → 7).
+# Each step has one job; multiple logical keys map to the same job_id.
+# Substring must appear in the deployed job name. Bundle: ml_jobs.yml (1,3,4,5), streaming_simulator.yml (2), agents.yml (6), genie_spaces.yml (7).
 _STEP_JOB_SUBSTRINGS: dict[str, list[str]] = {
     "1. Create Data Repositories": ["ensure_catalog_schema", "lakebase_data_init", "lakehouse_bootstrap", "vector_search_index"],
     "2. Simulate Transaction Events": ["transaction_stream_simulator"],
@@ -197,8 +197,7 @@ _STEP_JOB_SUBSTRINGS: dict[str, list[str]] = {
         "performance_recommender_agent",
         "test_agent_framework",
     ],
-    # Optional Genie job (genie_spaces.yml); not part of the 6-step sequence
-    "Genie Space Sync": ["genie_sync"],
+    "7. Genie Space Sync": ["genie_sync"],
 }
 _PIPELINE_NAME_SUBSTRINGS: dict[str, str] = {
     "payment_analysis_etl": "Payment Analysis ETL",

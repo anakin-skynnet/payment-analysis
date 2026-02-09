@@ -1,13 +1,14 @@
 # =============================================================================
-# Genie Space Sync Job
+# Step 7: Genie Space Sync Job
 # =============================================================================
 # Serverless compute. Syncs Genie space configuration and sample questions for
 # natural language analytics over payment data. Catalog/schema from variables.
+# Number prefix indicates logical order (run after step 6 if using Genie).
 # =============================================================================
 
 resources:
   jobs:
-    genie_sync_job:
+    "job_7_genie_sync":
       name: "[${var.environment}] 7. Genie Space Sync"
       description: "Syncs Genie space configuration and sample questions for natural language analytics"
       tasks:
