@@ -167,6 +167,7 @@ By default: Workspace folder, Lakebase, Jobs (7 steps: create repositories, simu
 | Don't see resources | Redeploy; run `./scripts/bundle.sh validate dev` |
 | Registered model does not exist | Run Step 5 (Train ML models), then uncomment `model_serving.yml`, redeploy |
 | Lakebase "Instance name is not unique" | Use unique `lakebase_instance_name` via `--var` or target |
+| **Lakebase project/endpoint not found** (`projects/…/branches/…/endpoints/…`) | The Autoscaling project does not exist. Create a Lakebase project in **Compute → Lakebase**, then set bundle variables to match. See [Fix: Lakebase project/endpoint not found](#fix-lakebase-projectendpoint-not-found) below. |
 | Error installing packages (app deploy) | Check **Logs** for the exact pip error. Ensure `requirements.txt` is up to date: run `uv lock` then `uv run python scripts/sync_requirements_from_lock.py`. See [Databricks Apps compatibility](#databricks-apps-compatibility). |
 | **Catalog '…' or schema '…' not found** | The catalog must exist before deploy; the bundle creates the schema. See [Fix: Catalog or schema not found](#fix-catalog-or-schema-not-found) below. |
 | **permission denied for schema public** | App tables use schema `payment_analysis` by default. Set **LAKEBASE_SCHEMA** (e.g. `payment_analysis`) in the app environment if needed; the app creates the schema if it has permission. |
@@ -178,6 +179,16 @@ By default: Workspace folder, Lakebase, Jobs (7 steps: create repositories, simu
 | **403 Forbidden / Invalid scope** (SQL or Setup) | User token from Compute → Apps lacks the **sql** scope. In **Compute → Apps → payment-analysis → Edit → Configure → Authorization scopes**, add **sql**, then **Save** and **restart** the app. See [Deploy app as a Databricks App](#deploy-app-as-a-databricks-app) above. |
 | **Failed to export ... type=mlflowExperiment** | An old MLflow experiment exists under the app path. Delete it in the workspace, then redeploy. See [Fix: export mlflowExperiment](#fix-failed-to-export--typemlflowexperiment) below. |
 | **Node named '…' already exists** (dashboard deploy) | The 12 dashboards already exist in the workspace. In **`databricks.yml`**, keep **`resources/dashboards.yml`** commented in the `include` list so the bundle does not try to create them again. Deploy will then succeed; existing dashboards are unchanged. For a **clean workspace** (first deploy), uncomment `resources/dashboards.yml` to create the dashboards. |
+
+### Fix: Lakebase project/endpoint not found
+
+**Error:** `Lakebase project/endpoint not found: 'projects/payment-analysis-db/branches/production/endpoints/primary'.`
+
+The job is using the default bundle variables (`lakebase_project_id`, `lakebase_branch_id`, `lakebase_endpoint_id`), but that Lakebase Autoscaling project does not exist in your workspace (the bundle may not create it if the CLI reports "unknown field: postgres_project").
+
+**Fix:** (1) In the workspace go to **Compute → Lakebase** and create a Lakebase (Postgres) project. Create a branch and an endpoint if needed. (2) Note the **project ID**, **branch ID**, and **endpoint ID** from the UI. (3) Redeploy with those IDs:  
+`./scripts/bundle.sh deploy dev --var lakebase_project_id=YOUR_PROJECT_ID --var lakebase_branch_id=YOUR_BRANCH_ID --var lakebase_endpoint_id=YOUR_ENDPOINT_ID`  
+Or set them in **databricks.yml** under `targets.dev.variables`. Then run Job 1 again from **Setup & Run**. See [Lakebase projects](https://docs.databricks.com/oltp/projects/).
 
 ### Fix: Catalog or schema not found
 

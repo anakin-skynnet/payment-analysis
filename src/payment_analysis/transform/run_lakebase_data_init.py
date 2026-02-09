@@ -68,8 +68,9 @@ if use_autoscaling:
         if "NotFound" in type(e).__name__ or "not found" in str(e).lower():
             raise RuntimeError(
                 f"Lakebase project/endpoint not found: {endpoint_name!r}. "
-                "Create a Lakebase (Postgres) project in the workspace (Compute → Lakebase / Postgres), "
-                "or set job parameters lakebase_project_id, lakebase_branch_id, lakebase_endpoint_id to your existing project. "
+                "Create a Lakebase Autoscaling project in the workspace (Compute → Lakebase), then set "
+                "job parameters (or bundle vars) lakebase_project_id, lakebase_branch_id, lakebase_endpoint_id "
+                "to your project's IDs (e.g. deploy with --var lakebase_project_id=<id> --var lakebase_branch_id=<branch> --var lakebase_endpoint_id=<endpoint>). "
                 "See https://docs.databricks.com/oltp/projects/"
             ) from e
         raise

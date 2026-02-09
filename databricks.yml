@@ -55,15 +55,15 @@ variables:
     description: SQL Warehouse ID for dashboards and SQL tasks; in dev, set from deployed warehouse resource
     default: "148ccb90800933a1"
   # Lakebase (managed Postgres) - required for UI CRUD and ML features
-  # Lakebase Autoscaling (required for job 1 lakebase_data_init): created by postgres_* resources in lakebase.yml; job gets IDs from these vars.
+  # If the bundle does not create the project (e.g. "unknown field: postgres_project"), create a Lakebase project in Compute → Lakebase, then set these three vars to your project/branch/endpoint IDs (e.g. --var lakebase_project_id=my-project --var lakebase_branch_id=main --var lakebase_endpoint_id=primary).
   lakebase_project_id:
-    description: "Lakebase Autoscaling project ID. Must match postgres_projects resource; used by lakebase_data_init task."
+    description: "Lakebase Autoscaling project ID. Used by job 1 lakebase_data_init. Must match an existing project (create in Compute → Lakebase if needed)."
     default: payment-analysis-db
   lakebase_branch_id:
-    description: "Lakebase Autoscaling branch ID (e.g. production). Must match postgres_branches resource."
+    description: "Lakebase Autoscaling branch ID (e.g. production, main). Must match a branch in your project."
     default: production
   lakebase_endpoint_id:
-    description: "Lakebase Autoscaling endpoint ID (e.g. primary). Must match postgres_endpoints resource."
+    description: "Lakebase Autoscaling endpoint ID (e.g. primary). Must match an endpoint in your project."
     default: primary
   lakebase_instance_name:
     description: Lakebase Provisioned instance name (PGAPPNAME when not using Autoscaling); must be unique per workspace
