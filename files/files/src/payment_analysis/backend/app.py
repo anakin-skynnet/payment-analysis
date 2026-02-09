@@ -2,10 +2,7 @@
 
 Serves the React UI at / and the API at /api. When deployed as a Databricks App,
 the platform proxies requests and sets headers (x-forwarded-access-token, X-Forwarded-Host).
-Patterns aligned with:
-  - https://docs.databricks.com/aws/en/dev-tools/databricks-apps/configuration
-  - https://apps-cookbook.dev/docs/intro (FastAPI recipes)
-  - https://github.com/databricks-solutions/apx
+See: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/configuration
 """
 
 import os
@@ -76,6 +73,12 @@ def _resolve_ui_dist() -> Path | None:
             p_resolved = p
         exists = p_resolved.exists()
         has_index = (p_resolved / "index.html").exists() if exists else False
+        logger.info(
+            "UI dist candidate: path=%s exists=%s has_index=%s",
+            p_resolved,
+            exists,
+            has_index,
+        )
         if exists and has_index:
             return p_resolved
     logger.warning(
