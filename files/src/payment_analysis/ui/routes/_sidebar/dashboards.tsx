@@ -183,9 +183,9 @@ export function Component() {
       {!showEmbedView && (
         <>
       <PageHeader
-        sectionLabel="Overview"
-        title="DBSQL dashboards"
-        description="AI/BI dashboards for executives and operations: approval rate, decline rate, fraud rate, uplift vs. baseline; visuals by geography, merchant segment, issuer, and payment solution. Loaded from your Databricks workspace (AI/BI Dashboards)."
+        sectionLabel="Portfolio visibility"
+        title="Executive dashboards"
+        description="Approval rate, decline rate, fraud, and uplift by geography, merchant, and issuer. One place for leadership and operations to monitor performance."
         badge={<DataSourceBadge />}
       />
 

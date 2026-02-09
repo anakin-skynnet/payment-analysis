@@ -278,11 +278,11 @@ function SetupRun() {
     <div className="space-y-6">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="page-section-title text-2xl font-semibold">Setup & Run</h1>
-          <DataSourceBadge label="Jobs & pipelines from workspace" />
+          <h1 className="page-section-title text-2xl font-semibold">Setup &amp; Run</h1>
+          <DataSourceBadge label="Jobs &amp; pipelines from workspace" />
         </div>
         <p className="page-section-description">
-          Follow the steps in order. Click <strong>Run</strong> to start the job or pipeline and open the run view in Databricks. Use <strong>Open</strong> to view the job or pipeline in the workspace without running.
+          Get the platform ready so your team can see approval rates and act on recommendations. Follow the steps in order; click <strong>Run</strong> to start a job or pipeline, or <strong>Open</strong> to view it in the workspace.
         </p>
       </div>
 
@@ -603,11 +603,11 @@ function SetupRun() {
         </CardContent>
       </Card>
 
-      {/* Steps — jobs 1–6: create repositories → simulate events → initialize ingestion → deploy dashboards → train models → deploy agents; optional Genie and pipelines */}
+      {/* Steps — jobs 1–7: create repositories → simulate events → ingestion → dashboards → train models → agents → Genie; pipelines optional */}
       <div className="space-y-4">
-        <h2 className="text-lg font-medium">Execution steps (1–10)</h2>
+        <h2 className="text-lg font-medium">Execution steps (1–11)</h2>
         <p className="text-sm text-muted-foreground">
-          Run in order. Jobs 1–6: Create repositories → Simulate events → Initialize ingestion → Deploy dashboards → Train models → Deploy agents. Optionally run Genie sync and start Lakeflow pipelines when needed.
+          Run in order. Jobs 1–7: Create repositories → Simulate events → Initialize ingestion → Deploy dashboards → Train models → Deploy agents → Genie sync (optional). Start Lakeflow pipelines when needed.
         </p>
         {defaults && !host && (
           <p className="text-sm text-amber-600 dark:text-amber-500">
@@ -914,40 +914,6 @@ function SetupRun() {
           </CardContent>
         </Card>
 
-        {/* Optional: Genie space sync — create/prepare Genie space */}
-        <Card
-          className="card-interactive cursor-pointer"
-          onClick={() => openJobPage("genie_sync")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobPage("genie_sync")}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <LayoutDashboard className="h-4 w-4" />
-                Genie space sync (optional)
-              </CardTitle>
-              <Badge variant="secondary">Job</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Sync Genie space configuration and sample questions for natural language analytics over payment data.
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Button
-              onClick={() => handleRunJob("genie_sync")}
-              disabled={!host || !isJobConfigured("genie_sync")}
-            >
-              {runningStepKey === "genie_sync" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => openJobPage("genie_sync")} disabled={!host}>
-              Open <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-          </CardContent>
-        </Card>
-
         {/* Step 9: Orchestrator agent */}
         <Card
           className="card-interactive cursor-pointer"
@@ -1059,6 +1025,40 @@ function SetupRun() {
               Run
             </Button>
             <Button variant="outline" size="sm" onClick={() => openJobPage("publish_dashboards")} disabled={!host}>
+              Open <ExternalLink className="ml-1 h-3 w-3" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Step 11 (optional): Genie space sync — follows UI order after step 10; bundle job 7 */}
+        <Card
+          className="card-interactive cursor-pointer"
+          onClick={() => openJobPage("genie_sync")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && openJobPage("genie_sync")}
+        >
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <LayoutDashboard className="h-4 w-4" />
+                11. Genie space sync (optional)
+              </CardTitle>
+              <Badge variant="secondary">Job</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Sync Genie space configuration and sample questions for natural language analytics over payment data.
+            </p>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <Button
+              onClick={() => handleRunJob("genie_sync")}
+              disabled={!host || !isJobConfigured("genie_sync")}
+            >
+              {runningStepKey === "genie_sync" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Run
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openJobPage("genie_sync")} disabled={!host}>
               Open <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </CardContent>

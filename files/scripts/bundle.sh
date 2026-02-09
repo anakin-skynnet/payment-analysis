@@ -39,6 +39,13 @@ case "$CMD" in
     fi
     databricks bundle deploy -t "$TARGET" --force --auto-approve "${EXTRA_VARS[@]}"
     echo "Deployment complete!"
+    echo ""
+    echo "Publishing dashboards (embed credentials)..."
+    if uv run python scripts/dashboards.py publish 2>/dev/null; then
+      echo "Dashboards published."
+    else
+      echo "Dashboard publish skipped or failed (no dashboards in workspace or CLI error)."
+    fi
     ;;
   verify)
     echo "=== Verification (target=$TARGET) ==="
