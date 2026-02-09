@@ -286,6 +286,61 @@ function SetupRun() {
         </p>
       </div>
 
+      {/* Connection status: why Run may be disabled (token, host, job IDs) */}
+      {defaults && (
+        <Card className={host && defaults.token_received && Object.values(defaults.jobs || {}).some((id) => id && id !== "0") ? "border-green-500/30 bg-green-500/5" : "border-amber-500/30 bg-amber-500/5"}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Connection status
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Run buttons are enabled when token is received, workspace URL is set, and job IDs are resolved from your workspace.
+            </p>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2">
+            <ul className="space-y-1">
+              <li className="flex items-center gap-2">
+                {defaults.token_received ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                )}
+                <span>
+                  <strong>Token:</strong> {defaults.token_received ? "Received (X-Forwarded-Access-Token or DATABRICKS_TOKEN)" : "Not received — enable user authorization below"}
+                </span>
+              </li>
+              <li className="flex items-center gap-2">
+                {host ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                )}
+                <span>
+                  <strong>Workspace URL:</strong> {host ? (defaults.workspace_url_derived ? "Derived from request" : "Set (DATABRICKS_HOST)") : "Missing — set DATABRICKS_HOST or open from Compute → Apps"}
+                </span>
+              </li>
+              <li className="flex items-center gap-2">
+                {Object.values(defaults.jobs || {}).some((id) => id && id !== "0") ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                )}
+                <span>
+                  <strong>Job IDs resolved:</strong>{" "}
+                  {Object.values(defaults.jobs || {}).filter((id) => id && id !== "0").length} of {Object.keys(defaults.jobs || {}).length} (requires token + workspace URL)
+                </span>
+              </li>
+            </ul>
+            {(!defaults.token_received || !host) && (
+              <p className="text-amber-700 dark:text-amber-400 pt-1">
+                To fix: Open this app from <strong>Compute → Apps → payment-analysis</strong> (Workspace → Apps → web). Then in <strong>Compute → Apps → payment-analysis → Edit → Configure → Authorization</strong>, enable <strong>User authorization (on-behalf-of-user)</strong> and add API scopes (e.g. <code className="rounded bg-muted px-1">all:clusters</code>, <code className="rounded bg-muted px-1">jobs</code>, <code className="rounded bg-muted px-1">sql</code>). Save, reopen the app, then click <strong>Refresh job IDs</strong> in the steps section.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Connect to Databricks — token (OAuth or PAT) required to run jobs from UI */}
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader className="pb-2">
@@ -299,7 +354,7 @@ function SetupRun() {
         </CardHeader>
         <CardContent className="text-sm space-y-2">
           <p>
-            <strong>1. Your credentials (recommended):</strong> Open this app from <strong>Compute → Apps → payment-analysis</strong> so Databricks forwards your token. No PAT needed when user authorization (OBO) is enabled for the app.
+            <strong>1. Your credentials (recommended):</strong> Open this app from <strong>Compute → Apps → payment-analysis</strong> (or <strong>Workspace → Apps → web</strong>) so Databricks forwards your token via <code className="rounded bg-muted px-1">X-Forwarded-Access-Token</code>. Enable <strong>User authorization</strong> in the app Configure → Authorization and add scopes so the token is sent.
           </p>
           <p>
             <strong>2. Personal Access Token (PAT):</strong> In the workspace go to <strong>Settings → Developer → Access tokens</strong>, create a token, then set <code className="rounded bg-muted px-1">DATABRICKS_TOKEN</code> in <strong>Compute → Apps → payment-analysis → Edit → Environment</strong>. Also set <code className="rounded bg-muted px-1">DATABRICKS_HOST</code> and <code className="rounded bg-muted px-1">DATABRICKS_WAREHOUSE_ID</code>.
@@ -603,11 +658,11 @@ function SetupRun() {
         </CardContent>
       </Card>
 
-      {/* Steps — jobs 1–7: create repositories → simulate events → ingestion → dashboards → train models → agents → Genie; pipelines optional */}
+      {/* Unified execution steps: Jobs 1–7 (one card per bundle job) + Pipelines */}
       <div className="space-y-4">
-        <h2 className="text-lg font-medium">Execution steps (1–11)</h2>
+        <h2 className="text-lg font-medium">Execution steps (Jobs 1–7 + Pipelines)</h2>
         <p className="text-sm text-muted-foreground">
-          Run in order. Jobs 1–7: Create repositories → Simulate events → Initialize ingestion → Deploy dashboards → Train models → Deploy agents → Genie sync (optional). Start Lakeflow pipelines when needed.
+          Run in order. Each card runs one Databricks job or pipeline. Job IDs are resolved from your workspace when you are signed in (open from Compute → Apps or set DATABRICKS_TOKEN).
         </p>
         {defaults && !host && (
           <p className="text-sm text-amber-600 dark:text-amber-500">
@@ -652,417 +707,131 @@ function SetupRun() {
           </div>
         )}
 
-        {/* Step 1: Lakehouse bootstrap — creates app_config, rules, recommendations */}
-        <Card
-          className="card-interactive cursor-pointer"
-          onClick={() => openJobPage("lakehouse_bootstrap")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobPage("lakehouse_bootstrap")}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Database className="h-4 w-4" />
-                1. Lakehouse bootstrap
-              </CardTitle>
-              <Badge variant="secondary">Job</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Run once to create app_config, approval_rules, approval_recommendations, and online_features. Enables Rules, Decisioning, and Dashboard. Save catalog &amp; schema above works after this (or table is created on first save).
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Button
-              onClick={() => handleRunJob("lakehouse_bootstrap")}
-              disabled={!host || !isJobConfigured("lakehouse_bootstrap")}
-            >
-              {runningStepKey === "lakehouse_bootstrap" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openJobPage("lakehouse_bootstrap")}
-              disabled={!host}
-            >
-              Open <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={openWarehouse}
-              disabled={!host}
-            >
-              SQL Warehouse <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Step 2: Vector Search index */}
-        <Card
-          className="card-interactive cursor-pointer"
-          onClick={() => openJobPage("vector_search_index")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobPage("vector_search_index")}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Database className="h-4 w-4" />
-                2. Vector Search index
-              </CardTitle>
-              <Badge variant="secondary">Job</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Create endpoint and delta-sync index from transaction_summaries_for_search. Powers similar-case recommendations in Decisioning. Run after Lakehouse Bootstrap.
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Button
-              onClick={() => handleRunJob("vector_search_index")}
-              disabled={!host || !isJobConfigured("vector_search_index")}
-            >
-              {runningStepKey === "vector_search_index" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => openJobPage("vector_search_index")} disabled={!host}>
-              Open <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Step 3: Gold views (data repos) */}
-        <Card
-          className="card-interactive cursor-pointer"
-          onClick={() => openJobPage("create_gold_views")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobPage("create_gold_views")}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <LayoutDashboard className="h-4 w-4" />
-                3. Create gold views (data repos)
-              </CardTitle>
-              <Badge variant="secondary">Job</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Create 12+ analytical views for dashboards (v_executive_kpis, decline patterns, etc.). Uses warehouse and schema.
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Button
-              onClick={() => handleRunJob("create_gold_views")}
-              disabled={!host || !isJobConfigured("create_gold_views")}
-            >
-              {runningStepKey === "create_gold_views" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => openJobPage("create_gold_views")} disabled={!host}>
-              Open <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Step 4: Events producer simulator */}
-        <Card
-          className="card-interactive cursor-pointer"
-          onClick={() => openJobPage("transaction_stream_simulator")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobPage("transaction_stream_simulator")}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Database className="h-4 w-4" />
-                4. Events producer (transaction simulator)
-              </CardTitle>
-              <Badge variant="secondary">Job</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Events simulator: generate test payment events (e.g. 1000/sec). Uses catalog and schema above.
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Button
-              onClick={() => handleRunJob("transaction_stream_simulator")}
-              disabled={!host || !isJobConfigured("transaction_stream_simulator")}
-            >
-              {runningStepKey === "transaction_stream_simulator" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => openJobPage("transaction_stream_simulator")} disabled={!host}>
-              Open <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Step 5: Optional real-time streaming */}
-        <Card
-          className="card-interactive cursor-pointer"
-          onClick={() => openPipelinePage("payment_realtime_pipeline")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openPipelinePage("payment_realtime_pipeline")}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <GitBranch className="h-4 w-4" />
-                5. Optional: real-time streaming
-              </CardTitle>
-              <Badge variant="outline">Pipeline / Job</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Real-time Lakeflow pipeline and continuous stream processor for live payment events. Run when you need real-time analytics.
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Button
-              onClick={() => handleRunPipeline("payment_realtime_pipeline")}
-              disabled={!host || !defaults?.pipelines?.payment_realtime_pipeline || defaults.pipelines.payment_realtime_pipeline === "0"}
-            >
-              {runningStepKey === "payment_realtime_pipeline" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run (pipeline)
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => openPipelinePage("payment_realtime_pipeline")} disabled={!host}>
-              Open pipeline <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleRunJob("continuous_stream_processor")}
-              disabled={!host || !isJobConfigured("continuous_stream_processor")}
-            >
-              {runningStepKey === "continuous_stream_processor" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run (stream processor)
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => openJobPage("continuous_stream_processor")} disabled={!host}>
-              Open job <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Step 6: Ingestion Lakeflow ETL pipeline */}
-        <Card
-          className="card-interactive cursor-pointer"
-          onClick={() => openPipelinePage("payment_analysis_etl")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openPipelinePage("payment_analysis_etl")}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <GitBranch className="h-4 w-4" />
-                6. Ingestion & ETL (Lakeflow pipeline, Bronze → Silver → Gold)
-              </CardTitle>
-              <Badge variant="secondary">Pipeline</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Ingestion Lakeflow pipeline: process raw data into silver and gold tables and feed Vector Search. Start a pipeline update.
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Button
-              onClick={() => handleRunPipeline("payment_analysis_etl")}
-              disabled={!host || !defaults?.pipelines?.payment_analysis_etl || defaults.pipelines.payment_analysis_etl === "0"}
-            >
-              {runningStepKey === "payment_analysis_etl" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => openPipelinePage("payment_analysis_etl")} disabled={!host}>
-              Open <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Step 7: Train ML models */}
-        <Card
-          className="card-interactive cursor-pointer"
-          onClick={() => openJobPage("train_ml_models")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobPage("train_ml_models")}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Brain className="h-4 w-4" />
-                7. Train ML models
-              </CardTitle>
-              <Badge variant="secondary">Job</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Train approval propensity, risk scoring, routing, and retry models. Uses catalog and schema.
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Button
-              onClick={() => handleRunJob("train_ml_models")}
-              disabled={!host || !isJobConfigured("train_ml_models")}
-            >
-              {runningStepKey === "train_ml_models" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => openJobPage("train_ml_models")} disabled={!host}>
-              Open <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Step 9: Orchestrator agent */}
-        <Card
-          className="card-interactive cursor-pointer"
-          onClick={() => openJobPage("orchestrator_agent")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobPage("orchestrator_agent")}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Bot className="h-4 w-4" />
-                9. Run AI orchestrator
-              </CardTitle>
-              <Badge variant="secondary">Job</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Start the orchestrator to coordinate all AI agents (routing, retry, risk, decline, performance).
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Button
-              onClick={() => handleRunJob("orchestrator_agent")}
-              disabled={!host || !isJobConfigured("orchestrator_agent")}
-            >
-              {runningStepKey === "orchestrator_agent" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => openJobPage("orchestrator_agent")} disabled={!host}>
-              Open <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Step 9b: Specialist agents */}
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Bot className="h-4 w-4" />
-                9b. Run specialist agents
-              </CardTitle>
-              <Badge variant="secondary">Jobs</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Run individual AI agents: Smart Routing, Smart Retry, Decline Analyst, Risk Assessor, Performance Recommender. Each uses the Lakehouse Rules when configured.
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            {[
-              { key: "smart_routing_agent", label: "Smart Routing" },
-              { key: "smart_retry_agent", label: "Smart Retry" },
-              { key: "decline_analyst_agent", label: "Decline Analyst" },
-              { key: "risk_assessor_agent", label: "Risk Assessor" },
-              { key: "performance_recommender_agent", label: "Performance Recommender" },
-            ].map(({ key, label }) => (
-              <span key={key} className="inline-flex items-center gap-1">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => handleRunJob(key)}
-                  disabled={!host || !isJobConfigured(key)}
-                  title={`Run ${label} and open run view`}
-                >
-                  {runningStepKey === key ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Play className="h-3 w-3 mr-1" />}
-                  Run
+        {/* Job steps 1–7: one card per bundle job (backend resolves same job_id for all keys in a step) */}
+        {[
+          { step: 1, title: "Create Data Repositories", desc: "Catalog/schema, Lakebase init, Lakehouse tables, Vector Search. Run once to enable Rules, Decisioning, and Dashboard.", jobKey: "lakehouse_bootstrap", icon: Database },
+          { step: 2, title: "Simulate Transaction Events", desc: "Generate test payment events (e.g. 1000/sec). Uses catalog and schema above.", jobKey: "transaction_stream_simulator", icon: Database },
+          { step: 3, title: "Initialize Ingestion", desc: "Gold views and sync for dashboards and Vector Search. Uses warehouse and schema.", jobKey: "create_gold_views", icon: LayoutDashboard },
+          { step: 4, title: "Deploy Dashboards", desc: "Publish dashboards with embed credentials so the app can embed AI/BI dashboards.", jobKey: "publish_dashboards", icon: LayoutDashboard },
+          { step: 5, title: "Train Models & Serving", desc: "Train approval propensity, risk scoring, routing, and retry models. Uses catalog and schema.", jobKey: "train_ml_models", icon: Brain },
+          { step: 6, title: "Deploy AgentBricks Agents", desc: "Orchestrator and specialist agents (Smart Routing, Retry, Decline Analyst, Risk, Performance).", jobKey: "orchestrator_agent", icon: Bot },
+          { step: 7, title: "Genie Space Sync", desc: "Sync Genie space and sample questions for natural language analytics over payment data.", jobKey: "genie_sync", icon: LayoutDashboard },
+        ].map(({ step, title, desc, jobKey, icon: Icon }) => (
+          <Card
+            key={step}
+            className="card-interactive cursor-pointer"
+            onClick={() => openJobPage(jobKey)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && openJobPage(jobKey)}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Icon className="h-4 w-4" />
+                  {step}. {title}
+                </CardTitle>
+                <Badge variant="secondary">Job</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">{desc}</p>
+            </CardHeader>
+            <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <Button
+                onClick={() => handleRunJob(jobKey)}
+                disabled={!host || !isJobConfigured(jobKey)}
+              >
+                {runningStepKey === jobKey ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+                Run
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => openJobPage(jobKey)} disabled={!host}>
+                Open <ExternalLink className="ml-1 h-3 w-3" />
+              </Button>
+              {step === 1 && (
+                <Button variant="outline" size="sm" onClick={openWarehouse} disabled={!host}>
+                  SQL Warehouse <ExternalLink className="ml-1 h-3 w-3" />
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openJobPage(key)}
-                  disabled={!host}
-                  title={`Open ${label} job in Databricks workspace`}
-                >
-                  {label}
-                  <ExternalLink className="ml-1 h-3 w-3" />
-                </Button>
-              </span>
-            ))}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
+        ))}
 
-        {/* Step 10: Publish dashboards (embed credentials for app UI) */}
-        <Card
-          className="card-interactive cursor-pointer"
-          onClick={() => openJobPage("publish_dashboards")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobPage("publish_dashboards")}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <LayoutDashboard className="h-4 w-4" />
-                10. Update dashboards (publish for embed)
-              </CardTitle>
-              <Badge variant="secondary">Job</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Publish dashboards with embed credentials so the app can embed AI/BI dashboards. Run after bundle deploy or when you need to refresh published state.
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Button
-              onClick={() => handleRunJob("publish_dashboards")}
-              disabled={!host || !isJobConfigured("publish_dashboards")}
-            >
-              {runningStepKey === "publish_dashboards" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => openJobPage("publish_dashboards")} disabled={!host}>
-              Open <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Pipelines */}
+        <h3 className="text-base font-medium pt-2">Pipelines (Lakeflow)</h3>
+        <p className="text-sm text-muted-foreground">
+          Start pipeline updates when you need ETL or real-time streaming.
+        </p>
+        {[
+          { title: "Payment Analysis ETL", desc: "Bronze → Silver → Gold; feed Vector Search and gold views.", pipelineKey: "payment_analysis_etl" as const, icon: GitBranch },
+          { title: "Real-Time Stream", desc: "Live payment events pipeline. Run when you need real-time analytics.", pipelineKey: "payment_realtime_pipeline" as const, icon: GitBranch },
+        ].map(({ title, desc, pipelineKey, icon: Icon }) => (
+          <Card
+            key={pipelineKey}
+            className="card-interactive cursor-pointer"
+            onClick={() => openPipelinePage(pipelineKey)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && openPipelinePage(pipelineKey)}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Icon className="h-4 w-4" />
+                  {title}
+                </CardTitle>
+                <Badge variant="outline">Pipeline</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">{desc}</p>
+            </CardHeader>
+            <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <Button
+                onClick={() => handleRunPipeline(pipelineKey)}
+                disabled={!host || !defaults?.pipelines?.[pipelineKey] || defaults.pipelines[pipelineKey] === "0"}
+              >
+                {runningStepKey === pipelineKey ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+                Run
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => openPipelinePage(pipelineKey)} disabled={!host}>
+                Open <ExternalLink className="ml-1 h-3 w-3" />
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
 
-        {/* Step 11 (optional): Genie space sync — follows UI order after step 10; bundle job 7 */}
-        <Card
-          className="card-interactive cursor-pointer"
-          onClick={() => openJobPage("genie_sync")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openJobPage("genie_sync")}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <LayoutDashboard className="h-4 w-4" />
-                11. Genie space sync (optional)
-              </CardTitle>
-              <Badge variant="secondary">Job</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Sync Genie space configuration and sample questions for natural language analytics over payment data.
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Button
-              onClick={() => handleRunJob("genie_sync")}
-              disabled={!host || !isJobConfigured("genie_sync")}
-            >
-              {runningStepKey === "genie_sync" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              Run
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => openJobPage("genie_sync")} disabled={!host}>
-              Open <ExternalLink className="ml-1 h-3 w-3" />
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Optional: stream processor job (same step 3 bundle; separate run if needed) */}
+        {defaults && isJobConfigured("continuous_stream_processor") && (
+          <Card
+            className="card-interactive cursor-pointer"
+            onClick={() => openJobPage("continuous_stream_processor")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && openJobPage("continuous_stream_processor")}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <GitBranch className="h-4 w-4" />
+                  Stream processor (optional)
+                </CardTitle>
+                <Badge variant="outline">Job</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Continuous stream processor for real-time payment events. Use with the Real-Time Stream pipeline when needed.
+              </p>
+            </CardHeader>
+            <CardContent className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <Button
+                onClick={() => handleRunJob("continuous_stream_processor")}
+                disabled={!host}
+              >
+                {runningStepKey === "continuous_stream_processor" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+                Run
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => openJobPage("continuous_stream_processor")} disabled={!host}>
+                Open <ExternalLink className="ml-1 h-3 w-3" />
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Quick links: Jobs, Pipelines, Warehouse, Genie, etc. */}
@@ -1132,14 +901,6 @@ function SetupRun() {
               Test Agent Framework <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={openJobsList}
-            disabled={!host}
-          >
-            All jobs <ExternalLink className="ml-1 h-3 w-3" />
-          </Button>
         </CardContent>
       </Card>
     </div>

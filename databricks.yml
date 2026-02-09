@@ -55,16 +55,16 @@ variables:
     description: SQL Warehouse ID for dashboards and SQL tasks; in dev, set from deployed warehouse resource
     default: "148ccb90800933a1"
   # Lakebase (managed Postgres) - required for UI CRUD and ML features
-  # Prefer Lakebase Autoscaling: set lakebase_project_id, lakebase_branch_id, lakebase_endpoint_id (create at https://docs.databricks.com/oltp/projects/)
+  # Lakebase Autoscaling (required for job 1 lakebase_data_init): created by postgres_* resources in lakebase.yml; job gets IDs from these vars.
   lakebase_project_id:
-    description: "Lakebase Autoscaling project ID. When set with lakebase_branch_id and lakebase_endpoint_id, use Autoscaling (postgres API) instead of Provisioned."
-    default: ""
+    description: "Lakebase Autoscaling project ID. Must match postgres_projects resource; used by lakebase_data_init task."
+    default: payment-analysis-db
   lakebase_branch_id:
-    description: "Lakebase Autoscaling branch ID (e.g. production)."
-    default: ""
+    description: "Lakebase Autoscaling branch ID (e.g. production). Must match postgres_branches resource."
+    default: production
   lakebase_endpoint_id:
-    description: "Lakebase Autoscaling endpoint ID (compute, e.g. ep-xxx)."
-    default: ""
+    description: "Lakebase Autoscaling endpoint ID (e.g. primary). Must match postgres_endpoints resource."
+    default: primary
   lakebase_instance_name:
     description: Lakebase Provisioned instance name (PGAPPNAME when not using Autoscaling); must be unique per workspace
     default: payment-analysis-db
@@ -122,7 +122,11 @@ targets:
     variables:
       environment: dev
       warehouse_id: ${resources.sql_warehouses.payment_analysis_warehouse.id}
-      # Unique DNS-compliant name (alphanumeric and hyphens only); override with --var if needed
+      # Lakebase Autoscaling: required for job 1 lakebase_data_init (avoids WorkspaceClient.database error)
+      lakebase_project_id: payment-analysis-db
+      lakebase_branch_id: production
+      lakebase_endpoint_id: primary
+      # Provisioned fallback; when using Autoscaling the notebook ignores this
       lakebase_instance_name: payment-analysis-db-dev
     presets:
       name_prefix: "[dev ${workspace.current_user.short_name}] "

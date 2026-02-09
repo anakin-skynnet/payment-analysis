@@ -5,16 +5,39 @@
 # See: https://www.databricks.com/product/lakebase
 #      https://learn.microsoft.com/en-us/azure/databricks/oltp/instances/create/
 #
-# Prefer Lakebase Autoscaling (autoscaling compute, scale-to-zero, branching):
-#   Create a project in the Lakebase UI or via Terraform (databricks_postgres_project),
-#   then set bundle vars: lakebase_project_id, lakebase_branch_id, lakebase_endpoint_id.
-#   The notebook and app use the Postgres API (ws.postgres) when these are set.
+# Lakebase Autoscaling (postgres_* resources): creates project, branch, and endpoint.
+# Job 1 lakebase_data_init task requires lakebase_project_id, lakebase_branch_id,
+# lakebase_endpoint_id (bundle vars default: payment-analysis-db, production, primary).
+# If your CLI reports "unknown field: postgres_project", create the project manually
+# in the Lakebase UI (https://docs.databricks.com/oltp/projects/) with the same IDs,
+# then redeploy; the job will receive the IDs from bundle variables.
 #
-# Fallback: Lakebase Provisioned (database_instances below). App uses PGAPPNAME when
-# Autoscaling vars are not set. Bind the app to this DB in resources/fastapi_app.yml if desired.
+# Fallback: Lakebase Provisioned (database_instances below) when Autoscaling is not
+# used. App uses PGAPPNAME or LAKEBASE_* env when configured.
 # =============================================================================
 
 resources:
+  # Lakebase Autoscaling: project → branch → endpoint (creates DB for lakebase_data_init)
+  postgres_project:
+    payment_analysis_lakebase:
+      project_id: ${var.lakebase_project_id}
+      spec:
+        display_name: Payment Analysis (Lakebase Autoscaling)
+        pg_version: "17"
+
+  postgres_branch:
+    payment_analysis_main:
+      parent: projects/${var.lakebase_project_id}
+      branch_id: ${var.lakebase_branch_id}
+      spec:
+        no_expiry: true
+
+  postgres_endpoint:
+    payment_analysis_primary:
+      parent: projects/${var.lakebase_project_id}/branches/${var.lakebase_branch_id}
+      endpoint_id: ${var.lakebase_endpoint_id}
+      spec: {}
+
   database_instances:
     payment_analysis_db:
       name: ${var.lakebase_instance_name}

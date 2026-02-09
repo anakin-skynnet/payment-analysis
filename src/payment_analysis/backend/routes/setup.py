@@ -286,12 +286,14 @@ def get_setup_defaults(
     """Return resource IDs and parameters for Setup & Run. Job/pipeline IDs are only returned when resolved from the workspace (existing resources) so Execute always opens a real job/pipeline in Databricks. Workspace host is always the Databricks workspace URL, never the app URL."""
     token_received = bool(_get_obo_token(request))
     host = _get_workspace_host().rstrip("/")
+    derived_from_request = False
     if not host:
         host = workspace_url_from_apps_host(_request_host_for_derivation(request), app_name).rstrip("/")
+        derived_from_request = bool(host)
     if host and "databricksapps" in host.lower():
         host = ""  # Never return app URL; links must open in the Databricks workspace
     host = ensure_absolute_workspace_url(host).rstrip("/") if host else ""
-    workspace_url_derived = bool(host)
+    workspace_url_derived = derived_from_request and bool(host)
     workspace_id = (_app_config.databricks.workspace_id or "").strip() or (workspace_id_from_workspace_url(host) or "")
     catalog, schema = _effective_uc_config(request)
     if ws is None:
