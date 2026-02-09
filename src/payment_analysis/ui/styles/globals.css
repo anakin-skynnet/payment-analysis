@@ -209,6 +209,11 @@
   .text-approval {
     color: var(--approval-success);
   }
+  /* KPI and metric numbers — tabular figures for alignment, executive readability */
+  .kpi-number {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
   /* Page header — consistent title/description block */
   .page-header {
     margin-bottom: var(--content-section-gap);
@@ -322,6 +327,14 @@
     margin-left: auto;
     margin-right: auto;
     min-width: 0;
+  }
+  /* KPI card — consistent min-height for metric blocks (executive at-a-glance) */
+  .kpi-card {
+    min-height: 8.5rem;
+  }
+  /* Hero KPI card — primary metric emphasis */
+  .kpi-card-hero {
+    min-height: 10.5rem;
   }
 }
 

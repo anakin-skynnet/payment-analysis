@@ -63,7 +63,7 @@ App resource: `resources/fastapi_app.yml`. Runtime spec: `app.yml` at project ro
 
 **Bundle root:** Directory containing `databricks.yml`. **App source:** `source_code_path` in `resources/fastapi_app.yml` is `${workspace.file_path}` (e.g. `.../payment-analysis/files`), i.e. the folder where bundle sync uploads files. The app runs from that folder so `src/payment_analysis/__dist__` is found for the web UI.
 
-**Included resources** (order in `databricks.yml`): `unity_catalog`, `lakebase`, `pipelines`, `sql_warehouse`, `ml_jobs`, `agents`, `streaming_simulator`, `genie_spaces`, `dashboards`, `fastapi_app`. Optional: `model_serving` (uncomment after training models).
+**Included resources** (order in `databricks.yml`): `unity_catalog`, `lakebase`, `pipelines`, `sql_warehouse`, `ml_jobs`, `agents`, `streaming_simulator`, `genie_spaces`, `dashboards` (comment out if deploy fails with "Node named '…' already exists"), `fastapi_app`. Optional: `model_serving` (uncomment after training models).
 
 **Paths:**  
 - Workspace root: `/Workspace/Users/${user}/${var.workspace_folder}` (default folder: `payment-analysis`).  
@@ -164,6 +164,7 @@ After any change to the app or bundle config, **redeploy** and **restart** the a
 | **Provided OAuth token does not have required scopes** | PAT lacks permissions or OAuth env vars conflict. See [Fix: PAT / token scopes](#fix-pat--token-scopes) below. |
 | **403 Forbidden / Invalid scope** (SQL or Setup) | User token from Compute → Apps lacks the **sql** scope. In **Compute → Apps → payment-analysis → Edit → Configure → Authorization scopes**, add **sql**, then **Save** and **restart** the app. See [Use your credentials (no token)](#deploy-app-as-a-databricks-app) above. |
 | **Failed to export ... type=mlflowExperiment** | An old MLflow experiment exists under the app path. Delete it in the workspace, then redeploy. See [Fix: export mlflowExperiment](#fix-failed-to-export--typemlflowexperiment) below. |
+| **Node named '…' already exists** (dashboard deploy) | The 12 dashboards already exist in the workspace. In **`databricks.yml`**, keep **`resources/dashboards.yml`** commented in the `include` list so the bundle does not try to create them again. Deploy will then succeed; existing dashboards are unchanged. For a **clean workspace** (first deploy), uncomment `resources/dashboards.yml` to create the dashboards. |
 
 ### Fix: Catalog or schema not found
 

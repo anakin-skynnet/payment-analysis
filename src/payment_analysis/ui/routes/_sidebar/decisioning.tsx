@@ -73,17 +73,17 @@ function Decisioning() {
 
   return (
     <div className="space-y-6">
-      {/* Hero: recommendations and actions to accelerate approval rates */}
+      {/* Hero: actionable next steps for leadership */}
       <header className="page-header">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <p className="section-label text-primary font-semibold mb-1">Decisioning</p>
-            <h1 className="page-section-title text-2xl md:text-3xl font-bold">Recommendations & decisions</h1>
+            <p className="section-label text-primary font-semibold mb-1">Recommendations &amp; actions</p>
+            <h1 className="page-section-title text-2xl md:text-3xl font-bold">What to do next</h1>
             <p className="mt-1 text-base font-medium text-primary">
-              How to accelerate approval rates — policies, rules, and similar-case recommendations
+              Clear next steps to accelerate approval rates — policies, rules, and data-driven recommendations
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Test ML-powered policies for authentication, retry, and routing. Use Rules (Lakehouse) and similar-case recommendations to accelerate approvals.
+              Test authentication, retry, and routing policies. Configure rules and use similar-case insights to recover more approvals.
             </p>
           </div>
           <div className="flex gap-2">
@@ -113,10 +113,10 @@ function Decisioning() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
             <Target className="w-5 h-5 text-primary shrink-0" />
-            How to accelerate approval rates
+            How this accelerates approval rates
           </CardTitle>
           <CardDescription className="text-base">
-            This app automates and recommends actions to increase approvals. Use all of the following:
+            The platform recommends and automates actions to increase approvals. Use the levers below:
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">

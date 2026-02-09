@@ -22,6 +22,10 @@ workspace:
 # model_serving.yml — uncomment after Step 5 (Train ML Models) so 4 models exist in UC.
 # Vector Search: create manually from resources/vector_search.yml.
 # Execution order for jobs (Setup & Run): see docs/DEPLOYMENT_GUIDE.md and Setup & Run in the app.
+#
+# Dashboards: Uncomment resources/dashboards.yml only for a clean workspace (first deploy).
+# If deploy fails with "Node named '...' already exists", dashboards already exist — leave
+# dashboards.yml commented so deploy can succeed; existing dashboards are unchanged.
 include:
   - resources/unity_catalog.yml
   - resources/lakebase.yml
@@ -31,7 +35,7 @@ include:
   - resources/agents.yml
   - resources/streaming_simulator.yml
   - resources/genie_spaces.yml
-  - resources/dashboards.yml
+  # - resources/dashboards.yml   # Uncomment for clean workspace; omit when dashboards already exist
   # - resources/model_serving.yml  # Uncomment after Step 5 (Train ML Models) so 4 models exist in UC
   - resources/fastapi_app.yml
 

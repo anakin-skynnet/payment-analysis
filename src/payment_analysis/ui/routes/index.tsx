@@ -26,10 +26,10 @@ const item = {
 };
 
 const valueProps = [
-  "Higher approval rates and conversion with smart routing and retry.",
-  "Reduced risk and fraud via ML models and real-time decisioning.",
-  "Full portfolio visibility with live dashboards and executive KPIs.",
-  "Actionable insights so you know where to act next.",
+  "Increase revenue and conversion with higher approval rates and smart retry.",
+  "Control risk and fraud with real-time decisioning and ML-powered scoring.",
+  "One view of portfolio performance with executive dashboards and KPIs.",
+  "Clear next steps: see what’s delaying approvals and act with confidence.",
 ];
 
 const initiatives = [
@@ -99,14 +99,14 @@ function Index() {
 
             <motion.div variants={item} className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5">
               <Zap className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">How we accelerate approval rates</span>
+              <span className="text-sm font-semibold text-primary">For Getnet leadership — accelerate approval rates</span>
             </motion.div>
 
             <motion.h1
               variants={item}
               className="hero-impact text-4xl md:text-5xl lg:text-6xl text-foreground leading-tight"
             >
-              Risk & Portfolio Intelligence
+              Risk &amp; Portfolio Intelligence
             </motion.h1>
             <motion.p
               variants={item}
@@ -118,7 +118,7 @@ function Index() {
               variants={item}
               className="text-sm text-muted-foreground max-w-xl"
             >
-              See what's delaying approval rates, get actionable recommendations, and run smart routing, retry, and risk policies — all in one place. Data and dashboards from your Databricks workspace.
+              Understand what’s driving or delaying approval rates, get clear recommendations, and align routing, retry, and risk strategies — with a single view of your portfolio.
             </motion.p>
             <motion.div variants={item} className="grid grid-cols-2 md:flex md:flex-wrap gap-3">
               {[
@@ -140,10 +140,10 @@ function Index() {
             {/* Value proposition */}
             <motion.section variants={item} className="text-left" aria-labelledby="value-prop-heading">
               <h2 id="value-prop-heading" className="sr-only">
-                What this solution does
+                Why this platform matters for Getnet
               </h2>
               <p className="text-sm font-semibold text-foreground mb-3">
-                What this solution does for Getnet
+                Why this platform matters for Getnet
               </p>
               <ul className="space-y-2">
                 {valueProps.map((text, i) => (
@@ -211,7 +211,7 @@ function Index() {
               >
                 <Link to="/dashboard">
                   <BarChart3 className="h-5 w-5" />
-                  See how to accelerate approval rates
+                  View executive overview
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -223,7 +223,7 @@ function Index() {
               >
                 <Link to="/decisioning">
                   <MessageSquareText className="h-5 w-5" />
-                  Recommendations & actions
+                  Recommendations &amp; next steps
                 </Link>
               </Button>
             </motion.div>

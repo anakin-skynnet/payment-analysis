@@ -278,11 +278,11 @@ function SetupRun() {
     <div className="space-y-6">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="page-section-title text-2xl font-semibold">Setup & Run</h1>
-          <DataSourceBadge label="Jobs & pipelines from workspace" />
+          <h1 className="page-section-title text-2xl font-semibold">Setup &amp; Run</h1>
+          <DataSourceBadge label="Jobs &amp; pipelines from workspace" />
         </div>
         <p className="page-section-description">
-          Follow the steps in order. Click <strong>Run</strong> to start the job or pipeline and open the run view in Databricks. Use <strong>Open</strong> to view the job or pipeline in the workspace without running.
+          Get the platform ready so your team can see approval rates and act on recommendations. Follow the steps in order; click <strong>Run</strong> to start a job or pipeline, or <strong>Open</strong> to view it in the workspace.
         </p>
       </div>
 
@@ -605,7 +605,7 @@ function SetupRun() {
 
       {/* Steps — jobs 1–7: create repositories → simulate events → ingestion → dashboards → train models → agents → Genie; pipelines optional */}
       <div className="space-y-4">
-        <h2 className="text-lg font-medium">Execution steps (1–10)</h2>
+        <h2 className="text-lg font-medium">Execution steps (1–11)</h2>
         <p className="text-sm text-muted-foreground">
           Run in order. Jobs 1–7: Create repositories → Simulate events → Initialize ingestion → Deploy dashboards → Train models → Deploy agents → Genie sync (optional). Start Lakeflow pipelines when needed.
         </p>
@@ -1030,7 +1030,7 @@ function SetupRun() {
           </CardContent>
         </Card>
 
-        {/* Step 7 (optional): Genie space sync */}
+        {/* Step 11 (optional): Genie space sync — follows UI order after step 10; bundle job 7 */}
         <Card
           className="card-interactive cursor-pointer"
           onClick={() => openJobPage("genie_sync")}
@@ -1042,7 +1042,7 @@ function SetupRun() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <LayoutDashboard className="h-4 w-4" />
-                7. Genie space sync (optional)
+                11. Genie space sync (optional)
               </CardTitle>
               <Badge variant="secondary">Job</Badge>
             </div>

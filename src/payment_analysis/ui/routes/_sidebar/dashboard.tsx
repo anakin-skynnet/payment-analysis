@@ -179,15 +179,15 @@ function Dashboard() {
     >
       {/* Hero: one place to monitor approval rates and discover what’s delaying them */}
       <motion.div variants={dashboardItem} className="space-y-2">
-        <p className="section-label text-primary font-semibold">Key metrics</p>
+        <p className="section-label text-primary font-semibold">Executive summary</p>
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="page-section-title text-2xl md:text-3xl font-bold">
-            Accelerate approval rates — one place to see what&apos;s working
+            Your approval rate at a glance
           </h1>
           <DataSourceBadge />
         </div>
         <p className="page-section-description">
-          Portfolio performance in the last 30 days: approval rate, trends, and factors that may be delaying approvals. Act on recommendations to maximize conversion.
+          Last 30 days: portfolio approval rate, volume, and what’s driving or delaying approvals. Use the links below to drill into trends and take action.
         </p>
       </motion.div>
 
@@ -197,10 +197,10 @@ function Dashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <GitBranch className="w-4 h-4 text-primary" />
-              One Lakehouse-based decision system
+              One system for decisions and dashboards
             </CardTitle>
             <CardDescription>
-              Smart Checkout, Reason Code Performance, and Smart Retry work together to increase approval rates and control risk. Transactions → enrichment → decision → dashboards.
+              Smart Checkout, Reason Codes, and Smart Retry work together to increase approval rates and control risk. One flow from transactions to insights.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2 pt-0">
@@ -224,10 +224,10 @@ function Dashboard() {
 
       {/* Section: Portfolio KPIs */}
       <motion.div variants={dashboardItem} className="content-section">
-        <p className="section-label text-muted-foreground mb-1">What&apos;s driving approval rates</p>
+        <p className="section-label text-muted-foreground mb-1">Portfolio metrics</p>
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h2 className="page-section-title">
-            Portfolio overview
+            Key numbers
           </h2>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={openDashboard}>
@@ -257,11 +257,9 @@ function Dashboard() {
         </div>
       </motion.div>
 
-      {/* What is happening — Hero KPI first, then supporting KPIs */}
+      {/* At a glance — Hero KPI first, then supporting KPIs */}
       <motion.div variants={dashboardItem}>
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-          What is happening
-        </h2>
+        <h2 className="sr-only">At a glance</h2>
       </motion.div>
       <motion.div variants={dashboardStagger} className="grid gap-4 md:grid-cols-3">
         {/* Hero KPI — extra visual emphasis; presentation moment: tap to open full dashboard */}
@@ -272,7 +270,7 @@ function Dashboard() {
           transition={{ duration: 0.15 }}
         >
           <Card
-            className="cursor-pointer relative overflow-hidden border-2 border-primary/50 bg-primary/10 hover:shadow-xl hover:shadow-primary/20 hover:border-primary/70 transition-all duration-300 elevation-2"
+            className="kpi-card kpi-card-hero cursor-pointer relative overflow-hidden border-2 border-primary/50 bg-primary/10 hover:shadow-xl hover:shadow-primary/20 hover:border-primary/70 transition-all duration-300 elevation-2"
             onClick={openExecutive}
             role="button"
             tabIndex={0}
@@ -285,16 +283,16 @@ function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="relative">
-              <p className="text-4xl md:text-5xl font-bold text-primary">{pct}%</p>
+              <p className="kpi-number text-4xl md:text-5xl font-bold text-primary">{pct}%</p>
               <p className="text-xs text-muted-foreground mt-2">
-                Core metric for Getnet — higher rate means more revenue and better customer experience.
+                Core metric for Getnet — higher rate drives revenue and better customer experience. Click to open full Executive Dashboard.
               </p>
             </CardContent>
           </Card>
         </motion.div>
         <motion.div variants={dashboardItem}>
           <Card
-            className="cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all duration-300"
+            className="kpi-card cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all duration-300"
             onClick={openExecutive}
             role="button"
             tabIndex={0}
@@ -306,7 +304,7 @@ function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">
+              <p className="kpi-number text-3xl font-bold">
                 {kpis.total.toLocaleString()}
               </p>
             </CardContent>
@@ -314,7 +312,7 @@ function Dashboard() {
         </motion.div>
         <motion.div variants={dashboardItem}>
           <Card
-            className="cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all duration-300"
+            className="kpi-card cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all duration-300"
             onClick={openExecutive}
             role="button"
             tabIndex={0}
@@ -326,7 +324,7 @@ function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">
+              <p className="kpi-number text-3xl font-bold">
                 {kpis.approved.toLocaleString()}
               </p>
             </CardContent>
@@ -334,10 +332,10 @@ function Dashboard() {
         </motion.div>
       </motion.div>
 
-      {/* Why — trends and solution performance */}
+      {/* Drivers & trends — trends and solution performance */}
       <motion.div variants={dashboardItem}>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-          Why
+          Drivers &amp; trends
         </h2>
       </motion.div>
       <motion.div variants={dashboardStagger} className="grid gap-4 md:grid-cols-2">

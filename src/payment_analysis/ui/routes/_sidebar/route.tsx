@@ -59,9 +59,9 @@ function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
 function Layout() {
   const location = useLocation();
 
-  // Overview: portfolio and dashboards (CEO at a glance)
+  // Overview: portfolio and dashboards (executive at a glance)
   const overviewItems: NavItem[] = [
-    { to: "/dashboard", label: "KPI overview", icon: <BarChart3 size={16} />, match: (p) => p === "/dashboard" },
+    { to: "/dashboard", label: "Executive overview", icon: <BarChart3 size={16} />, match: (p) => p === "/dashboard" },
     { to: "/dashboards", label: "Dashboards", icon: <LayoutDashboard size={16} />, match: (p) => p === "/dashboards" },
   ];
 
