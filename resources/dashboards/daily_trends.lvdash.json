@@ -290,7 +290,8 @@
             "height": 10
           }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     }
   ]
 }

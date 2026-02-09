@@ -1,14 +1,10 @@
 {
-  "version": "1.0",
-  "name": "Global Coverage Dashboard",
-  "displayName": "Global Coverage - Payment Analysis by Country",
-  "description": "World map and metrics aggregated by country. Transaction volume, approval rates, and value across issuer countries.",
-  "tags": [
-    "geography",
-    "world-map",
-    "countries",
-    "global",
-    "analytics"
+  "datasets": [
+    {
+      "name": "v_performance_by_geography",
+      "displayName": "V Performance By Geography",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_performance_by_geography"
+    }
   ],
   "pages": [
     {
@@ -18,7 +14,13 @@
         {
           "widget": {
             "name": "header",
-            "textbox_spec": "## Global Coverage\n\nPayment metrics aggregated by country (issuer). Use the map to compare volume and approval rates across regions."
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Global Coverage\n",
+                "\n",
+                "Payment metrics aggregated by country (issuer). Use the map to compare volume and approval rates across regions."
+              ]
+            }
           },
           "position": {
             "x": 0,
@@ -35,7 +37,7 @@
                 "name": "kpi_query",
                 "query": {
                   "datasetName": "v_performance_by_geography",
-                  "query_text": "SELECT COUNT(DISTINCT country) as unique_countries FROM v_performance_by_geography"
+                  "disaggregated": false
                 }
               }
             ],
@@ -65,7 +67,7 @@
                 "name": "kpi_query",
                 "query": {
                   "datasetName": "v_performance_by_geography",
-                  "query_text": "SELECT SUM(transaction_count) as total_transactions FROM v_performance_by_geography"
+                  "disaggregated": false
                 }
               }
             ],
@@ -98,7 +100,7 @@
                 "name": "kpi_query",
                 "query": {
                   "datasetName": "v_performance_by_geography",
-                  "query_text": "SELECT SUM(total_transaction_value) as total_value FROM v_performance_by_geography"
+                  "disaggregated": false
                 }
               }
             ],
@@ -132,7 +134,7 @@
                 "name": "kpi_query",
                 "query": {
                   "datasetName": "v_performance_by_geography",
-                  "query_text": "SELECT ROUND(SUM(transaction_count * approval_rate_pct) / NULLIF(SUM(transaction_count), 0), 2) as weighted_approval_rate FROM v_performance_by_geography"
+                  "disaggregated": false
                 }
               }
             ],
@@ -165,7 +167,7 @@
                 "name": "map_query",
                 "query": {
                   "datasetName": "v_performance_by_geography",
-                  "query_text": "SELECT country, transaction_count, approval_rate_pct, total_transaction_value, unique_merchants, avg_fraud_score FROM v_performance_by_geography ORDER BY transaction_count DESC"
+                  "disaggregated": false
                 }
               }
             ],
@@ -199,7 +201,7 @@
                 "name": "table_query",
                 "query": {
                   "datasetName": "v_performance_by_geography",
-                  "query_text": "SELECT country, transaction_count, approval_rate_pct, total_transaction_value, unique_merchants, avg_fraud_score FROM v_performance_by_geography ORDER BY transaction_count DESC"
+                  "disaggregated": false
                 }
               }
             ],
@@ -243,14 +245,8 @@
             "height": 10
           }
         }
-      ]
-    }
-  ],
-  "datasets": [
-    {
-      "name": "v_performance_by_geography",
-      "displayName": "V Performance By Geography",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_performance_by_geography"
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     }
   ]
 }

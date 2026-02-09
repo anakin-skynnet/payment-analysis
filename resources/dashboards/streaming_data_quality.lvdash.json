@@ -1,14 +1,25 @@
 {
-  "version": "1.0",
-  "name": "Streaming Data Quality Dashboard",
-  "displayName": "Streaming & Data Quality",
-  "description": "Incoming streaming data volume and data quality metrics (bronze/silver retention)",
-  "tags": [
-    "streaming",
-    "ingestion",
-    "data-quality",
-    "bronze",
-    "silver"
+  "datasets": [
+    {
+      "name": "v_data_quality_summary",
+      "displayName": "V Data Quality Summary",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_data_quality_summary"
+    },
+    {
+      "name": "v_silver_processed_hourly",
+      "displayName": "V Silver Processed Hourly",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_silver_processed_hourly"
+    },
+    {
+      "name": "v_streaming_ingestion_hourly",
+      "displayName": "V Streaming Ingestion Hourly",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_streaming_ingestion_hourly"
+    },
+    {
+      "name": "v_uc_data_quality_metrics",
+      "displayName": "V Uc Data Quality Metrics",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_uc_data_quality_metrics"
+    }
   ],
   "pages": [
     {
@@ -18,7 +29,13 @@
         {
           "widget": {
             "name": "header",
-            "textbox_spec": "## Incoming Streaming Data\n\nBronze ingestion volume and silver processing over time"
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Incoming Streaming Data\n",
+                "\n",
+                "Bronze ingestion volume and silver processing over time"
+              ]
+            }
           },
           "position": {
             "x": 0,
@@ -35,7 +52,7 @@
                 "name": "q",
                 "query": {
                   "datasetName": "v_data_quality_summary",
-                  "query_text": "SELECT bronze_last_24h FROM v_data_quality_summary LIMIT 1"
+                  "disaggregated": false
                 }
               }
             ],
@@ -65,7 +82,7 @@
                 "name": "q",
                 "query": {
                   "datasetName": "v_data_quality_summary",
-                  "query_text": "SELECT silver_last_24h FROM v_data_quality_summary LIMIT 1"
+                  "disaggregated": false
                 }
               }
             ],
@@ -95,7 +112,7 @@
                 "name": "q",
                 "query": {
                   "datasetName": "v_data_quality_summary",
-                  "query_text": "SELECT retention_pct_24h FROM v_data_quality_summary LIMIT 1"
+                  "disaggregated": false
                 }
               }
             ],
@@ -128,7 +145,7 @@
                 "name": "q",
                 "query": {
                   "datasetName": "v_streaming_ingestion_hourly",
-                  "query_text": "SELECT hour, bronze_record_count FROM v_streaming_ingestion_hourly ORDER BY hour"
+                  "disaggregated": false
                 }
               }
             ],
@@ -164,7 +181,7 @@
                 "name": "q",
                 "query": {
                   "datasetName": "v_silver_processed_hourly",
-                  "query_text": "SELECT hour, silver_record_count FROM v_silver_processed_hourly ORDER BY hour"
+                  "disaggregated": false
                 }
               }
             ],
@@ -192,7 +209,8 @@
             "height": 6
           }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     },
     {
       "name": "data_quality",
@@ -201,7 +219,13 @@
         {
           "widget": {
             "name": "header",
-            "textbox_spec": "## Data Quality Summary\n\nPipeline retention and data freshness (bronze \u2192 silver)"
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Data Quality Summary\n",
+                "\n",
+                "Pipeline retention and data freshness (bronze → silver)"
+              ]
+            }
           },
           "position": {
             "x": 0,
@@ -218,7 +242,7 @@
                 "name": "q",
                 "query": {
                   "datasetName": "v_data_quality_summary",
-                  "query_text": "SELECT bronze_last_24h, silver_last_24h, retention_pct_24h, latest_bronze_ingestion, latest_silver_event FROM v_data_quality_summary"
+                  "disaggregated": false
                 }
               }
             ],
@@ -261,7 +285,11 @@
         {
           "widget": {
             "name": "quality_note",
-            "textbox_spec": "**Quality notes:** Records dropped by silver expectations (e.g. invalid transaction_id, amount \u2264 0) are not in silver; retention % = silver/bronze over the last 24h. Low retention may indicate validation failures or pipeline lag."
+            "multilineTextboxSpec": {
+              "lines": [
+                "**Quality notes:** Records dropped by silver expectations (e.g. invalid transaction_id, amount ≤ 0) are not in silver; retention % = silver/bronze over the last 24h. Low retention may indicate validation failures or pipeline lag."
+              ]
+            }
           },
           "position": {
             "x": 0,
@@ -270,7 +298,8 @@
             "height": 2
           }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     },
     {
       "name": "uc_data_quality",
@@ -279,7 +308,13 @@
         {
           "widget": {
             "name": "header",
-            "textbox_spec": "## Unity Catalog Data Quality Metrics\n\nFreshness, completeness, and downstream impact from system.data_quality_monitoring. Enable data quality monitoring on tables to populate this view."
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Unity Catalog Data Quality Metrics\n",
+                "\n",
+                "Freshness, completeness, and downstream impact from system.data_quality_monitoring. Enable data quality monitoring on tables to populate this view."
+              ]
+            }
           },
           "position": {
             "x": 0,
@@ -296,7 +331,7 @@
                 "name": "q",
                 "query": {
                   "datasetName": "v_uc_data_quality_metrics",
-                  "query_text": "SELECT table_name, overall_status, freshness_status, completeness_status, impact_level, num_downstream_tables, num_queries_affected, event_time FROM v_uc_data_quality_metrics ORDER BY overall_status DESC, table_name"
+                  "disaggregated": false
                 }
               }
             ],
@@ -351,7 +386,11 @@
         {
           "widget": {
             "name": "uc_note",
-            "textbox_spec": "**Unity Catalog data quality monitoring** runs freshness and completeness checks on enabled tables. Status: Healthy / Unhealthy / Unknown. Impact level 0\u20134 indicates downstream impact severity. Grant SELECT on system.data_quality_monitoring.table_results if the view is empty."
+            "multilineTextboxSpec": {
+              "lines": [
+                "**Unity Catalog data quality monitoring** runs freshness and completeness checks on enabled tables. Status: Healthy / Unhealthy / Unknown. Impact level 0–4 indicates downstream impact severity. Grant SELECT on system.data_quality_monitoring.table_results if the view is empty."
+              ]
+            }
           },
           "position": {
             "x": 0,
@@ -360,29 +399,8 @@
             "height": 2
           }
         }
-      ]
-    }
-  ],
-  "datasets": [
-    {
-      "name": "v_data_quality_summary",
-      "displayName": "V Data Quality Summary",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_data_quality_summary"
-    },
-    {
-      "name": "v_silver_processed_hourly",
-      "displayName": "V Silver Processed Hourly",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_silver_processed_hourly"
-    },
-    {
-      "name": "v_streaming_ingestion_hourly",
-      "displayName": "V Streaming Ingestion Hourly",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_streaming_ingestion_hourly"
-    },
-    {
-      "name": "v_uc_data_quality_metrics",
-      "displayName": "V Uc Data Quality Metrics",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_uc_data_quality_metrics"
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     }
   ]
 }

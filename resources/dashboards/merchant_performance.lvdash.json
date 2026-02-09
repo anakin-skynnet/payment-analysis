@@ -374,7 +374,8 @@
             "height": 6
           }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     }
   ]
 }
