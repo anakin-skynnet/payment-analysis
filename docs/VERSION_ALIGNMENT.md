@@ -41,7 +41,7 @@ These versions are supported and compatible with the Databricks App execution en
 
 ### Transitive (in requirements.txt for Databricks App)
 
-pydantic, pydantic-core, starlette, sqlalchemy, greenlet, annotated-types, typing-extensions, typing-inspection — versions are fixed in `uv.lock` and reflected in `requirements.txt` by the sync script.
+pydantic, pydantic-core, starlette, sqlalchemy, greenlet, annotated-types, typing-extensions, typing-inspection — versions are fixed in `uv.lock` and reflected in `requirements.txt` by the sync script. `psycopg-pool` is included as a separate entry (pool extra from `psycopg[binary,pool]`); its version comes from the lockfile.
 
 **After changing `pyproject.toml`:** run `uv lock` then `uv run python scripts/sync_requirements_from_lock.py`.
 

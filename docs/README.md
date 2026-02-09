@@ -16,7 +16,7 @@ Single entry point for Payment Analysis docs. The platform’s **main purpose** 
 - **`src/payment_analysis/`** — App and bundle code  
   - **`backend/`** — FastAPI app, config, dependencies, routes (analytics, decision, dashboards, agents, rules, setup, experiments, incidents, notebooks), services (Databricks), Lakebase config  
   - **`ui/`** — React app: routes (dashboard, dashboards, decisioning, rules, smart-checkout, smart-retry, declines, reason-codes, models, ai-agents, setup, etc.), components, lib (API client)  
-  - **`transform/`** — Lakehouse SQL and job notebooks: lakehouse_bootstrap.sql, gold_views.sql, run_* (ensure_catalog_schema, lakebase_data_init, lakehouse_bootstrap, gold_views), prepare_dashboards, publish_dashboards; DLT: silver_transform, gold_views (pipeline)  
+  - **`transform/`** — Lakehouse SQL and job notebooks: lakehouse_bootstrap.sql, gold_views.sql, run_* (ensure_catalog_schema, lakebase_data_init, lakehouse_bootstrap, gold_views), prepare_dashboards, publish_dashboards; Lakeflow: silver_transform, gold_views (pipeline)  
   - **`streaming/`** — Bronze ingest, realtime pipeline, transaction simulator, continuous processor  
   - **`ml/`** — Model training (approval, risk, routing, retry)  
   - **`agents/`** — Agent framework (orchestrator, specialists)  
