@@ -152,8 +152,8 @@ class Runtime:
         if not self._db_configured():
             logger.info("Database not configured; skipping table creation.")
             return
-        raw_schema = (self.config.db.db_schema or "app").strip()
-        schema_name = raw_schema if raw_schema.replace("_", "").isalnum() else "app"
+        raw_schema = (self.config.db.db_schema or "payment_analysis").strip()
+        schema_name = raw_schema if raw_schema.replace("_", "").isalnum() else "payment_analysis"
         logger.info("Initializing database models (schema=%s)", schema_name)
         # Ensure SQLModel tables are registered before create_all().
         # Import is intentionally inside the method to avoid import-time side effects.

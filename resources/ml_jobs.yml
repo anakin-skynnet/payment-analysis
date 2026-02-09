@@ -51,7 +51,7 @@ resources:
               schema: ${var.schema}
               lakebase_instance_name: ${var.lakebase_instance_name}
               lakebase_database_name: ${var.lakebase_database_name}
-              lakebase_schema: "app"
+              lakebase_schema: "payment_analysis"
               warehouse_id: ${var.warehouse_id}
               default_events_per_second: "1000"
               default_duration_minutes: "60"

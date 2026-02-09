@@ -162,7 +162,7 @@ class DatabaseConfig(BaseSettings):
         validation_alias="PGAPPNAME",
     )
     db_schema: str = Field(
-        default="app",
+        default="payment_analysis",
         description="Postgres schema for app tables (avoid 'public' if app has no CREATE there). Set LAKEBASE_SCHEMA.",
         validation_alias="LAKEBASE_SCHEMA",
     )
