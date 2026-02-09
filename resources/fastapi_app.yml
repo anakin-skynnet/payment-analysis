@@ -65,7 +65,7 @@ resources:
             id: ${resources.jobs.job_3_initialize_ingestion.id}
             permission: CAN_MANAGE_RUN
         - name: job-4-dashboards
-          description: "4. Deploy Dashboards"
+          description: "4. Deploy Dashboards & Genie (Prepare, Publish, Sync)"
           job:
             id: ${resources.jobs.job_4_deploy_dashboards.id}
             permission: CAN_MANAGE_RUN

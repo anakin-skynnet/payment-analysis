@@ -30,7 +30,6 @@ include:
   - resources/ml_jobs.yml
   - resources/agents.yml
   - resources/streaming_simulator.yml
-  - resources/genie_spaces.yml
   - resources/dashboards.yml
   # - resources/model_serving.yml  # Uncomment after Step 5 (Train ML Models) so 4 models exist in UC
   - resources/fastapi_app.yml
