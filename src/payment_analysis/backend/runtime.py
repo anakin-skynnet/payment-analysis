@@ -34,9 +34,18 @@ class Runtime:
         # Otherwise use default (e.g. DATABRICKS_CONFIG_PROFILE or OAuth in dev)
         return WorkspaceClient()
 
+    def _use_lakebase_autoscaling(self) -> bool:
+        """True if Lakebase Autoscaling (postgres project/branch/endpoint) is configured."""
+        c = self.config.db
+        return bool(
+            c.postgres_project_id and c.postgres_branch_id and c.postgres_endpoint_id
+        )
+
     def _db_configured(self) -> bool:
-        """True if a database is configured (local dev or Lakebase instance)."""
+        """True if a database is configured (local dev, Lakebase Autoscaling, or Provisioned)."""
         if self._dev_db_port:
+            return True
+        if self._use_lakebase_autoscaling():
             return True
         return bool(self.config.db.instance_name and self.config.db.instance_name.strip())
 
@@ -53,32 +62,72 @@ class Runtime:
                 )
             return f"postgresql+psycopg://{username}:{password}@localhost:{self._dev_db_port}/postgres?sslmode=disable"
 
-        # Production mode: use Databricks Lakebase database instance
-        if not self.config.db.instance_name or not self.config.db.instance_name.strip():
+        # Production: Lakebase Autoscaling (postgres) or Provisioned (database instance)
+        if not self._db_configured():
             raise ValueError(
-                "Database not configured. Set PGAPPNAME to your Lakebase instance name (Databricks App)."
+                "Database not configured. Set Lakebase Autoscaling (LAKEBASE_PROJECT_ID, LAKEBASE_BRANCH_ID, LAKEBASE_ENDPOINT_ID) "
+                "or PGAPPNAME to your Lakebase instance name (Databricks App)."
             )
-        logger.info(
-            f"Using Databricks database instance: {self.config.db.instance_name}"
-        )
-        instance = self.ws.database.get_database_instance(self.config.db.instance_name)
         prefix = "postgresql+psycopg"
-        host = instance.read_write_dns
         port = self.config.db.port
-        database = self.config.db.database_name
+        database = self.config.db.database_name or "databricks_postgres"
         username = (
             self.ws.config.client_id
             if self.ws.config.client_id
-            else self.ws.current_user.me().user_name
+            else (self.ws.current_user.me().user_name if self.ws.current_user else "postgres")
         )
+
+        if self._use_lakebase_autoscaling():
+            endpoint_name = (
+                f"projects/{self.config.db.postgres_project_id}/branches/"
+                f"{self.config.db.postgres_branch_id}/endpoints/{self.config.db.postgres_endpoint_id}"
+            )
+            logger.info("Using Lakebase Autoscaling (postgres): %s", endpoint_name)
+            endpoint = self.ws.postgres.get_endpoint(name=endpoint_name)
+            status = getattr(endpoint, "status", None)
+            hosts = getattr(status, "hosts", None) if status else None
+            if hosts is not None and isinstance(hosts, list) and len(hosts) > 0:
+                host = getattr(hosts[0], "host", None) or getattr(hosts[0], "hostname", None)
+            else:
+                host = (
+                    getattr(hosts, "host", None) or getattr(hosts, "hostname", None)
+                    if hosts
+                    else None
+                )
+            if not host:
+                raise ValueError("Lakebase Autoscaling endpoint has no host; ensure the compute is running.")
+            return f"{prefix}://{username}:@{host}:{port}/{database}"
+        # Provisioned (Database Instances API)
+        db_api = getattr(self.ws, "database", None)
+        if db_api is None:
+            raise AttributeError(
+                "WorkspaceClient has no attribute 'database'. Use Lakebase Autoscaling (set "
+                "LAKEBASE_PROJECT_ID, LAKEBASE_BRANCH_ID, LAKEBASE_ENDPOINT_ID) or upgrade databricks-sdk."
+            )
+        logger.info("Using Databricks Lakebase instance: %s", self.config.db.instance_name)
+        instance = db_api.get_database_instance(name=self.config.db.instance_name)
+        host = instance.read_write_dns
         return f"{prefix}://{username}:@{host}:{port}/{database}"
 
     def _before_connect(self, dialect, conn_rec, cargs, cparams):
-        cred = self.ws.database.generate_database_credential(
-            request_id=str(uuid.uuid4()),
-            instance_names=[self.config.db.instance_name],
-        )
-        cparams["password"] = cred.token
+        if self._use_lakebase_autoscaling():
+            endpoint_name = (
+                f"projects/{self.config.db.postgres_project_id}/branches/"
+                f"{self.config.db.postgres_branch_id}/endpoints/{self.config.db.postgres_endpoint_id}"
+            )
+            cred = self.ws.postgres.generate_database_credential(endpoint=endpoint_name)
+            cparams["password"] = cred.token
+        else:
+            db_api = getattr(self.ws, "database", None)
+            if db_api is None:
+                raise AttributeError(
+                    "WorkspaceClient has no attribute 'database'. Use Lakebase Autoscaling or upgrade databricks-sdk."
+                )
+            cred = db_api.generate_database_credential(
+                request_id=str(uuid.uuid4()),
+                instance_names=[self.config.db.instance_name],
+            )
+            cparams["password"] = cred.token
 
     @cached_property
     def engine(self) -> Engine:
@@ -121,16 +170,34 @@ class Runtime:
                 f"Validating local dev database connection at localhost:{self._dev_db_port}"
             )
         else:
-            logger.info(
-                f"Validating database connection to instance {self.config.db.instance_name}"
-            )
-            # check if the database instance exists
-            try:
-                self.ws.database.get_database_instance(self.config.db.instance_name)
-            except NotFound:
-                raise ValueError(
-                    f"Database instance {self.config.db.instance_name} does not exist"
+            if self._use_lakebase_autoscaling():
+                endpoint_name = (
+                    f"projects/{self.config.db.postgres_project_id}/branches/"
+                    f"{self.config.db.postgres_branch_id}/endpoints/{self.config.db.postgres_endpoint_id}"
                 )
+                logger.info("Validating Lakebase Autoscaling endpoint: %s", endpoint_name)
+                try:
+                    self.ws.postgres.get_endpoint(name=endpoint_name)
+                except NotFound:
+                    raise ValueError(
+                        f"Lakebase Autoscaling endpoint does not exist: {endpoint_name}"
+                    )
+            else:
+                logger.info(
+                    "Validating database connection to instance %s",
+                    self.config.db.instance_name,
+                )
+                db_api = getattr(self.ws, "database", None)
+                if db_api is None:
+                    raise AttributeError(
+                        "WorkspaceClient has no attribute 'database'. Use Lakebase Autoscaling or upgrade databricks-sdk."
+                    )
+                try:
+                    db_api.get_database_instance(name=self.config.db.instance_name)
+                except NotFound:
+                    raise ValueError(
+                        f"Database instance {self.config.db.instance_name} does not exist"
+                    )
 
         # check if a connection to the database can be established
         try:
@@ -143,9 +210,12 @@ class Runtime:
 
         if self._dev_db_port:
             logger.info("Local dev database connection validated successfully")
+        elif self._use_lakebase_autoscaling():
+            logger.info("Lakebase Autoscaling database connection validated successfully")
         else:
             logger.info(
-                f"Database connection to instance {self.config.db.instance_name} validated successfully"
+                "Database connection to instance %s validated successfully",
+                self.config.db.instance_name,
             )
 
     def initialize_models(self) -> None:

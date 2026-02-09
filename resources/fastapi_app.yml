@@ -4,7 +4,9 @@
 # Runtime: app.yml at project root (command, env). source_code_path = workspace root (sync destination).
 #
 # Environment (Workspace → Apps → payment-analysis → Edit → Environment):
-#   PGAPPNAME               — Required. Match var.lakebase_instance_name (dev: payment-analysis-db-dev).
+#   Lakebase: Use either (1) Autoscaling or (2) Provisioned.
+#   (1) Autoscaling (preferred): Set LAKEBASE_PROJECT_ID, LAKEBASE_BRANCH_ID, LAKEBASE_ENDPOINT_ID (from your Lakebase project). Leave PGAPPNAME unset.
+#   (2) Provisioned: Set PGAPPNAME to var.lakebase_instance_name (dev: payment-analysis-db-dev). Database binding below provides instance_name/database_name.
 #   DATABRICKS_WAREHOUSE_ID — Required for SQL/analytics (from sql-warehouse binding).
 #   DATABRICKS_HOST         — Optional when opened from Compute → Apps (workspace URL derived from request headers).
 #   DATABRICKS_TOKEN        — Optional when using user authorization: open from Compute → Apps so token is forwarded (x-forwarded-access-token). Do not set DATABRICKS_CLIENT_ID/SECRET when using forwarded user token.

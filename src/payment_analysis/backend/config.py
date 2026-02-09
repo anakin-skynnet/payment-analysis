@@ -158,8 +158,23 @@ class DatabaseConfig(BaseSettings):
     )
     instance_name: str = Field(
         default="",
-        description="The name of the Lakebase/database instance (set PGAPPNAME in Databricks App)",
+        description="The name of the Lakebase/database instance (set PGAPPNAME in Databricks App). Ignored when Lakebase Autoscaling (postgres_*) is set.",
         validation_alias="PGAPPNAME",
+    )
+    postgres_project_id: str = Field(
+        default="",
+        description="Lakebase Autoscaling project ID (use with postgres_branch_id and postgres_endpoint_id). Prefer over Provisioned (PGAPPNAME).",
+        validation_alias="LAKEBASE_PROJECT_ID",
+    )
+    postgres_branch_id: str = Field(
+        default="",
+        description="Lakebase Autoscaling branch ID.",
+        validation_alias="LAKEBASE_BRANCH_ID",
+    )
+    postgres_endpoint_id: str = Field(
+        default="",
+        description="Lakebase Autoscaling endpoint ID (compute).",
+        validation_alias="LAKEBASE_ENDPOINT_ID",
     )
     db_schema: str = Field(
         default="payment_analysis",

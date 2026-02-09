@@ -54,9 +54,19 @@ variables:
   warehouse_id:
     description: SQL Warehouse ID for dashboards and SQL tasks; in dev, set from deployed warehouse resource
     default: "148ccb90800933a1"
-  # Lakebase (managed Postgres) - required for UI CRUD and ML features; app uses PGAPPNAME = lakebase_instance_name
+  # Lakebase (managed Postgres) - required for UI CRUD and ML features
+  # Prefer Lakebase Autoscaling: set lakebase_project_id, lakebase_branch_id, lakebase_endpoint_id (create at https://docs.databricks.com/oltp/projects/)
+  lakebase_project_id:
+    description: "Lakebase Autoscaling project ID. When set with lakebase_branch_id and lakebase_endpoint_id, use Autoscaling (postgres API) instead of Provisioned."
+    default: ""
+  lakebase_branch_id:
+    description: "Lakebase Autoscaling branch ID (e.g. production)."
+    default: ""
+  lakebase_endpoint_id:
+    description: "Lakebase Autoscaling endpoint ID (compute, e.g. ep-xxx)."
+    default: ""
   lakebase_instance_name:
-    description: Lakebase database instance name (PGAPPNAME in app); must be unique per workspace
+    description: Lakebase Provisioned instance name (PGAPPNAME when not using Autoscaling); must be unique per workspace
     default: payment-analysis-db
   lakebase_capacity:
     description: Lakebase instance capacity (CU_1, CU_2, CU_4, CU_8)
