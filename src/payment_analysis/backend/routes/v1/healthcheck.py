@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 from fastapi import APIRouter, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import text
 
 router = APIRouter()
@@ -17,6 +17,7 @@ class HealthDatabaseOut(BaseModel):
     database_instance_exists: bool
     connection_healthy: bool
     status: str
+    lakebase_mode: str = Field("", description="'autoscaling' | 'provisioned' | '' when not configured.")
 
 
 @router.get("/healthcheck", response_model=HealthcheckOut, operation_id="healthcheck")
@@ -37,6 +38,7 @@ async def health_database(request: Request) -> HealthDatabaseOut:
             database_instance_exists=False,
             connection_healthy=False,
             status="unhealthy",
+            lakebase_mode="",
         )
     instance_exists = rt._db_configured()
     connection_healthy = False
@@ -47,8 +49,12 @@ async def health_database(request: Request) -> HealthDatabaseOut:
             connection_healthy = True
         except Exception:
             pass
+    lakebase_mode = ""
+    if instance_exists:
+        lakebase_mode = "autoscaling" if rt._use_lakebase_autoscaling() else "provisioned"
     return HealthDatabaseOut(
         database_instance_exists=instance_exists,
         connection_healthy=connection_healthy,
         status="healthy" if (instance_exists and connection_healthy) else "unhealthy",
+        lakebase_mode=lakebase_mode,
     )

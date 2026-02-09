@@ -23,7 +23,7 @@ Jobs are consolidated into **7 numbered steps** (prefix in job name). Run in ord
 | # | Job (step) | Action |
 |---|------------|--------|
 | 0 | Deploy bundle | `./scripts/bundle.sh deploy dev` (includes prepare; no missing files) |
-| 1 | **1. Create Data Repositories** | **Setup & Run** → Run job 1 (first: ensure catalog & schema; then Lakebase init — default config and rules; then lakehouse bootstrap — tables + seed data; then vector search endpoint & index). Run once. Creates everything needed for later jobs and the app. |
+| 1 | **1. Create Data Repositories** | **Setup & Run** → Run job 1 (ensure catalog & schema → **create Lakebase Autoscaling** project/branch/endpoint → **Lakebase data init** — app_config, approval_rules, online_features, app_settings → lakehouse bootstrap → vector search). Run once. Creates everything needed for later jobs and the app. |
 | 2 | **2. Simulate Transaction Events** | **Setup & Run** → Run **Transaction Stream Simulator** (producer; events ingested later by pipelines) |
 | 3 | **3. Initialize Ingestion** | **Setup & Run** → Run **Create Gold Views** or **Continuous Stream Processor** (same job: gold views + vector search sync; lakehouse/lakebase/vector search) |
 | 4 | **4. Deploy Dashboards** | **Setup & Run** → Run job 4 (prepare assets → publish dashboards with embed credentials) |
@@ -186,7 +186,15 @@ By default: Workspace folder, Lakebase, Jobs (7 steps: create repositories, simu
 
 The job is using the default bundle variables (`lakebase_project_id`, `lakebase_branch_id`, `lakebase_endpoint_id`), but that Lakebase Autoscaling project does not exist in your workspace (the bundle may not create it if the CLI reports "unknown field: postgres_project").
 
-**Fix:** (1) In the workspace go to **Compute → Lakebase** and create a Lakebase (Postgres) project. Create a branch and an endpoint if needed. (2) Note the **project ID**, **branch ID**, and **endpoint ID** from the UI. (3) Redeploy with those IDs:  
+**Option A — Create programmatically (recommended):** From the repo root, authenticate with `databricks auth login`, then run:
+
+```bash
+uv run python scripts/create_lakebase_autoscaling.py
+```
+
+This creates the project, branch, and endpoint with IDs matching the bundle defaults (`payment-analysis-db`, `production`, `primary`). Job 1 parameters are already set to these in the bundle; redeploy so the job and app use them: `./scripts/bundle.sh deploy dev`. To use different IDs, pass `--project-id`, `--branch-id`, `--endpoint-id` and then redeploy with the same `--var` values. Optionally pass `--job-id <job_id>` to update the deployed job’s base_parameters without redeploying.
+
+**Option B — Create in the UI:** (1) In the workspace go to **Compute → Lakebase** and create a Lakebase (Postgres) project, branch, and endpoint. (2) Note the **project ID**, **branch ID**, and **endpoint ID**. (3) Redeploy with those IDs:  
 `./scripts/bundle.sh deploy dev --var lakebase_project_id=YOUR_PROJECT_ID --var lakebase_branch_id=YOUR_BRANCH_ID --var lakebase_endpoint_id=YOUR_ENDPOINT_ID`  
 Or set them in **databricks.yml** under `targets.dev.variables`. Then run Job 1 again from **Setup & Run**. See [Lakebase projects](https://docs.databricks.com/oltp/projects/).
 
@@ -250,9 +258,10 @@ All bundle jobs have been reviewed for duplicates or overlapping functionality. 
 |----------------------|---------|--------|
 | **ml_jobs.yml** | | |
 | `ensure_catalog_schema` (job 1 task 1) | Create Unity Catalog and schema if they do not exist | First task of job 1; idempotent. Requires CREATE_CATALOG/CREATE_SCHEMA or metastore admin. |
-| `lakebase_data_init` (job 1 task 2) | Initialize Lakebase Postgres: app_config, approval_rules, online_features table, app_settings (job params) | Run once. Backend reads these at startup. |
-| `lakehouse_bootstrap` (job 1 task 3) | Run `lakehouse_bootstrap.sql`: app_config, rules, recommendations, countries, online_features; seeds app_config, countries, approval_rules | Run once after Lakebase init. Creates all lakehouse tables and default rules. |
-| `create_vector_search_index` (job 1 task 4) | Create Vector Search endpoint and delta-sync index from `transaction_summaries_for_search`; MERGE from silver when available | Notebook; run after bootstrap. Skips MERGE if silver table missing so job 1 can complete. |
+| `create_lakebase_autoscaling` (job 1 task 2) | Create Lakebase Autoscaling project, branch, and endpoint (idempotent) | Uses job params lakebase_project_id, lakebase_branch_id, lakebase_endpoint_id (from bundle vars). Same params are passed to the next task. |
+| `lakebase_data_init` (job 1 task 3) | Connect to Lakebase and insert default app_config, approval_rules, online_features table, app_settings | Run after create_lakebase_autoscaling. Backend reads these tables at startup. |
+| `lakehouse_bootstrap` (job 1 task 4) | Run `lakehouse_bootstrap.sql`: app_config, rules, recommendations, countries, online_features; seeds app_config, countries, approval_rules | Run once after Lakebase init. Creates all lakehouse tables and default rules. |
+| `create_vector_search_index` (job 1 task 5) | Create Vector Search endpoint and delta-sync index from `transaction_summaries_for_search`; MERGE from silver when available | Notebook; run after bootstrap. Skips MERGE if silver table missing so job 1 can complete. |
 | `create_gold_views_job` | Run `gold_views.sql`: 12+ analytical views | SQL task; distinct from bootstrap. |
 | `train_ml_models_job` | Train 4 ML models (approval, risk, routing, retry); register in UC | Single notebook. |
 | `prepare_dashboards_job` | Generate `.build/dashboards/` and `.build/transform/*.sql` with catalog/schema | Run when catalog/schema or source dashboards change; not in Setup & Run UI. |

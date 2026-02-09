@@ -5,12 +5,10 @@
 # See: https://www.databricks.com/product/lakebase
 #      https://learn.microsoft.com/en-us/azure/databricks/oltp/instances/create/
 #
-# Lakebase Autoscaling (postgres_* resources): creates project, branch, and endpoint.
-# Job 1 lakebase_data_init task requires lakebase_project_id, lakebase_branch_id,
-# lakebase_endpoint_id (bundle vars default: payment-analysis-db, production, primary).
-# If your CLI reports "unknown field: postgres_project", create the project manually
-# in the Lakebase UI (https://docs.databricks.com/oltp/projects/) with the same IDs,
-# then redeploy; the job will receive the IDs from bundle variables.
+# Lakebase Autoscaling: Job 1 runs create_lakebase_autoscaling (notebook) to create project, branch, endpoint
+# programmatically, then lakebase_data_init seeds app_config, approval_rules, online_features, app_settings.
+# Job params lakebase_project_id, lakebase_branch_id, lakebase_endpoint_id come from bundle vars (default: payment-analysis-db, production, primary).
+# If the bundle CLI reports "unknown field: postgres_project", the create_lakebase_autoscaling task creates them at run time; or run scripts/create_lakebase_autoscaling.py once, then redeploy.
 #
 # Fallback: Lakebase Provisioned (database_instances below) when Autoscaling is not
 # used. App uses PGAPPNAME or LAKEBASE_* env when configured.

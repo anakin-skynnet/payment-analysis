@@ -80,6 +80,7 @@ DEFAULT_IDS: _DefaultIds = {
         "transaction_stream_simulator": os.getenv(_job_id_env_key("transaction_stream_simulator"), "782493643247677") or "782493643247677",
         "create_gold_views": os.getenv(_job_id_env_key("create_gold_views"), "775632375108394") or "775632375108394",
         "ensure_catalog_schema": os.getenv(_job_id_env_key("ensure_catalog_schema"), "0") or "0",
+        "create_lakebase_autoscaling": os.getenv(_job_id_env_key("create_lakebase_autoscaling"), "0") or "0",
         "lakebase_data_init": os.getenv(_job_id_env_key("lakebase_data_init"), "0") or "0",
         "lakehouse_bootstrap": os.getenv(_job_id_env_key("lakehouse_bootstrap"), "0") or "0",
         "vector_search_index": os.getenv(_job_id_env_key("vector_search_index"), "0") or "0",
@@ -118,6 +119,8 @@ class SetupDefaultsOut(BaseModel):
     workspace_id: str = Field("", description="Workspace ID (for Jobs URL query param o=). From DATABRICKS_WORKSPACE_ID or derived from host.")
     token_received: bool = Field(False, description="True when OBO token was present (X-Forwarded-Access-Token or Authorization Bearer when on Apps host).")
     workspace_url_derived: bool = Field(False, description="True when workspace URL was set (env or derived from request host); used to show why Execute is disabled.")
+    lakebase_autoscaling: bool = Field(False, description="True when app is connected to Lakebase Autoscaling (LAKEBASE_PROJECT_ID, LAKEBASE_BRANCH_ID, LAKEBASE_ENDPOINT_ID set).")
+    lakebase_connection_mode: str = Field("", description="'autoscaling' | 'provisioned' | '' when DB not configured.")
 
     model_config = {"populate_by_name": True}
 
@@ -183,7 +186,7 @@ class SetupSettingsOut(BaseModel):
 # Each step has one job; multiple logical keys map to the same job_id.
 # Substring must appear in the deployed job name. Bundle: ml_jobs.yml (1,3,4,5), streaming_simulator.yml (2), agents.yml (6), genie_spaces.yml (7).
 _STEP_JOB_SUBSTRINGS: dict[str, list[str]] = {
-    "1. Create Data Repositories": ["ensure_catalog_schema", "lakebase_data_init", "lakehouse_bootstrap", "vector_search_index"],
+    "1. Create Data Repositories": ["ensure_catalog_schema", "create_lakebase_autoscaling", "lakebase_data_init", "lakehouse_bootstrap", "vector_search_index"],
     "2. Simulate Transaction Events": ["transaction_stream_simulator"],
     "3. Initialize Ingestion": ["create_gold_views", "continuous_stream_processor"],
     "4. Deploy Dashboards": ["prepare_dashboards", "publish_dashboards"],
@@ -304,6 +307,11 @@ def get_setup_defaults(
         jobs, pipelines = _merge_resolved_ids(
             resolved_jobs, resolved_pipelines, DEFAULT_IDS["jobs"], DEFAULT_IDS["pipelines"]
         )
+    runtime = getattr(request.app.state, "runtime", None)
+    lakebase_autoscaling = bool(runtime and runtime._use_lakebase_autoscaling())
+    lakebase_connection_mode = ""
+    if runtime and runtime._db_configured():
+        lakebase_connection_mode = "autoscaling" if runtime._use_lakebase_autoscaling() else "provisioned"
     return SetupDefaultsOut(
         warehouse_id=_effective_warehouse_id(request),
         catalog=catalog,
@@ -314,6 +322,8 @@ def get_setup_defaults(
         workspace_id=workspace_id,
         token_received=token_received,
         workspace_url_derived=workspace_url_derived,
+        lakebase_autoscaling=lakebase_autoscaling,
+        lakebase_connection_mode=lakebase_connection_mode,
     )
 
 

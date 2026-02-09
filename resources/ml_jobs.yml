@@ -2,7 +2,7 @@
 # ML and Analytics Jobs — Consolidated by logical steps (1, 3, 4, 5)
 # =============================================================================
 # All tasks use serverless compute (no new_cluster); Databricks manages compute.
-# Step 1: Create data repositories (lakehouse, vector search, lakebase).
+# Step 1: Create data repositories (catalog/schema → Lakebase Autoscaling → Lakebase data init → lakehouse → vector search).
 # Step 3: Initialize ingestion into lakehouse, lakebase, vector search.
 # Step 4: Deploy dashboards (prepare → publish).
 # Step 5: Train models and publish to model serving.
@@ -17,11 +17,12 @@
 resources:
   jobs:
     # -------------------------------------------------------------------------
-    # 1. Create data repositories: catalog/schema → Lakebase → lakehouse → vector search
+    # 1. Create data repositories: catalog/schema → create Lakebase Autoscaling → init Lakebase tables → lakehouse → vector search
+    #    Task order: ensure_catalog_schema → create_lakebase_autoscaling → lakebase_data_init → lakehouse_bootstrap → create_vector_search_index
     # -------------------------------------------------------------------------
     "job_1_create_data_repositories":
       name: "[${var.environment}] 1. Create Data Repositories (Lakehouse, Vector Search, Lakebase)"
-      description: "Ensure catalog and schema; initialize Lakebase (default config and rules); create lakehouse tables; vector search endpoint and index. Run once after bundle deploy."
+      description: "Ensure catalog and schema; create Lakebase Autoscaling (project/branch/endpoint); seed Lakebase with app_config, approval_rules, online_features, app_settings; create lakehouse tables; vector search. Run once after bundle deploy."
       environments:
         - environment_key: lakebase_sdk
           spec:
@@ -40,10 +41,24 @@ resources:
           timeout_seconds: 120
           max_retries: 2
 
-        - task_key: lakebase_data_init
-          description: "Initialize Lakebase Postgres with default app_config and approval_rules (Autoscaling or Provisioned)"
+        - task_key: create_lakebase_autoscaling
+          description: "Create Lakebase Autoscaling project, branch, and endpoint (idempotent). Parameters passed to next task via same job vars."
           depends_on:
             - task_key: ensure_catalog_schema
+          environment_key: lakebase_sdk
+          notebook_task:
+            notebook_path: ${workspace.root_path}/src/payment_analysis/transform/run_create_lakebase_autoscaling
+            base_parameters:
+              lakebase_project_id: ${var.lakebase_project_id}
+              lakebase_branch_id: ${var.lakebase_branch_id}
+              lakebase_endpoint_id: ${var.lakebase_endpoint_id}
+          timeout_seconds: 300
+          max_retries: 2
+
+        - task_key: lakebase_data_init
+          description: "Connect to Lakebase (from previous task) and insert default app_config, approval_rules, online_features, app_settings"
+          depends_on:
+            - task_key: create_lakebase_autoscaling
           environment_key: lakebase_sdk
           notebook_task:
             notebook_path: ${workspace.root_path}/src/payment_analysis/transform/run_lakebase_data_init

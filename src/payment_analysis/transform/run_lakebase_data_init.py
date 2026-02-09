@@ -2,9 +2,13 @@
 # MAGIC %md
 # MAGIC # Lakebase Data Initialization
 # MAGIC
-# MAGIC Seeds the Databricks Lakebase (Postgres) database with default **app_config**, **approval_rules**,
-# MAGIC **online_features**, and **app_settings** (job parameters and config). Backend reads these tables at startup.
-# MAGIC Run as the first task of Job 1 so defaults exist before Lakehouse bootstrap and app use.
+# MAGIC Runs **after** the **create_lakebase_autoscaling** task. Connects to the Lakebase (Autoscaling or Provisioned)
+# MAGIC and seeds the database with:
+# MAGIC - **app_config** (catalog, schema for the app)
+# MAGIC - **approval_rules** (default rules: 3DS for high value, retry soft decline, primary acquirer routing)
+# MAGIC - **online_features** (table created; ML/AI features populated by pipelines and app)
+# MAGIC - **app_settings** (warehouse_id, default_events_per_second, default_duration_minutes, etc.)
+# MAGIC Backend reads these tables at startup. Ensures defaults exist before Lakehouse bootstrap and app use.
 # MAGIC
 # MAGIC **Widgets:** `catalog`, `schema`; then either **Lakebase Autoscaling** (`lakebase_project_id`, `lakebase_branch_id`, `lakebase_endpoint_id`) or **Provisioned** (`lakebase_instance_name`). Also `lakebase_database_name`, `lakebase_schema`; optional `warehouse_id`, `default_events_per_second`, `default_duration_minutes` for app_settings.
 # MAGIC See: https://www.databricks.com/product/lakebase and https://learn.microsoft.com/en-us/azure/databricks/oltp/instances/create/
@@ -83,8 +87,8 @@ if use_autoscaling:
         host = getattr(hosts, "host", None) or getattr(hosts, "hostname", None) if hosts else None
     if not host:
         raise ValueError("Endpoint has no host; ensure the compute endpoint is running.")
-    # Autoscaling default DB is databricks_postgres; use widget DB name if provided
-    dbname = lakebase_database_name or "databricks_postgres"
+    # Autoscaling default DB is databricks_postgres (only this DB exists in new projects)
+    dbname = (lakebase_database_name or "").strip() or "databricks_postgres"
     username = (ws.current_user.me().user_name if ws.current_user else None) or getattr(ws.config, "client_id", None) or "postgres"
 else:
     # Lakebase Provisioned (Database Instances API)

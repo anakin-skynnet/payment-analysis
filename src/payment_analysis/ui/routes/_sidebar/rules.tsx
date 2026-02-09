@@ -149,7 +149,7 @@ function Rules() {
           Conditions and actions that automatically accelerate approval rates or constrain risk
         </p>
         <p className="text-sm text-muted-foreground mt-2">
-          Rules are used by the decision engine and AI agents. Write them into the Lakehouse (run lakehouse_bootstrap.sql in Setup & Run step 4).
+          Rules are used by the decision engine and AI agents. Stored in Lakebase (seeded by Job 1) or Lakehouse. Run Job 1 (Create Data Repositories) to create Lakebase Autoscaling and seed default rules.
         </p>
       </div>
 
@@ -178,7 +178,7 @@ function Rules() {
         <CardContent>
           {rulesQuery.isError && (
             <p className="text-sm text-destructive">
-              Failed to load rules. Complete Setup & Run step 4 (run lakehouse_bootstrap.sql in SQL Warehouse) and ensure Databricks connection is configured in Setup & Run.
+              Failed to load rules. Run Job 1 (Create Data Repositories) to seed Lakebase and ensure Databricks connection is configured in Setup & Run.
             </p>
           )}
           {isPending && (
@@ -190,7 +190,7 @@ function Rules() {
           )}
           {!isPending && rules.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              No rules yet. Run lakehouse_bootstrap.sql (Setup & Run step 4), then add rules here. ML and AI agents will use them.
+              No rules yet. Run Job 1 (Create Data Repositories) to seed default rules in Lakebase, or add rules here. ML and AI agents will use them.
             </p>
           )}
           {!isPending && rules.length > 0 && (

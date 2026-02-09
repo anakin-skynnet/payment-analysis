@@ -54,6 +54,8 @@ type SetupDefaults = {
   workspace_id?: string;
   token_received?: boolean;
   workspace_url_derived?: boolean;
+  lakebase_autoscaling?: boolean;
+  lakebase_connection_mode?: string;
 };
 
 async function fetchDefaults(): Promise<SetupDefaults> {
@@ -551,6 +553,18 @@ function SetupRun() {
                   {defaults && (
                     <>
                       <tr>
+                        <td className="py-2 px-3 font-medium text-muted-foreground">Database connection</td>
+                        <td className="py-2 px-3">
+                          {defaults.lakebase_connection_mode === "autoscaling" ? (
+                            <Badge variant="default" className="font-normal">Lakebase Autoscaling</Badge>
+                          ) : defaults.lakebase_connection_mode === "provisioned" ? (
+                            <Badge variant="secondary">Lakebase Provisioned</Badge>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                      </tr>
+                      <tr>
                         <td className="py-2 px-3 font-medium text-muted-foreground">catalog (effective)</td>
                         <td className="py-2 px-3">{defaults.catalog || "—"}</td>
                       </tr>
@@ -577,7 +591,7 @@ function SetupRun() {
                     (!defaults?.catalog && !defaults?.schema && !defaults?.warehouse_id) && (
                     <tr>
                       <td colSpan={2} className="py-4 px-3 text-center text-muted-foreground text-sm">
-                        No app settings loaded. Run Job 1 (Create Data Repositories) to seed Lakebase.
+                        No app settings loaded. Run Job 1 (Create Data Repositories) to create Lakebase Autoscaling and seed Lakebase (app_config, approval_rules, online_features, app_settings).
                       </td>
                     </tr>
                   )}
@@ -709,7 +723,7 @@ function SetupRun() {
 
         {/* Job steps 1–7: one card per bundle job (backend resolves same job_id for all keys in a step) */}
         {[
-          { step: 1, title: "Create Data Repositories", desc: "Catalog/schema, Lakebase init, Lakehouse tables, Vector Search. Run once to enable Rules, Decisioning, and Dashboard.", jobKey: "lakehouse_bootstrap", icon: Database },
+          { step: 1, title: "Create Data Repositories", desc: "Create catalog/schema, create Lakebase Autoscaling (project/branch/endpoint), seed Lakebase (app_config, approval_rules, online_features, app_settings), Lakehouse tables, Vector Search. Run once to enable Rules, Decisioning, and Dashboard.", jobKey: "lakehouse_bootstrap", icon: Database },
           { step: 2, title: "Simulate Transaction Events", desc: "Generate test payment events (e.g. 1000/sec). Uses catalog and schema above.", jobKey: "transaction_stream_simulator", icon: Database },
           { step: 3, title: "Initialize Ingestion", desc: "Gold views and sync for dashboards and Vector Search. Uses warehouse and schema.", jobKey: "create_gold_views", icon: LayoutDashboard },
           { step: 4, title: "Deploy Dashboards", desc: "Publish dashboards with embed credentials so the app can embed AI/BI dashboards.", jobKey: "publish_dashboards", icon: LayoutDashboard },

@@ -235,7 +235,7 @@ function Decisioning() {
             Similar cases & recommendations (Lakehouse)
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Recommendations from the Lakehouse (run lakehouse_bootstrap.sql in Setup & Run step 4). Use with Rules to accelerate approval rates.
+            Recommendations from Lakebase or Lakehouse. Run Job 1 (Create Data Repositories) to seed Lakebase; use with Rules to accelerate approval rates.
           </p>
         </CardHeader>
         <CardContent>

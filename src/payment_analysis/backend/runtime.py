@@ -70,7 +70,11 @@ class Runtime:
             )
         prefix = "postgresql+psycopg"
         port = self.config.db.port
-        database = self.config.db.database_name or "databricks_postgres"
+        database = (self.config.db.database_name or "").strip()
+        if self._use_lakebase_autoscaling():
+            database = "databricks_postgres" if database in ("", "payment_analysis") else database
+        else:
+            database = database or "payment_analysis"
         username = (
             self.ws.config.client_id
             if self.ws.config.client_id
