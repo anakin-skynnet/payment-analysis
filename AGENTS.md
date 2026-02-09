@@ -1,6 +1,8 @@
 # Payment Analysis — Unified Agent
 
-This file is the **single source of truth** for the AI agent working on this repo. It unifies all context, rules, prompts, and solution scope so any chat uses the same latest version of the solution.
+This file is the **single source of truth** for the AI agent working on this repo. It unifies **all chat history, context, and prompts** so a single agent represents the latest version of the solution across all chats.
+
+**Unified chat history & context:** All prior requests from different chats are reflected here: (1) one agent definition and rules, (2) solution scope and structure, (3) version alignment and exact dependency versions, (4) verify-and-deploy flow, (5) common prompts and where to look. When working in any chat, use this file plus `.cursor/rules/project.mdc` as the single agent; do not rely on chat-specific context that contradicts this. Verify that changes are applied on the **main** branch (run check and bundle verify; commit and push to main).
 
 ---
 
@@ -72,6 +74,17 @@ This file is the **single source of truth** for the AI agent working on this rep
 
 **Before any `databricks bundle` command:** Ensure dashboards exist: `uv run python scripts/dashboards.py prepare` (optionally `--catalog` / `--schema` for prod). Otherwise: "failed to read serialized dashboard from file_path .build/dashboards/...."
 
+**Redeploy (overwrite existing):** `./scripts/bundle.sh deploy dev` runs build, prepare, then `databricks bundle deploy -t dev --force --auto-approve`.
+
+---
+
+## 7b. Version alignment (from unified chats)
+
+- **Exact versions everywhere:** All dependency references use the **same** versions (no `^` or `~`). Python: `pyproject.toml` (`==`) → `uv.lock` → `requirements.txt` via `scripts/sync_requirements_from_lock.py`. Frontend: `package.json` exact versions only → `bun.lock`. See `docs/VERSION_ALIGNMENT.md`.
+- **Do not change dependency versions** unless the user explicitly instructs.
+- **Databricks App compatibility:** Runtime Python 3.11, Node 22.16; versions in VERSION_ALIGNMENT are tested compatible.
+- **After changing deps:** Python: `uv lock` then `uv run python scripts/sync_requirements_from_lock.py`. Frontend: `uv run apx bun install`.
+
 ---
 
 ## 8. MCP reference (apx)
@@ -108,6 +121,7 @@ When the user asks to:
 - **Work with agents** — Backend: `backend/routes/agents.py` and `AGENTS`; framework: `agents/agent_framework.py` and `resources/agents.yml`.
 - **Change catalog/schema** — Bundle uses `var.catalog` / `var.schema`; app uses Lakebase `app_config`; set via Setup & Run → Save catalog & schema.
 - **Run jobs or pipelines** — From app Setup & Run; jobs 1–6 in order; pipelines (ETL, Real-Time) when needed.
+- **Verify / version alignment / deploy** — Run `uv run apx dev check` and `./scripts/bundle.sh verify dev`; ensure exact dependency versions (see VERSION_ALIGNMENT.md); commit and push to main; deploy with `./scripts/bundle.sh deploy dev` to overwrite existing resources.
 
 ---
 
@@ -123,4 +137,4 @@ When the user asks to:
 
 ---
 
-**This agent represents the latest version of the Payment Analysis solution. All requests from different chats should be handled consistently using this unified context.**
+**This agent represents the latest version of the Payment Analysis solution. All chat history, context, and prompts are unified here; all requests from different chats should be handled consistently. Verify that changes are applied on the main branch.**
