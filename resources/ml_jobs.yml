@@ -4,13 +4,14 @@
 # All tasks use serverless compute (no new_cluster); Databricks manages compute.
 # Step 1: Create data repositories (lakehouse, vector search, lakebase).
 # Step 3: Initialize ingestion into lakehouse, lakebase, vector search.
-# Step 4: Deploy dashboards + Genie space sync (prepare → publish → sync Genie).
+# Step 4: Deploy dashboards (prepare → publish).
 # Step 5: Train models and publish to model serving.
 #
 # Step 2 (simulate events) → resources/streaming_simulator.yml
 # Step 6 (deploy agents)   → resources/agents.yml
+# Step 7 (Genie sync)     → resources/genie_spaces.yml
 #
-# Execution order: 1 → 2 → 3 → 4 → 5 → 6. See docs/DEPLOYMENT_GUIDE.md and Setup & Run.
+# Execution order: 1 → 2 → 3 → 4 → 5 → 6 → 7. See docs/DEPLOYMENT_GUIDE.md and Setup & Run.
 # =============================================================================
 
 resources:
@@ -126,11 +127,11 @@ resources:
         step: "3"
 
     # -------------------------------------------------------------------------
-    # 4. Create and deploy Databricks dashboards + Genie space sync
+    # 4. Create and deploy Databricks dashboards
     # -------------------------------------------------------------------------
     "job_4_deploy_dashboards":
-      name: "[${var.environment}] 4. Deploy Dashboards & Genie (Prepare, Publish, Sync)"
-      description: "Prepare dashboard assets (catalog/schema substitution), publish all AI/BI dashboards with embed credentials for the app UI, and sync Genie space configuration and sample questions for natural language analytics."
+      name: "[${var.environment}] 4. Deploy Dashboards (Prepare & Publish)"
+      description: "Prepare dashboard assets (catalog/schema substitution) and publish all AI/BI dashboards with embed credentials for the app UI."
       tasks:
         - task_key: prepare_dashboards
           description: "Prepare dashboard assets (catalog/schema substitution)"
@@ -152,18 +153,6 @@ resources:
             base_parameters:
               dashboards_path: ${workspace.root_path}/dashboards
           timeout_seconds: 1200
-          max_retries: 1
-
-        - task_key: sync_genie_config
-          description: "Sync Genie space configuration and sample questions for natural language analytics"
-          depends_on:
-            - task_key: publish_dashboards
-          notebook_task:
-            notebook_path: ${workspace.file_path}/src/payment_analysis/genie/sync_genie_space
-            base_parameters:
-              catalog: ${var.catalog}
-              schema: ${var.schema}
-          timeout_seconds: 600
           max_retries: 1
       schedule:
         quartz_cron_expression: "0 0 12 * * ?"

@@ -1,15 +1,16 @@
 # =============================================================================
-# Lakeflow
+# Lakeflow — Pipelines 7 & 8 (run after jobs 1–6 when needed)
 # =============================================================================
 # Two pipelines: main ETL (Bronze → Silver → Gold) and dedicated real-time stream.
+# Numeric prefix matches execution order (jobs 1–6, then pipelines 7, 8).
 # Catalog/schema from variables. Serverless, continuous, Photon. Development mode in dev.
 # =============================================================================
 
 resources:
   pipelines:
-    # Main ETL: bronze_ingest → silver_transform → gold_views (notebooks)
+    # 7. Main ETL: bronze_ingest → silver_transform → gold_views (notebooks)
     payment_analysis_etl:
-      name: "[${var.environment}] Payment Analysis ETL"
+      name: "[${var.environment}] 7. Payment Analysis ETL"
       catalog: ${var.catalog}
       schema: ${var.schema}
       channel: CURRENT
@@ -39,9 +40,9 @@ resources:
       development: true
       photon: true
 
-    # Dedicated real-time pipeline (single notebook)
+    # 8. Dedicated real-time pipeline (single notebook)
     payment_realtime_pipeline:
-      name: "[${var.environment}] Payment Real-Time Stream"
+      name: "[${var.environment}] 8. Payment Real-Time Stream"
       catalog: ${var.catalog}
       schema: ${var.schema}
       channel: CURRENT

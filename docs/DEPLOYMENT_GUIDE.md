@@ -18,7 +18,7 @@ This runs **prepare** (writes `.build/dashboards/` and `.build/transform/gold_vi
 
 ## Steps at a glance
 
-Jobs are consolidated into **6 numbered steps** (prefix in job name). Run in order: **1 → 2 → 3 → 4 → 5 → 6**. Pipelines (Lakeflow ETL and Real-time) are separate resources; start them when needed.
+Jobs are consolidated into **7 numbered steps** (prefix in job name). Run in order: **1 → 2 → 3 → 4 → 5 → 6 → 7**. Pipelines (Lakeflow ETL and Real-time) are separate resources; start them when needed.
 
 | # | Job (step) | Action |
 |---|------------|--------|
@@ -26,9 +26,10 @@ Jobs are consolidated into **6 numbered steps** (prefix in job name). Run in ord
 | 1 | **1. Create Data Repositories** | **Setup & Run** → Run job 1 (first: ensure catalog & schema; then Lakebase init — default config and rules; then lakehouse bootstrap — tables + seed data; then vector search endpoint & index). Run once. Creates everything needed for later jobs and the app. |
 | 2 | **2. Simulate Transaction Events** | **Setup & Run** → Run **Transaction Stream Simulator** (producer; events ingested later by pipelines) |
 | 3 | **3. Initialize Ingestion** | **Setup & Run** → Run **Create Gold Views** or **Continuous Stream Processor** (same job: gold views + vector search sync; lakehouse/lakebase/vector search) |
-| 4 | **4. Deploy Dashboards & Genie** | **Setup & Run** → Run job 4 (prepare assets → publish dashboards with embed credentials → sync Genie space config and sample questions) |
+| 4 | **4. Deploy Dashboards** | **Setup & Run** → Run job 4 (prepare assets → publish dashboards with embed credentials) |
 | 5 | **5. Train Models & Model Serving** | **Setup & Run** → Run **Train Payment Approval ML Models** (~10–15 min); then uncomment `model_serving.yml`, redeploy |
 | 6 | **6. Deploy AgentBricks Agents** | **Setup & Run** → Run **Orchestrator**, any specialist agent, or **Test Agent Framework** (same job: all 7 tasks) |
+| 7 | **7. Genie Space Sync** | **Setup & Run** → Run **Genie Space Sync** (optional; syncs Genie space config and sample questions for natural language analytics) |
 | — | Pipelines | **Setup & Run** → Start **Payment Analysis ETL** and/or **Real-Time Stream** (Lakeflow; optional, when needed) |
 | — | Dashboards & app | 12 dashboards + app deployed by bundle |
 | — | Verify | **Dashboard**, **Rules**, **Decisioning**, **ML Models** in app |
@@ -62,7 +63,7 @@ App resource: `resources/fastapi_app.yml`. Runtime spec: `app.yml` at project ro
 
 **Bundle root:** Directory containing `databricks.yml`. **App source:** `source_code_path` in `resources/fastapi_app.yml` is `${workspace.file_path}` (e.g. `.../payment-analysis/files`), i.e. the folder where bundle sync uploads files. The app runs from that folder so `src/payment_analysis/__dist__` is found for the web UI.
 
-**Included resources** (order in `databricks.yml`): `unity_catalog`, `lakebase`, `pipelines`, `sql_warehouse`, `ml_jobs`, `agents`, `streaming_simulator`, `dashboards`, `fastapi_app`. Optional: `model_serving` (uncomment after training models).
+**Included resources** (order in `databricks.yml`): `unity_catalog`, `lakebase`, `pipelines`, `sql_warehouse`, `ml_jobs`, `agents`, `streaming_simulator`, `genie_spaces`, `dashboards`, `fastapi_app`. Optional: `model_serving` (uncomment after training models).
 
 **Paths:**  
 - Workspace root: `/Workspace/Users/${user}/${var.workspace_folder}` (default folder: `payment-analysis`).  
@@ -71,7 +72,7 @@ App resource: `resources/fastapi_app.yml`. Runtime spec: `app.yml` at project ro
 - Dashboards: `file_path` in `resources/dashboards.yml` is `../.build/dashboards/*.lvdash.json` (relative to `resources/`).  
 - Sync (uploaded to workspace): `.build`, `src/payment_analysis/ml`, `streaming`, `transform`, `agents`, `genie`.
 
-**App bindings:** database (Lakebase), sql-warehouse (`payment_analysis_warehouse`), jobs 1–6 in execution order (create repos, simulator, ingestion, deploy dashboards & Genie, train ML, agents). Optional: genie-space, model serving endpoints (see comments in `fastapi_app.yml`).
+**App bindings:** database (Lakebase), sql-warehouse (`payment_analysis_warehouse`), jobs 1–7 in execution order (create repos, simulator, ingestion, deploy dashboards, train ML, agents, Genie sync). Optional: genie-space, model serving endpoints (see comments in `fastapi_app.yml`).
 
 Validate before deploy: `./scripts/bundle.sh validate dev` (runs dashboard prepare then `databricks bundle validate`).
 
@@ -92,7 +93,7 @@ One catalog/schema (defaults: `ahs_demos_catalog`, `payment_analysis`). Effectiv
 
 ## Resources in the workspace
 
-By default: Workspace folder, Lakebase, Jobs (6 steps: create repositories, simulate events, initialize ingestion, deploy dashboards, train models, deploy agents), 2 pipelines, SQL warehouse, Unity Catalog, 12 dashboards, Databricks App. **Optional:** Uncomment `resources/model_serving.yml` after Step 5 (Train ML models); create Vector Search manually from `resources/vector_search.yml` if not in bundle.
+By default: Workspace folder, Lakebase, Jobs (7 steps: create repositories, simulate events, initialize ingestion, deploy dashboards, train models, deploy agents, Genie sync), 2 pipelines, SQL warehouse, Unity Catalog, 12 dashboards, Databricks App. **Optional:** Uncomment `resources/model_serving.yml` after Step 5 (Train ML models); create Vector Search manually from `resources/vector_search.yml` if not in bundle.
 
 ## Where to find resources
 
@@ -246,7 +247,7 @@ Runtime loads **`app.yml`** at deployed app root (command, env). After edits run
 ## Demo setup & one-click run
 
 1. **Deploy once:** `./scripts/bundle.sh deploy dev` (prepare + build + deploy; all job files present).
-2. **Run in order from the app:** Open the app → **Setup & Run** → run jobs **1** (Create Data Repositories), **2** (Simulate Transaction Events), **3** (Initialize Ingestion), **4** (Deploy Dashboards), **5** (Train Models & Model Serving), **6** (Deploy AgentBricks Agents). Optionally run Genie Space Sync and start Lakeflow pipelines when needed.
+2. **Run in order from the app:** Open the app → **Setup & Run** → run jobs **1** (Create Data Repositories), **2** (Simulate Transaction Events), **3** (Initialize Ingestion), **4** (Deploy Dashboards), **5** (Train Models & Model Serving), **6** (Deploy AgentBricks Agents), **7** (Genie Space Sync, optional). Start Lakeflow pipelines when needed.
 3. **Optional:** Set `DATABRICKS_JOB_ID_*` in the app environment to job IDs from **Workflows** if Run uses a different workspace.
 
 **Estimated time:** 45–60 min. Job/pipeline IDs: **Workflows** / **Lakeflow** or `databricks bundle run <job_name> -t dev`.
@@ -277,12 +278,12 @@ All bundle jobs have been reviewed for duplicates or overlapping functionality. 
 | **streaming_simulator.yml** | | |
 | `transaction_stream_simulator` | Generate synthetic payment events (e.g. 1000/s) | Producer only. |
 | `continuous_stream_processor` | Process streaming events continuously | Consumer; different notebook. |
-
-Genie sync is a **task** inside job 4 (Deploy Dashboards & Genie): prepare → publish → sync Genie space. No separate `genie_spaces.yml`; one fewer job to maintain.
+| **genie_spaces.yml** | | |
+| `job_7_genie_sync` | Sync Genie space configuration and sample questions | Single purpose; optional. |
 
 **Why agent jobs are not merged:** The six specialist jobs and the orchestrator all call the same notebook (`agent_framework`) with different `agent_role` (and the orchestrator coordinates them). They are kept as separate jobs so each can have its own schedule (e.g. risk assessor every 2h, decline analyst daily) and so the UI can run individual agents or the orchestrator on demand. Merging them into one multi-task job would remove per-agent scheduling and one-off runs.
 
-**Job 4 (Deploy Dashboards & Genie):** Three tasks in one job: prepare (generate assets), publish (AI/BI Dashboards API with embed credentials), sync Genie space. Run job 4 to refresh dashboards and Genie config.
+**Dashboard jobs:** Job 4 (Deploy Dashboards) has two tasks: prepare (generate assets) and publish (AI/BI Dashboards API with embed credentials). Genie sync is a separate job (job 7 in `genie_spaces.yml`).
 
 ## Jobs and notebook/SQL reference
 
@@ -297,7 +298,7 @@ All job notebook and SQL paths are relative to the workspace `file_path` (where 
 | `create_gold_views_job` | `create_gold_views` | `.build/transform/gold_views.sql` | Generated by prepare |
 | `transaction_stream_simulator` | `transaction_stream_simulator` | `src/payment_analysis/streaming/transaction_simulator` | `transaction_simulator.py` |
 | `train_ml_models_job` | `train_ml_models` | `src/payment_analysis/ml/train_models` | `train_models.py` |
-| job_4 task `sync_genie_config` | `genie_sync` | `src/payment_analysis/genie/sync_genie_space` | `sync_genie_space.py` (task of job 4) |
+| job_7 task `sync_genie_config` | `genie_sync` | `src/payment_analysis/genie/sync_genie_space` | `sync_genie_space.py` (genie_spaces.yml) |
 | `orchestrator_agent_job` | `orchestrator_agent` | `src/payment_analysis/agents/agent_framework` | `agent_framework.py` |
 | `smart_routing_agent_job` | `smart_routing_agent` | `src/payment_analysis/agents/agent_framework` | `agent_framework.py` |
 | `smart_retry_agent_job` | `smart_retry_agent` | `src/payment_analysis/agents/agent_framework` | `agent_framework.py` |
