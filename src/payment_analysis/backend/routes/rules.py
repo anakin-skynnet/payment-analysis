@@ -165,7 +165,7 @@ async def update_approval_rule(
     runtime = getattr(request.app.state, "runtime", None)
 
     if runtime and runtime._db_configured():
-        ok = update_approval_rule_in_lakebase(
+        result = update_approval_rule_in_lakebase(
             runtime,
             rule_id,
             name=payload.name,
@@ -175,12 +175,14 @@ async def update_approval_rule(
             priority=payload.priority,
             is_active=payload.is_active,
         )
-        if ok:
-            row = get_approval_rule_by_id(runtime, rule_id)
-            if row:
-                return _rule_row_to_out(row)
-            raise HTTPException(status_code=404, detail="Rule not found after update.")
-        raise HTTPException(status_code=502, detail="Failed to update rule in Lakebase.")
+        if result is None:
+            raise HTTPException(status_code=502, detail="Failed to update rule in Lakebase.")
+        if result is False:
+            raise HTTPException(status_code=404, detail="Rule not found.")
+        row = get_approval_rule_by_id(runtime, rule_id)
+        if row:
+            return _rule_row_to_out(row)
+        raise HTTPException(status_code=404, detail="Rule not found after update.")
 
     if not service.is_available:
         raise HTTPException(status_code=503, detail="Databricks Lakehouse unavailable; cannot update rules.")
@@ -211,8 +213,7 @@ async def delete_approval_rule(request: Request, service: DatabricksServiceDep, 
     runtime = getattr(request.app.state, "runtime", None)
 
     if runtime and runtime._db_configured():
-        ok = delete_approval_rule_in_lakebase(runtime, rule_id)
-        if ok:
+        if delete_approval_rule_in_lakebase(runtime, rule_id):
             return
         raise HTTPException(status_code=502, detail="Failed to delete rule from Lakebase.")
 

@@ -221,12 +221,12 @@ def update_approval_rule_in_lakebase(
     action_summary: str | None = None,
     priority: int | None = None,
     is_active: bool | None = None,
-) -> bool:
-    """Update one approval rule in Lakebase. Only non-None fields are updated. Returns True if a row was updated."""
+) -> bool | None:
+    """Update one approval rule in Lakebase. Returns True if a row was updated, False if rule not found (0 rows), None on error."""
     config = runtime.config
     schema_name = (config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
     if not runtime._db_configured():
-        return False
+        return None
     try:
         with runtime.get_session() as session:
             # Build SET clause from provided fields
@@ -265,11 +265,11 @@ def update_approval_rule_in_lakebase(
             return (getattr(result, "rowcount", 0) or 0) > 0
     except Exception as e:
         logger.warning("Could not update approval_rule in Lakebase: %s", e)
-        return False
+        return None
 
 
 def delete_approval_rule_in_lakebase(runtime: Runtime, rule_id: str) -> bool:
-    """Delete one approval rule from Lakebase. Returns True if a row was deleted."""
+    """Delete one approval rule from Lakebase. Returns True if the DELETE ran successfully (idempotent: 0 or 1 row), False on error."""
     config = runtime.config
     schema_name = (config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
     if not runtime._db_configured():
@@ -277,9 +277,9 @@ def delete_approval_rule_in_lakebase(runtime: Runtime, rule_id: str) -> bool:
     try:
         with runtime.get_session() as session:
             q = text(f'DELETE FROM "{schema_name}".approval_rules WHERE id = :rule_id')
-            result = session.execute(q, {"rule_id": rule_id})
+            session.execute(q, {"rule_id": rule_id})
             session.commit()
-            return (getattr(result, "rowcount", 0) or 0) > 0
+            return True
     except Exception as e:
         logger.warning("Could not delete approval_rule from Lakebase: %s", e)
         return False
