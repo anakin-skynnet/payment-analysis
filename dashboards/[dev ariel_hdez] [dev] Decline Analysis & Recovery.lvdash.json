@@ -3,27 +3,27 @@
     {
       "name": "v_approval_trends_hourly",
       "displayName": "V Approval Trends Hourly",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_approval_trends_hourly"
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_approval_trends_hourly"
     },
     {
       "name": "v_decline_recovery_opportunities",
       "displayName": "V Decline Recovery Opportunities",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_decline_recovery_opportunities"
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_decline_recovery_opportunities"
     },
     {
       "name": "v_retry_performance",
       "displayName": "V Retry Performance",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_retry_performance"
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_retry_performance"
     },
     {
       "name": "v_top_decline_reasons",
       "displayName": "V Top Decline Reasons",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_top_decline_reasons"
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_top_decline_reasons"
     },
     {
       "name": "decline_metrics",
       "displayName": "Decline Metrics (UC)",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.decline_metrics"
+      "asset_name": "ahs_demos_catalog.payment_analysis.decline_metrics"
     }
   ],
   "pages": [
@@ -270,11 +270,5 @@
       ],
       "pageType": "PAGE_TYPE_CANVAS"
     }
-  ],
-  "uiSettings": {
-    "theme": {
-      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
-    },
-    "applyModeEnabled": false
-  }
+  ]
 }

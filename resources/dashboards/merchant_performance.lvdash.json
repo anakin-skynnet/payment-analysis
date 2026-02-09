@@ -1,13 +1,25 @@
 {
-  "version": "1.0",
-  "name": "Merchant Performance Dashboard",
-  "displayName": "Merchant Performance & Segmentation",
-  "description": "Detailed merchant performance metrics and segment analysis",
-  "tags": [
-    "merchant",
-    "segment",
-    "performance",
-    "analytics"
+  "datasets": [
+    {
+      "name": "v_executive_kpis",
+      "displayName": "V Executive Kpis",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_executive_kpis"
+    },
+    {
+      "name": "v_merchant_segment_performance",
+      "displayName": "V Merchant Segment Performance",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_merchant_segment_performance"
+    },
+    {
+      "name": "v_performance_by_geography",
+      "displayName": "V Performance By Geography",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_performance_by_geography"
+    },
+    {
+      "name": "merchant_metrics",
+      "displayName": "Merchant Metrics (UC)",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.merchant_metrics"
+    }
   ],
   "pages": [
     {
@@ -17,7 +29,13 @@
         {
           "widget": {
             "name": "header",
-            "textbox_spec": "## Merchant Performance Dashboard\n\nSegment analysis and merchant-specific metrics"
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Merchant Performance Dashboard\n",
+                "\n",
+                "Segment analysis and merchant-specific metrics"
+              ]
+            }
           },
           "position": {
             "x": 0,
@@ -34,7 +52,7 @@
                 "name": "merchant_kpi",
                 "query": {
                   "datasetName": "v_executive_kpis",
-                  "query_text": "SELECT unique_merchants FROM v_executive_kpis LIMIT 1"
+                  "disaggregated": false
                 }
               }
             ],
@@ -64,7 +82,7 @@
                 "name": "country_kpi",
                 "query": {
                   "datasetName": "v_executive_kpis",
-                  "query_text": "SELECT unique_countries FROM v_executive_kpis LIMIT 1"
+                  "disaggregated": false
                 }
               }
             ],
@@ -94,7 +112,7 @@
                 "name": "amount_kpi",
                 "query": {
                   "datasetName": "v_executive_kpis",
-                  "query_text": "SELECT avg_transaction_amount FROM v_executive_kpis LIMIT 1"
+                  "disaggregated": false
                 }
               }
             ],
@@ -128,7 +146,7 @@
                 "name": "segment_query",
                 "query": {
                   "datasetName": "v_merchant_segment_performance",
-                  "query_text": "SELECT merchant_segment, transaction_count, approval_rate_pct, total_value FROM v_merchant_segment_performance ORDER BY transaction_count DESC"
+                  "disaggregated": false
                 }
               }
             ],
@@ -164,7 +182,7 @@
                 "name": "approval_by_segment",
                 "query": {
                   "datasetName": "v_merchant_segment_performance",
-                  "query_text": "SELECT merchant_segment, approval_rate_pct, avg_fraud_score FROM v_merchant_segment_performance ORDER BY approval_rate_pct DESC"
+                  "disaggregated": false
                 }
               }
             ],
@@ -200,7 +218,7 @@
                 "name": "segment_detail_query",
                 "query": {
                   "datasetName": "v_merchant_segment_performance",
-                  "query_text": "SELECT merchant_segment, transaction_count, approval_rate_pct, unique_merchants, avg_transaction_amount, total_value, avg_fraud_score, auth_3ds_usage_pct FROM v_merchant_segment_performance ORDER BY transaction_count DESC"
+                  "disaggregated": false
                 }
               }
             ],
@@ -260,7 +278,7 @@
                 "name": "geo_breakdown_query",
                 "query": {
                   "datasetName": "v_performance_by_geography",
-                  "query_text": "SELECT country, transaction_count, approval_rate_pct, unique_merchants, total_transaction_value, avg_fraud_score FROM v_performance_by_geography ORDER BY transaction_count DESC LIMIT 20"
+                  "disaggregated": false
                 }
               }
             ],
@@ -312,7 +330,7 @@
                 "name": "merchant_metrics_query",
                 "query": {
                   "datasetName": "merchant_metrics",
-                  "query_text": "SELECT `Merchant Segment`, `Transaction Count`, `Approval Rate Pct`, `Total Value`, `Avg Fraud Score`, `Auth 3DS Usage Pct` FROM merchant_metrics ORDER BY `Transaction Count` DESC"
+                  "disaggregated": false
                 }
               }
             ],
@@ -321,41 +339,49 @@
               "widgetType": "table",
               "encodings": {
                 "columns": [
-                  { "fieldName": "Merchant Segment", "displayName": "Segment" },
-                  { "fieldName": "Transaction Count", "displayName": "Transactions" },
-                  { "fieldName": "Approval Rate Pct", "displayName": "Approval %" },
-                  { "fieldName": "Total Value", "displayName": "Total Value" },
-                  { "fieldName": "Avg Fraud Score", "displayName": "Fraud Score" },
-                  { "fieldName": "Auth 3DS Usage Pct", "displayName": "3DS %" }
+                  {
+                    "fieldName": "Merchant Segment",
+                    "displayName": "Segment"
+                  },
+                  {
+                    "fieldName": "Transaction Count",
+                    "displayName": "Transactions"
+                  },
+                  {
+                    "fieldName": "Approval Rate Pct",
+                    "displayName": "Approval %"
+                  },
+                  {
+                    "fieldName": "Total Value",
+                    "displayName": "Total Value"
+                  },
+                  {
+                    "fieldName": "Avg Fraud Score",
+                    "displayName": "Fraud Score"
+                  },
+                  {
+                    "fieldName": "Auth 3DS Usage Pct",
+                    "displayName": "3DS %"
+                  }
                 ]
               }
             }
           },
-          "position": { "x": 0, "y": 30, "width": 12, "height": 6 }
+          "position": {
+            "x": 0,
+            "y": 30,
+            "width": 12,
+            "height": 6
+          }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     }
   ],
-  "datasets": [
-    {
-      "name": "v_executive_kpis",
-      "displayName": "V Executive Kpis",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_executive_kpis"
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
     },
-    {
-      "name": "v_merchant_segment_performance",
-      "displayName": "V Merchant Segment Performance",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_merchant_segment_performance"
-    },
-    {
-      "name": "v_performance_by_geography",
-      "displayName": "V Performance By Geography",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_performance_by_geography"
-    },
-    {
-      "name": "merchant_metrics",
-      "displayName": "Merchant Metrics (UC)",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.merchant_metrics"
-    }
-  ]
+    "applyModeEnabled": false
+  }
 }

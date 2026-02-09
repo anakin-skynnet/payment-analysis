@@ -1,12 +1,30 @@
 {
-  "version": "1.0",
-  "name": "Real-Time Monitoring Dashboard",
-  "displayName": "Real-Time Payment Monitoring",
-  "description": "Live monitoring of payment system health and alerts",
-  "tags": [
-    "realtime",
-    "monitoring",
-    "alerts"
+  "datasets": [
+    {
+      "name": "v_active_alerts",
+      "displayName": "V Active Alerts",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_active_alerts"
+    },
+    {
+      "name": "v_card_network_performance",
+      "displayName": "V Card Network Performance",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_card_network_performance"
+    },
+    {
+      "name": "v_last_hour_performance",
+      "displayName": "V Last Hour Performance",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_last_hour_performance"
+    },
+    {
+      "name": "v_merchant_segment_performance",
+      "displayName": "V Merchant Segment Performance",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_merchant_segment_performance"
+    },
+    {
+      "name": "v_solution_performance",
+      "displayName": "V Solution Performance",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_solution_performance"
+    }
   ],
   "pages": [
     {
@@ -16,7 +34,13 @@
         {
           "widget": {
             "name": "header",
-            "textbox_spec": "## Real-Time Payment Monitoring\n\nLive system health and active alerts"
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Real-Time Payment Monitoring\n",
+                "\n",
+                "Live system health and active alerts"
+              ]
+            }
           },
           "position": {
             "x": 0,
@@ -33,7 +57,7 @@
                 "name": "kpi_query",
                 "query": {
                   "datasetName": "v_last_hour_performance",
-                  "query_text": "SELECT transactions_last_hour FROM v_last_hour_performance"
+                  "disaggregated": false
                 }
               }
             ],
@@ -63,7 +87,7 @@
                 "name": "kpi_query",
                 "query": {
                   "datasetName": "v_last_hour_performance",
-                  "query_text": "SELECT approval_rate_pct FROM v_last_hour_performance"
+                  "disaggregated": false
                 }
               }
             ],
@@ -96,7 +120,7 @@
                 "name": "kpi_query",
                 "query": {
                   "datasetName": "v_last_hour_performance",
-                  "query_text": "SELECT declines_last_hour FROM v_last_hour_performance"
+                  "disaggregated": false
                 }
               }
             ],
@@ -126,7 +150,7 @@
                 "name": "kpi_query",
                 "query": {
                   "datasetName": "v_last_hour_performance",
-                  "query_text": "SELECT high_risk_transactions FROM v_last_hour_performance"
+                  "disaggregated": false
                 }
               }
             ],
@@ -156,7 +180,7 @@
                 "name": "alerts_query",
                 "query": {
                   "datasetName": "v_active_alerts",
-                  "query_text": "SELECT * FROM v_active_alerts ORDER BY CASE severity WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 ELSE 3 END"
+                  "disaggregated": false
                 }
               }
             ],
@@ -204,7 +228,7 @@
                 "name": "solution_query",
                 "query": {
                   "datasetName": "v_solution_performance",
-                  "query_text": "SELECT * FROM v_solution_performance ORDER BY transaction_count DESC"
+                  "disaggregated": false
                 }
               }
             ],
@@ -240,7 +264,7 @@
                 "name": "network_query",
                 "query": {
                   "datasetName": "v_card_network_performance",
-                  "query_text": "SELECT * FROM v_card_network_performance ORDER BY transaction_count DESC"
+                  "disaggregated": false
                 }
               }
             ],
@@ -276,7 +300,7 @@
                 "name": "segment_query",
                 "query": {
                   "datasetName": "v_merchant_segment_performance",
-                  "query_text": "SELECT * FROM v_merchant_segment_performance ORDER BY transaction_count DESC"
+                  "disaggregated": false
                 }
               }
             ],
@@ -316,34 +340,14 @@
             "height": 6
           }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     }
   ],
-  "datasets": [
-    {
-      "name": "v_active_alerts",
-      "displayName": "V Active Alerts",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_active_alerts"
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
     },
-    {
-      "name": "v_card_network_performance",
-      "displayName": "V Card Network Performance",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_card_network_performance"
-    },
-    {
-      "name": "v_last_hour_performance",
-      "displayName": "V Last Hour Performance",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_last_hour_performance"
-    },
-    {
-      "name": "v_merchant_segment_performance",
-      "displayName": "V Merchant Segment Performance",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_merchant_segment_performance"
-    },
-    {
-      "name": "v_solution_performance",
-      "displayName": "V Solution Performance",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_solution_performance"
-    }
-  ]
+    "applyModeEnabled": false
+  }
 }

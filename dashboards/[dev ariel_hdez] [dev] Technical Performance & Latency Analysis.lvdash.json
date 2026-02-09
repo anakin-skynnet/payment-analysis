@@ -1,54 +1,34 @@
 {
   "datasets": [
     {
-      "name": "v_daily_trends",
-      "displayName": "V Daily Trends",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_daily_trends"
+      "name": "payments_enriched_silver",
+      "displayName": "Payments Enriched Silver",
+      "asset_name": "ahs_demos_catalog.payment_analysis.payments_enriched_silver"
     },
     {
-      "name": "v_decline_recovery_opportunities",
-      "displayName": "V Decline Recovery Opportunities",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_decline_recovery_opportunities"
+      "name": "v_card_network_performance",
+      "displayName": "V Card Network Performance",
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_card_network_performance"
     },
     {
-      "name": "v_executive_kpis",
-      "displayName": "V Executive Kpis",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_executive_kpis"
-    },
-    {
-      "name": "v_merchant_segment_performance",
-      "displayName": "V Merchant Segment Performance",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_merchant_segment_performance"
-    },
-    {
-      "name": "v_performance_by_geography",
-      "displayName": "V Performance By Geography",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_performance_by_geography"
-    },
-    {
-      "name": "v_retry_performance",
-      "displayName": "V Retry Performance",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_retry_performance"
-    },
-    {
-      "name": "v_top_decline_reasons",
-      "displayName": "V Top Decline Reasons",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_top_decline_reasons"
+      "name": "v_solution_performance",
+      "displayName": "V Solution Performance",
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_solution_performance"
     }
   ],
   "pages": [
     {
-      "name": "financial_impact",
-      "displayName": "Financial Impact",
+      "name": "performance_latency",
+      "displayName": "Performance & Latency",
       "layout": [
         {
           "widget": {
             "name": "header",
             "multilineTextboxSpec": {
               "lines": [
-                "## Financial Impact & ROI Analysis\n",
+                "## Technical Performance & Latency Analysis\n",
                 "\n",
-                "Transaction value metrics, revenue impact, and optimization ROI"
+                "Processing time metrics, SLA monitoring, and performance optimization"
               ]
             }
           },
@@ -61,12 +41,12 @@
         },
         {
           "widget": {
-            "name": "total_approved_value",
+            "name": "avg_latency_overall",
             "queries": [
               {
-                "name": "approved_value_kpi",
+                "name": "latency_kpi",
                 "query": {
-                  "datasetName": "v_executive_kpis",
+                  "datasetName": "payments_enriched_silver",
                   "disaggregated": false
                 }
               }
@@ -76,13 +56,12 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "approved_value",
-                  "displayName": "Approved Value"
+                  "fieldName": "avg_latency_ms",
+                  "displayName": "Avg Latency (ms)"
                 }
               },
               "format": {
-                "prefix": "$",
-                "notation": "compact"
+                "suffix": " ms"
               }
             }
           },
@@ -95,12 +74,12 @@
         },
         {
           "widget": {
-            "name": "total_declined_value",
+            "name": "p95_latency",
             "queries": [
               {
-                "name": "declined_value_kpi",
+                "name": "p95_kpi",
                 "query": {
-                  "datasetName": "v_executive_kpis",
+                  "datasetName": "payments_enriched_silver",
                   "disaggregated": false
                 }
               }
@@ -110,13 +89,12 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "declined_value",
-                  "displayName": "Declined Value"
+                  "fieldName": "p95_latency",
+                  "displayName": "P95 Latency (ms)"
                 }
               },
               "format": {
-                "prefix": "$",
-                "notation": "compact"
+                "suffix": " ms"
               }
             }
           },
@@ -129,12 +107,12 @@
         },
         {
           "widget": {
-            "name": "avg_transaction_value",
+            "name": "p99_latency",
             "queries": [
               {
-                "name": "avg_value_kpi",
+                "name": "p99_kpi",
                 "query": {
-                  "datasetName": "v_executive_kpis",
+                  "datasetName": "payments_enriched_silver",
                   "disaggregated": false
                 }
               }
@@ -144,12 +122,12 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "avg_transaction_amount",
-                  "displayName": "Avg Transaction"
+                  "fieldName": "p99_latency",
+                  "displayName": "P99 Latency (ms)"
                 }
               },
               "format": {
-                "prefix": "$"
+                "suffix": " ms"
               }
             }
           },
@@ -162,12 +140,12 @@
         },
         {
           "widget": {
-            "name": "total_recovery_potential",
+            "name": "slow_txns_count",
             "queries": [
               {
-                "name": "recovery_value_kpi",
+                "name": "slow_txns_kpi",
                 "query": {
-                  "datasetName": "v_decline_recovery_opportunities",
+                  "datasetName": "payments_enriched_silver",
                   "disaggregated": false
                 }
               }
@@ -177,13 +155,9 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "total_recoverable",
-                  "displayName": "Recoverable Value"
+                  "fieldName": "slow_transactions",
+                  "displayName": "Slow Txns (>500ms)"
                 }
-              },
-              "format": {
-                "prefix": "$",
-                "notation": "compact"
               }
             }
           },
@@ -196,12 +170,12 @@
         },
         {
           "widget": {
-            "name": "value_by_segment",
+            "name": "latency_by_solution",
             "queries": [
               {
-                "name": "segment_value_query",
+                "name": "solution_latency_query",
                 "query": {
-                  "datasetName": "v_merchant_segment_performance",
+                  "datasetName": "v_solution_performance",
                   "disaggregated": false
                 }
               }
@@ -211,13 +185,13 @@
               "widgetType": "bar-chart",
               "encodings": {
                 "x": {
-                  "fieldName": "merchant_segment",
-                  "displayName": "Segment"
+                  "fieldName": "payment_solution",
+                  "displayName": "Solution"
                 },
                 "y": [
                   {
-                    "fieldName": "total_value",
-                    "displayName": "Total Value ($)"
+                    "fieldName": "avg_latency_ms",
+                    "displayName": "Avg Latency (ms)"
                   }
                 ]
               }
@@ -232,12 +206,12 @@
         },
         {
           "widget": {
-            "name": "value_by_geography",
+            "name": "latency_by_network",
             "queries": [
               {
-                "name": "geo_value_query",
+                "name": "network_latency_query",
                 "query": {
-                  "datasetName": "v_performance_by_geography",
+                  "datasetName": "v_card_network_performance",
                   "disaggregated": false
                 }
               }
@@ -247,13 +221,13 @@
               "widgetType": "bar-chart",
               "encodings": {
                 "x": {
-                  "fieldName": "country",
-                  "displayName": "Country"
+                  "fieldName": "card_network",
+                  "displayName": "Network"
                 },
                 "y": [
                   {
-                    "fieldName": "total_transaction_value",
-                    "displayName": "Total Value ($)"
+                    "fieldName": "avg_latency_ms",
+                    "displayName": "Avg Latency (ms)"
                   }
                 ]
               }
@@ -268,12 +242,12 @@
         },
         {
           "widget": {
-            "name": "declined_value_by_reason",
+            "name": "latency_distribution",
             "queries": [
               {
-                "name": "decline_value_query",
+                "name": "latency_dist_query",
                 "query": {
-                  "datasetName": "v_top_decline_reasons",
+                  "datasetName": "payments_enriched_silver",
                   "disaggregated": false
                 }
               }
@@ -283,13 +257,13 @@
               "widgetType": "bar-chart",
               "encodings": {
                 "x": {
-                  "fieldName": "decline_reason",
-                  "displayName": "Decline Reason"
+                  "fieldName": "latency_bucket",
+                  "displayName": "Latency Range"
                 },
                 "y": [
                   {
-                    "fieldName": "total_declined_value",
-                    "displayName": "Declined Value ($)"
+                    "fieldName": "transaction_count",
+                    "displayName": "Transaction Count"
                   }
                 ]
               }
@@ -304,46 +278,32 @@
         },
         {
           "widget": {
-            "name": "recovery_roi_analysis",
+            "name": "latency_vs_approval",
             "queries": [
               {
-                "name": "recovery_roi_query",
+                "name": "latency_approval_query",
                 "query": {
-                  "datasetName": "v_decline_recovery_opportunities",
+                  "datasetName": "payments_enriched_silver",
                   "disaggregated": false
                 }
               }
             ],
             "spec": {
               "version": 2,
-              "widgetType": "table",
+              "widgetType": "scatter-plot",
               "encodings": {
-                "columns": [
-                  {
-                    "fieldName": "decline_reason",
-                    "displayName": "Decline"
-                  },
-                  {
-                    "fieldName": "merchant_segment",
-                    "displayName": "Segment"
-                  },
-                  {
-                    "fieldName": "decline_count",
-                    "displayName": "Count"
-                  },
-                  {
-                    "fieldName": "potential_recovery_value",
-                    "displayName": "Recovery $"
-                  },
-                  {
-                    "fieldName": "recovery_likelihood",
-                    "displayName": "Likelihood"
-                  },
-                  {
-                    "fieldName": "recommended_action",
-                    "displayName": "Action"
-                  }
-                ]
+                "x": {
+                  "fieldName": "avg_latency",
+                  "displayName": "Avg Latency (ms)"
+                },
+                "y": {
+                  "fieldName": "approval_rate",
+                  "displayName": "Approval Rate %"
+                },
+                "color": {
+                  "fieldName": "payment_solution",
+                  "displayName": "Solution"
+                }
               }
             }
           },
@@ -356,12 +316,12 @@
         },
         {
           "widget": {
-            "name": "retry_recovered_value",
+            "name": "performance_details",
             "queries": [
               {
-                "name": "retry_value_query",
+                "name": "perf_details_query",
                 "query": {
-                  "datasetName": "v_retry_performance",
+                  "datasetName": "v_solution_performance",
                   "disaggregated": false
                 }
               }
@@ -372,28 +332,32 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "decline_reason",
-                    "displayName": "Decline"
+                    "fieldName": "payment_solution",
+                    "displayName": "Solution"
                   },
                   {
-                    "fieldName": "retry_count",
-                    "displayName": "Retry #"
+                    "fieldName": "transaction_count",
+                    "displayName": "Txns"
                   },
                   {
-                    "fieldName": "retry_attempts",
-                    "displayName": "Attempts"
+                    "fieldName": "approval_rate_pct",
+                    "displayName": "Approval %"
                   },
                   {
-                    "fieldName": "retry_success_rate_pct",
-                    "displayName": "Success %"
+                    "fieldName": "avg_latency_ms",
+                    "displayName": "Latency (ms)"
                   },
                   {
-                    "fieldName": "recovered_value",
-                    "displayName": "Recovered $"
+                    "fieldName": "avg_fraud_score",
+                    "displayName": "Fraud"
                   },
                   {
-                    "fieldName": "effectiveness",
-                    "displayName": "Effectiveness"
+                    "fieldName": "avg_amount",
+                    "displayName": "Avg $"
+                  },
+                  {
+                    "fieldName": "total_value",
+                    "displayName": "Total $"
                   }
                 ]
               }
@@ -408,28 +372,28 @@
         },
         {
           "widget": {
-            "name": "value_trend_daily",
+            "name": "hourly_latency_trend",
             "queries": [
               {
-                "name": "value_trend_query",
+                "name": "latency_trend_query",
                 "query": {
-                  "datasetName": "v_daily_trends",
+                  "datasetName": "payments_enriched_silver",
                   "disaggregated": false
                 }
               }
             ],
             "spec": {
               "version": 2,
-              "widgetType": "area-chart",
+              "widgetType": "line-chart",
               "encodings": {
                 "x": {
-                  "fieldName": "event_date",
-                  "displayName": "Date"
+                  "fieldName": "hour",
+                  "displayName": "Hour"
                 },
                 "y": [
                   {
-                    "fieldName": "total_value",
-                    "displayName": "Total Value ($)"
+                    "fieldName": "avg_latency",
+                    "displayName": "Avg Latency (ms)"
                   }
                 ]
               }
@@ -445,11 +409,5 @@
       ],
       "pageType": "PAGE_TYPE_CANVAS"
     }
-  ],
-  "uiSettings": {
-    "theme": {
-      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
-    },
-    "applyModeEnabled": false
-  }
+  ]
 }

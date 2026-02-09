@@ -1,12 +1,30 @@
 {
-  "version": "1.0",
-  "name": "Executive Overview Dashboard",
-  "displayName": "Executive Overview - Payment Analysis",
-  "description": "High-level KPIs and trends for executives",
-  "tags": [
-    "executive",
-    "kpi",
-    "overview"
+  "datasets": [
+    {
+      "name": "v_approval_trends_hourly",
+      "displayName": "V Approval Trends Hourly",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_approval_trends_hourly"
+    },
+    {
+      "name": "v_executive_kpis",
+      "displayName": "V Executive Kpis",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_executive_kpis"
+    },
+    {
+      "name": "v_performance_by_geography",
+      "displayName": "V Performance By Geography",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_performance_by_geography"
+    },
+    {
+      "name": "v_top_decline_reasons",
+      "displayName": "V Top Decline Reasons",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_top_decline_reasons"
+    },
+    {
+      "name": "payment_metrics",
+      "displayName": "Payment Metrics (UC)",
+      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.payment_metrics"
+    }
   ],
   "pages": [
     {
@@ -16,7 +34,13 @@
         {
           "widget": {
             "name": "header",
-            "textbox_spec": "## Payment Approval Performance\n\nKey metrics and trends at a glance"
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Payment Approval Performance\n",
+                "\n",
+                "Key metrics and trends at a glance"
+              ]
+            }
           },
           "position": {
             "x": 0,
@@ -33,7 +57,7 @@
                 "name": "kpi_query",
                 "query": {
                   "datasetName": "v_executive_kpis",
-                  "query_text": "SELECT total_transactions, approval_rate_pct, total_transaction_value FROM v_executive_kpis LIMIT 1"
+                  "disaggregated": false
                 }
               }
             ],
@@ -63,7 +87,7 @@
                 "name": "kpi_query",
                 "query": {
                   "datasetName": "v_executive_kpis",
-                  "query_text": "SELECT approval_rate_pct FROM v_executive_kpis LIMIT 1"
+                  "disaggregated": false
                 }
               }
             ],
@@ -96,7 +120,7 @@
                 "name": "kpi_query",
                 "query": {
                   "datasetName": "v_executive_kpis",
-                  "query_text": "SELECT total_transaction_value FROM v_executive_kpis LIMIT 1"
+                  "disaggregated": false
                 }
               }
             ],
@@ -130,7 +154,7 @@
                 "name": "kpi_query",
                 "query": {
                   "datasetName": "v_executive_kpis",
-                  "query_text": "SELECT avg_fraud_score FROM v_executive_kpis LIMIT 1"
+                  "disaggregated": false
                 }
               }
             ],
@@ -160,7 +184,7 @@
                 "name": "trend_query",
                 "query": {
                   "datasetName": "v_approval_trends_hourly",
-                  "query_text": "SELECT * FROM v_approval_trends_hourly ORDER BY hour LIMIT 168"
+                  "disaggregated": false
                 }
               }
             ],
@@ -196,7 +220,7 @@
                 "name": "geo_query",
                 "query": {
                   "datasetName": "v_performance_by_geography",
-                  "query_text": "SELECT * FROM v_performance_by_geography ORDER BY transaction_count DESC LIMIT 15"
+                  "disaggregated": false
                 }
               }
             ],
@@ -232,7 +256,7 @@
                 "name": "decline_query",
                 "query": {
                   "datasetName": "v_top_decline_reasons",
-                  "query_text": "SELECT * FROM v_top_decline_reasons LIMIT 10"
+                  "disaggregated": false
                 }
               }
             ],
@@ -280,7 +304,7 @@
                 "name": "uc_metrics_query",
                 "query": {
                   "datasetName": "payment_metrics",
-                  "query_text": "SELECT `Merchant Segment`, `Total Transactions`, `Approval Rate Pct`, `Total Amount` FROM payment_metrics ORDER BY `Total Transactions` DESC LIMIT 10"
+                  "disaggregated": false
                 }
               }
             ],
@@ -289,15 +313,32 @@
               "widgetType": "table",
               "encodings": {
                 "columns": [
-                  { "fieldName": "Merchant Segment", "displayName": "Segment" },
-                  { "fieldName": "Total Transactions", "displayName": "Transactions" },
-                  { "fieldName": "Approval Rate Pct", "displayName": "Approval %" },
-                  { "fieldName": "Total Amount", "displayName": "Total Value" }
+                  {
+                    "fieldName": "Merchant Segment",
+                    "displayName": "Segment"
+                  },
+                  {
+                    "fieldName": "Total Transactions",
+                    "displayName": "Transactions"
+                  },
+                  {
+                    "fieldName": "Approval Rate Pct",
+                    "displayName": "Approval %"
+                  },
+                  {
+                    "fieldName": "Total Amount",
+                    "displayName": "Total Value"
+                  }
                 ]
               }
             }
           },
-          "position": { "x": 0, "y": 22, "width": 6, "height": 6 }
+          "position": {
+            "x": 0,
+            "y": 22,
+            "width": 6,
+            "height": 6
+          }
         },
         {
           "widget": {
@@ -307,7 +348,7 @@
                 "name": "uc_metrics_network",
                 "query": {
                   "datasetName": "payment_metrics",
-                  "query_text": "SELECT `Card Network`, `Total Transactions`, `Approval Rate Pct`, `Total Amount` FROM payment_metrics ORDER BY `Total Transactions` DESC LIMIT 8"
+                  "disaggregated": false
                 }
               }
             ],
@@ -315,41 +356,28 @@
               "version": 2,
               "widgetType": "bar-chart",
               "encodings": {
-                "x": { "fieldName": "Card Network", "displayName": "Card Network" },
-                "y": [{ "fieldName": "Total Transactions", "displayName": "Transactions" }]
+                "x": {
+                  "fieldName": "Card Network",
+                  "displayName": "Card Network"
+                },
+                "y": [
+                  {
+                    "fieldName": "Total Transactions",
+                    "displayName": "Transactions"
+                  }
+                ]
               }
             }
           },
-          "position": { "x": 6, "y": 22, "width": 6, "height": 6 }
+          "position": {
+            "x": 6,
+            "y": 22,
+            "width": 6,
+            "height": 6
+          }
         }
-      ]
-    }
-  ],
-  "datasets": [
-    {
-      "name": "v_approval_trends_hourly",
-      "displayName": "V Approval Trends Hourly",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_approval_trends_hourly"
-    },
-    {
-      "name": "v_executive_kpis",
-      "displayName": "V Executive Kpis",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_executive_kpis"
-    },
-    {
-      "name": "v_performance_by_geography",
-      "displayName": "V Performance By Geography",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_performance_by_geography"
-    },
-    {
-      "name": "v_top_decline_reasons",
-      "displayName": "V Top Decline Reasons",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_top_decline_reasons"
-    },
-    {
-      "name": "payment_metrics",
-      "displayName": "Payment Metrics (UC)",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.payment_metrics"
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
     }
   ]
 }

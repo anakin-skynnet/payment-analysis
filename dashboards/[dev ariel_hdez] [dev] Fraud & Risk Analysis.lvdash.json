@@ -1,34 +1,49 @@
 {
   "datasets": [
     {
-      "name": "payments_enriched_silver",
-      "displayName": "Payments Enriched Silver",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.payments_enriched_silver"
+      "name": "v_active_alerts",
+      "displayName": "V Active Alerts",
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_active_alerts"
+    },
+    {
+      "name": "v_approval_trends_hourly",
+      "displayName": "V Approval Trends Hourly",
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_approval_trends_hourly"
     },
     {
       "name": "v_executive_kpis",
       "displayName": "V Executive Kpis",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_executive_kpis"
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_executive_kpis"
+    },
+    {
+      "name": "v_last_hour_performance",
+      "displayName": "V Last Hour Performance",
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_last_hour_performance"
     },
     {
       "name": "v_merchant_segment_performance",
       "displayName": "V Merchant Segment Performance",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_merchant_segment_performance"
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_merchant_segment_performance"
+    },
+    {
+      "name": "v_performance_by_geography",
+      "displayName": "V Performance By Geography",
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_performance_by_geography"
     }
   ],
   "pages": [
     {
-      "name": "authentication_security",
-      "displayName": "Authentication & Security",
+      "name": "fraud_risk_analysis",
+      "displayName": "Fraud & Risk Analysis",
       "layout": [
         {
           "widget": {
             "name": "header",
             "multilineTextboxSpec": {
               "lines": [
-                "## 3D Secure Authentication & Security Analysis\n",
+                "## Fraud & Risk Analysis\n",
                 "\n",
-                "Authentication adoption, security patterns, and compliance metrics"
+                "Real-time fraud detection and risk assessment metrics"
               ]
             }
           },
@@ -41,10 +56,108 @@
         },
         {
           "widget": {
-            "name": "overall_3ds_usage",
+            "name": "avg_fraud_score",
             "queries": [
               {
-                "name": "auth_usage_kpi",
+                "name": "fraud_kpi",
+                "query": {
+                  "datasetName": "v_executive_kpis",
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_fraud_score",
+                  "displayName": "Avg Fraud Score"
+                }
+              },
+              "format": {
+                "notation": "standard",
+                "minimumFractionDigits": 3
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "avg_aml_risk",
+            "queries": [
+              {
+                "name": "aml_kpi",
+                "query": {
+                  "datasetName": "v_executive_kpis",
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg_aml_risk_score",
+                  "displayName": "Avg AML Risk"
+                }
+              },
+              "format": {
+                "notation": "standard",
+                "minimumFractionDigits": 3
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "high_risk_txns",
+            "queries": [
+              {
+                "name": "risk_count",
+                "query": {
+                  "datasetName": "v_last_hour_performance",
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "high_risk_transactions",
+                  "displayName": "High Risk Txns (1h)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "auth_3ds_usage",
+            "queries": [
+              {
+                "name": "auth_kpi",
                 "query": {
                   "datasetName": "v_executive_kpis",
                   "disaggregated": false
@@ -57,7 +170,7 @@
               "encodings": {
                 "value": {
                   "fieldName": "auth_3ds_usage_pct",
-                  "displayName": "Overall 3DS Usage %"
+                  "displayName": "3DS Usage %"
                 }
               },
               "format": {
@@ -66,83 +179,20 @@
             }
           },
           "position": {
-            "x": 0,
+            "x": 9,
             "y": 2,
-            "width": 4,
+            "width": 3,
             "height": 4
           }
         },
         {
           "widget": {
-            "name": "total_secured_txns",
+            "name": "fraud_by_geography",
             "queries": [
               {
-                "name": "secured_txns_query",
+                "name": "geo_fraud_query",
                 "query": {
-                  "datasetName": "payments_enriched_silver",
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "secured_transactions",
-                  "displayName": "3DS Transactions"
-                }
-              }
-            }
-          },
-          "position": {
-            "x": 4,
-            "y": 2,
-            "width": 4,
-            "height": 4
-          }
-        },
-        {
-          "widget": {
-            "name": "auth_approval_lift",
-            "queries": [
-              {
-                "name": "auth_lift_query",
-                "query": {
-                  "datasetName": "payments_enriched_silver",
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "with_3ds_rate",
-                  "displayName": "Approval Rate w/ 3DS"
-                }
-              },
-              "format": {
-                "suffix": "%"
-              }
-            }
-          },
-          "position": {
-            "x": 8,
-            "y": 2,
-            "width": 4,
-            "height": 4
-          }
-        },
-        {
-          "widget": {
-            "name": "3ds_by_segment",
-            "queries": [
-              {
-                "name": "segment_3ds_query",
-                "query": {
-                  "datasetName": "v_merchant_segment_performance",
+                  "datasetName": "v_performance_by_geography",
                   "disaggregated": false
                 }
               }
@@ -152,13 +202,13 @@
               "widgetType": "bar-chart",
               "encodings": {
                 "x": {
-                  "fieldName": "merchant_segment",
-                  "displayName": "Segment"
+                  "fieldName": "country",
+                  "displayName": "Country"
                 },
                 "y": [
                   {
-                    "fieldName": "auth_3ds_usage_pct",
-                    "displayName": "3DS Usage %"
+                    "fieldName": "avg_fraud_score",
+                    "displayName": "Avg Fraud Score"
                   }
                 ]
               }
@@ -173,32 +223,30 @@
         },
         {
           "widget": {
-            "name": "3ds_vs_approval_correlation",
+            "name": "fraud_trend_hourly",
             "queries": [
               {
-                "name": "correlation_query",
+                "name": "fraud_trend_query",
                 "query": {
-                  "datasetName": "v_merchant_segment_performance",
+                  "datasetName": "v_approval_trends_hourly",
                   "disaggregated": false
                 }
               }
             ],
             "spec": {
               "version": 2,
-              "widgetType": "scatter-plot",
+              "widgetType": "line-chart",
               "encodings": {
                 "x": {
-                  "fieldName": "auth_3ds_usage_pct",
-                  "displayName": "3DS Usage %"
+                  "fieldName": "hour",
+                  "displayName": "Time"
                 },
-                "y": {
-                  "fieldName": "approval_rate_pct",
-                  "displayName": "Approval Rate %"
-                },
-                "color": {
-                  "fieldName": "merchant_segment",
-                  "displayName": "Segment"
-                }
+                "y": [
+                  {
+                    "fieldName": "avg_fraud_score",
+                    "displayName": "Fraud Score"
+                  }
+                ]
               }
             }
           },
@@ -211,28 +259,40 @@
         },
         {
           "widget": {
-            "name": "3ds_adoption_trend",
+            "name": "active_fraud_alerts",
             "queries": [
               {
-                "name": "3ds_trend_query",
+                "name": "fraud_alerts_query",
                 "query": {
-                  "datasetName": "payments_enriched_silver",
+                  "datasetName": "v_active_alerts",
                   "disaggregated": false
                 }
               }
             ],
             "spec": {
               "version": 2,
-              "widgetType": "line-chart",
+              "widgetType": "table",
               "encodings": {
-                "x": {
-                  "fieldName": "date",
-                  "displayName": "Date"
-                },
-                "y": [
+                "columns": [
                   {
-                    "fieldName": "usage_pct",
-                    "displayName": "3DS Usage %"
+                    "fieldName": "alert_type",
+                    "displayName": "Alert Type"
+                  },
+                  {
+                    "fieldName": "severity",
+                    "displayName": "Severity"
+                  },
+                  {
+                    "fieldName": "current_value",
+                    "displayName": "Current"
+                  },
+                  {
+                    "fieldName": "threshold_value",
+                    "displayName": "Threshold"
+                  },
+                  {
+                    "fieldName": "alert_message",
+                    "displayName": "Message"
                   }
                 ]
               }
@@ -242,15 +302,15 @@
             "x": 0,
             "y": 14,
             "width": 12,
-            "height": 8
+            "height": 6
           }
         },
         {
           "widget": {
-            "name": "authentication_details",
+            "name": "segment_fraud_breakdown",
             "queries": [
               {
-                "name": "auth_details_query",
+                "name": "segment_fraud_query",
                 "query": {
                   "datasetName": "v_merchant_segment_performance",
                   "disaggregated": false
@@ -267,72 +327,20 @@
                     "displayName": "Segment"
                   },
                   {
-                    "fieldName": "transaction_count",
-                    "displayName": "Transactions"
+                    "fieldName": "avg_fraud_score",
+                    "displayName": "Fraud Score"
                   },
                   {
-                    "fieldName": "auth_3ds_usage_pct",
-                    "displayName": "3DS %"
+                    "fieldName": "transaction_count",
+                    "displayName": "Transactions"
                   },
                   {
                     "fieldName": "approval_rate_pct",
                     "displayName": "Approval %"
                   },
                   {
-                    "fieldName": "avg_fraud_score",
-                    "displayName": "Fraud Score"
-                  },
-                  {
-                    "fieldName": "unique_merchants",
-                    "displayName": "Merchants"
-                  },
-                  {
-                    "fieldName": "total_value",
-                    "displayName": "Total Value"
-                  }
-                ]
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 22,
-            "width": 12,
-            "height": 8
-          }
-        },
-        {
-          "widget": {
-            "name": "3ds_by_geography",
-            "queries": [
-              {
-                "name": "geo_3ds_query",
-                "query": {
-                  "datasetName": "payments_enriched_silver",
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "table",
-              "encodings": {
-                "columns": [
-                  {
-                    "fieldName": "issuer_country",
-                    "displayName": "Country"
-                  },
-                  {
-                    "fieldName": "txns",
-                    "displayName": "Transactions"
-                  },
-                  {
-                    "fieldName": "auth_3ds_pct",
+                    "fieldName": "auth_3ds_usage_pct",
                     "displayName": "3DS Usage %"
-                  },
-                  {
-                    "fieldName": "approval_rate",
-                    "displayName": "Approval %"
                   }
                 ]
               }
@@ -340,7 +348,7 @@
           },
           "position": {
             "x": 0,
-            "y": 30,
+            "y": 20,
             "width": 12,
             "height": 8
           }
@@ -348,11 +356,5 @@
       ],
       "pageType": "PAGE_TYPE_CANVAS"
     }
-  ],
-  "uiSettings": {
-    "theme": {
-      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
-    },
-    "applyModeEnabled": false
-  }
+  ]
 }

@@ -1,54 +1,44 @@
 {
   "datasets": [
     {
-      "name": "v_daily_trends",
-      "displayName": "V Daily Trends",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_daily_trends"
-    },
-    {
-      "name": "v_decline_recovery_opportunities",
-      "displayName": "V Decline Recovery Opportunities",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_decline_recovery_opportunities"
+      "name": "v_approval_trends_hourly",
+      "displayName": "V Approval Trends Hourly",
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_approval_trends_hourly"
     },
     {
       "name": "v_executive_kpis",
       "displayName": "V Executive Kpis",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_executive_kpis"
-    },
-    {
-      "name": "v_merchant_segment_performance",
-      "displayName": "V Merchant Segment Performance",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_merchant_segment_performance"
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_executive_kpis"
     },
     {
       "name": "v_performance_by_geography",
       "displayName": "V Performance By Geography",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_performance_by_geography"
-    },
-    {
-      "name": "v_retry_performance",
-      "displayName": "V Retry Performance",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_retry_performance"
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_performance_by_geography"
     },
     {
       "name": "v_top_decline_reasons",
       "displayName": "V Top Decline Reasons",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_top_decline_reasons"
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_top_decline_reasons"
+    },
+    {
+      "name": "payment_metrics",
+      "displayName": "Payment Metrics (UC)",
+      "asset_name": "ahs_demos_catalog.payment_analysis.payment_metrics"
     }
   ],
   "pages": [
     {
-      "name": "financial_impact",
-      "displayName": "Financial Impact",
+      "name": "executive_summary",
+      "displayName": "Executive Summary",
       "layout": [
         {
           "widget": {
             "name": "header",
             "multilineTextboxSpec": {
               "lines": [
-                "## Financial Impact & ROI Analysis\n",
+                "## Payment Approval Performance\n",
                 "\n",
-                "Transaction value metrics, revenue impact, and optimization ROI"
+                "Key metrics and trends at a glance"
               ]
             }
           },
@@ -61,10 +51,10 @@
         },
         {
           "widget": {
-            "name": "total_approved_value",
+            "name": "total_transactions_kpi",
             "queries": [
               {
-                "name": "approved_value_kpi",
+                "name": "kpi_query",
                 "query": {
                   "datasetName": "v_executive_kpis",
                   "disaggregated": false
@@ -76,13 +66,9 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "approved_value",
-                  "displayName": "Approved Value"
+                  "fieldName": "total_transactions",
+                  "displayName": "Total Transactions"
                 }
-              },
-              "format": {
-                "prefix": "$",
-                "notation": "compact"
               }
             }
           },
@@ -95,10 +81,10 @@
         },
         {
           "widget": {
-            "name": "total_declined_value",
+            "name": "approval_rate_kpi",
             "queries": [
               {
-                "name": "declined_value_kpi",
+                "name": "kpi_query",
                 "query": {
                   "datasetName": "v_executive_kpis",
                   "disaggregated": false
@@ -110,13 +96,12 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "declined_value",
-                  "displayName": "Declined Value"
+                  "fieldName": "approval_rate_pct",
+                  "displayName": "Approval Rate %"
                 }
               },
               "format": {
-                "prefix": "$",
-                "notation": "compact"
+                "suffix": "%"
               }
             }
           },
@@ -129,10 +114,10 @@
         },
         {
           "widget": {
-            "name": "avg_transaction_value",
+            "name": "total_value_kpi",
             "queries": [
               {
-                "name": "avg_value_kpi",
+                "name": "kpi_query",
                 "query": {
                   "datasetName": "v_executive_kpis",
                   "disaggregated": false
@@ -144,12 +129,13 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "avg_transaction_amount",
-                  "displayName": "Avg Transaction"
+                  "fieldName": "total_transaction_value",
+                  "displayName": "Total Value"
                 }
               },
               "format": {
-                "prefix": "$"
+                "prefix": "$",
+                "notation": "compact"
               }
             }
           },
@@ -162,12 +148,12 @@
         },
         {
           "widget": {
-            "name": "total_recovery_potential",
+            "name": "avg_fraud_score_kpi",
             "queries": [
               {
-                "name": "recovery_value_kpi",
+                "name": "kpi_query",
                 "query": {
-                  "datasetName": "v_decline_recovery_opportunities",
+                  "datasetName": "v_executive_kpis",
                   "disaggregated": false
                 }
               }
@@ -177,13 +163,9 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "total_recoverable",
-                  "displayName": "Recoverable Value"
+                  "fieldName": "avg_fraud_score",
+                  "displayName": "Avg Fraud Score"
                 }
-              },
-              "format": {
-                "prefix": "$",
-                "notation": "compact"
               }
             }
           },
@@ -196,28 +178,28 @@
         },
         {
           "widget": {
-            "name": "value_by_segment",
+            "name": "approval_trends",
             "queries": [
               {
-                "name": "segment_value_query",
+                "name": "trend_query",
                 "query": {
-                  "datasetName": "v_merchant_segment_performance",
+                  "datasetName": "v_approval_trends_hourly",
                   "disaggregated": false
                 }
               }
             ],
             "spec": {
               "version": 2,
-              "widgetType": "bar-chart",
+              "widgetType": "line-chart",
               "encodings": {
                 "x": {
-                  "fieldName": "merchant_segment",
-                  "displayName": "Segment"
+                  "fieldName": "hour",
+                  "displayName": "Time"
                 },
                 "y": [
                   {
-                    "fieldName": "total_value",
-                    "displayName": "Total Value ($)"
+                    "fieldName": "approval_rate_pct",
+                    "displayName": "Approval Rate %"
                   }
                 ]
               }
@@ -232,10 +214,10 @@
         },
         {
           "widget": {
-            "name": "value_by_geography",
+            "name": "geography_performance",
             "queries": [
               {
-                "name": "geo_value_query",
+                "name": "geo_query",
                 "query": {
                   "datasetName": "v_performance_by_geography",
                   "disaggregated": false
@@ -252,8 +234,8 @@
                 },
                 "y": [
                   {
-                    "fieldName": "total_transaction_value",
-                    "displayName": "Total Value ($)"
+                    "fieldName": "approval_rate_pct",
+                    "displayName": "Approval Rate %"
                   }
                 ]
               }
@@ -268,10 +250,10 @@
         },
         {
           "widget": {
-            "name": "declined_value_by_reason",
+            "name": "top_decline_reasons",
             "queries": [
               {
-                "name": "decline_value_query",
+                "name": "decline_query",
                 "query": {
                   "datasetName": "v_top_decline_reasons",
                   "disaggregated": false
@@ -280,16 +262,28 @@
             ],
             "spec": {
               "version": 2,
-              "widgetType": "bar-chart",
+              "widgetType": "table",
               "encodings": {
-                "x": {
-                  "fieldName": "decline_reason",
-                  "displayName": "Decline Reason"
-                },
-                "y": [
+                "columns": [
+                  {
+                    "fieldName": "decline_reason",
+                    "displayName": "Decline Reason"
+                  },
+                  {
+                    "fieldName": "decline_count",
+                    "displayName": "Count"
+                  },
+                  {
+                    "fieldName": "pct_of_declines",
+                    "displayName": "% of Total"
+                  },
                   {
                     "fieldName": "total_declined_value",
-                    "displayName": "Declined Value ($)"
+                    "displayName": "Value"
+                  },
+                  {
+                    "fieldName": "recoverable_pct",
+                    "displayName": "Recoverable %"
                   }
                 ]
               }
@@ -304,12 +298,12 @@
         },
         {
           "widget": {
-            "name": "recovery_roi_analysis",
+            "name": "payment_metrics_by_segment",
             "queries": [
               {
-                "name": "recovery_roi_query",
+                "name": "uc_metrics_query",
                 "query": {
-                  "datasetName": "v_decline_recovery_opportunities",
+                  "datasetName": "payment_metrics",
                   "disaggregated": false
                 }
               }
@@ -320,28 +314,20 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "decline_reason",
-                    "displayName": "Decline"
-                  },
-                  {
-                    "fieldName": "merchant_segment",
+                    "fieldName": "Merchant Segment",
                     "displayName": "Segment"
                   },
                   {
-                    "fieldName": "decline_count",
-                    "displayName": "Count"
+                    "fieldName": "Total Transactions",
+                    "displayName": "Transactions"
                   },
                   {
-                    "fieldName": "potential_recovery_value",
-                    "displayName": "Recovery $"
+                    "fieldName": "Approval Rate Pct",
+                    "displayName": "Approval %"
                   },
                   {
-                    "fieldName": "recovery_likelihood",
-                    "displayName": "Likelihood"
-                  },
-                  {
-                    "fieldName": "recommended_action",
-                    "displayName": "Action"
+                    "fieldName": "Total Amount",
+                    "displayName": "Total Value"
                   }
                 ]
               }
@@ -350,106 +336,48 @@
           "position": {
             "x": 0,
             "y": 22,
-            "width": 12,
-            "height": 8
+            "width": 6,
+            "height": 6
           }
         },
         {
           "widget": {
-            "name": "retry_recovered_value",
+            "name": "payment_metrics_by_network",
             "queries": [
               {
-                "name": "retry_value_query",
+                "name": "uc_metrics_network",
                 "query": {
-                  "datasetName": "v_retry_performance",
+                  "datasetName": "payment_metrics",
                   "disaggregated": false
                 }
               }
             ],
             "spec": {
               "version": 2,
-              "widgetType": "table",
-              "encodings": {
-                "columns": [
-                  {
-                    "fieldName": "decline_reason",
-                    "displayName": "Decline"
-                  },
-                  {
-                    "fieldName": "retry_count",
-                    "displayName": "Retry #"
-                  },
-                  {
-                    "fieldName": "retry_attempts",
-                    "displayName": "Attempts"
-                  },
-                  {
-                    "fieldName": "retry_success_rate_pct",
-                    "displayName": "Success %"
-                  },
-                  {
-                    "fieldName": "recovered_value",
-                    "displayName": "Recovered $"
-                  },
-                  {
-                    "fieldName": "effectiveness",
-                    "displayName": "Effectiveness"
-                  }
-                ]
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 30,
-            "width": 12,
-            "height": 8
-          }
-        },
-        {
-          "widget": {
-            "name": "value_trend_daily",
-            "queries": [
-              {
-                "name": "value_trend_query",
-                "query": {
-                  "datasetName": "v_daily_trends",
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "area-chart",
+              "widgetType": "bar-chart",
               "encodings": {
                 "x": {
-                  "fieldName": "event_date",
-                  "displayName": "Date"
+                  "fieldName": "Card Network",
+                  "displayName": "Card Network"
                 },
                 "y": [
                   {
-                    "fieldName": "total_value",
-                    "displayName": "Total Value ($)"
+                    "fieldName": "Total Transactions",
+                    "displayName": "Transactions"
                   }
                 ]
               }
             }
           },
           "position": {
-            "x": 0,
-            "y": 38,
-            "width": 12,
-            "height": 8
+            "x": 6,
+            "y": 22,
+            "width": 6,
+            "height": 6
           }
         }
       ],
       "pageType": "PAGE_TYPE_CANVAS"
     }
-  ],
-  "uiSettings": {
-    "theme": {
-      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
-    },
-    "applyModeEnabled": false
-  }
+  ]
 }
