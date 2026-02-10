@@ -27,6 +27,8 @@ The project is deployed as a [Databricks Asset Bundle (DAB)](https://docs.databr
 
 ## References (best practices)
 
+This solution follows patterns from [**databricks-solutions**](https://github.com/databricks-solutions):
+
 - **[Databricks Apps Cookbook](https://apps-cookbook.dev/docs/intro)** — FastAPI recipes, healthcheck, tables, error handling for Databricks Apps.
 - **[apx](https://github.com/databricks-solutions/apx)** — Toolkit for building Databricks Apps (develop, build, deploy).
 - **[AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit)** — Databricks patterns, skills, and MCP tools for AI-assisted development.
