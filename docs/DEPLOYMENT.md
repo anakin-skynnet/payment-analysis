@@ -277,7 +277,7 @@ All bundle jobs have been reviewed for duplicates or overlapping functionality. 
 | **genie_spaces.yml** | | |
 | `job_7_genie_sync` | Sync Genie space configuration and sample questions | Single purpose; optional. |
 
-**Agent framework (job 6):** A single task `run_agent_framework` runs the notebook once. The orchestrator coordinates all five specialists (Smart Routing, Smart Retry, Decline Analyst, Risk Assessor, Performance Recommender) and synthesizes the response. For ad-hoc runs of a single specialist, use the same notebook with widget `agent_role` set to that specialist (e.g. `smart_routing`).
+**Agent framework (job 6):** A single task `run_agent_framework` runs the notebook once. The orchestrator coordinates all five specialists (Smart Routing, Smart Retry, Decline Analyst, Risk Assessor, Performance Recommender) and synthesizes the response. For ad-hoc runs of a single specialist, use the same notebook with widget `agent_role` set to that specialist (e.g. `smart_routing`). To use **Databricks AgentBricks** (all five specialists + Multi-Agent Supervisor) with MLflow + LangGraph and Model Serving (UC functions as tools), see [AgentBricks — Payment Analysis](AGENT_FRAMEWORK_DATABRICKS.md).
 
 **Dashboard jobs:** Job 4 (Deploy Dashboards) has two tasks: prepare (generate assets) and publish (AI/BI Dashboards API with embed credentials). Genie sync is a separate job (job 7 in `genie_spaces.yml`).
 

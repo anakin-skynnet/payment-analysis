@@ -70,9 +70,12 @@ exclude = ["src/payment_analysis/ui"]
 
 # Exclude Databricks-only notebooks from type checking (dbutils, spark, dlt/Lakeflow are runtime-injected)
 # Exclude files/ (bundle sync copy) so ty only checks src/ and resolves imports correctly
+# Exclude LangGraph/UC agent code (Databricks-only: spark/dbutils or optional deps)
 [tool.ty.src]
 exclude = [
     "files/**",
+    "src/payment_analysis/agents/langgraph_agents.py",
+    "src/payment_analysis/agents/uc_tools/run_create_uc_agent_tools.py",
     "src/payment_analysis/genie/**",
     "src/payment_analysis/ml/**",
     "src/payment_analysis/streaming/**",

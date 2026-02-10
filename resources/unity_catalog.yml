@@ -21,6 +21,18 @@ resources:
         - principal: ${workspace.current_user.userName}
           privileges: [ALL_PRIVILEGES]
 
+    agent_tools_schema:
+      name: agent_tools
+      catalog_name: ${var.catalog}
+      comment: |
+        Unity Catalog functions used as tools by payment analysis agents
+        (Databricks Agent Framework: LangGraph + Model Serving).
+      grants:
+        - principal: users
+          privileges: [USE_SCHEMA, EXECUTE]
+        - principal: ${workspace.current_user.userName}
+          privileges: [ALL_PRIVILEGES]
+
   volumes:
     raw_data_volume:
       name: raw_data
