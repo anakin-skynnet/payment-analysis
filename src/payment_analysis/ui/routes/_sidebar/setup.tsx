@@ -492,7 +492,7 @@ function SetupRun() {
               id="schema"
               value={schema}
               onChange={(e) => setSchema(e.target.value)}
-              placeholder="dev_ariel_hdez_payment_analysis"
+              placeholder="payment_analysis"
             />
           </div>
           <div className="sm:col-span-3 flex justify-end">

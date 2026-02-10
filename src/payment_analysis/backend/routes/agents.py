@@ -19,14 +19,15 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
-from ..config import AppConfig
+from ..config import AppConfig, get_default_schema
 
 router = APIRouter(tags=["agents"])
 
 _databricks_config = AppConfig().databricks
 
 # Default catalog.schema used in AGENTS; replaced with effective config when returning.
-_DEFAULT_UC_PREFIX = "ahs_demos_catalog.payment_analysis"
+def _default_uc_prefix() -> str:
+    return f"ahs_demos_catalog.{get_default_schema()}"
 
 
 # =============================================================================
@@ -274,8 +275,8 @@ AGENTS = [
 def _apply_uc_config(agent: AgentInfo, catalog: str, schema: str) -> AgentInfo:
     """Replace default catalog.schema with effective config in resource and URL."""
     full = f"{catalog}.{schema}"
-    resource = (agent.databricks_resource or "").replace(_DEFAULT_UC_PREFIX, full)
-    url = (agent.workspace_url or "").replace(_DEFAULT_UC_PREFIX, full)
+    resource = (agent.databricks_resource or "").replace(_default_uc_prefix(), full)
+    url = (agent.workspace_url or "").replace(_default_uc_prefix(), full)
     if resource == (agent.databricks_resource or "") and url == (agent.workspace_url or ""):
         return agent
     return agent.model_copy(
@@ -291,7 +292,7 @@ def _effective_uc(request: Request) -> tuple[str, str]:
     uc = getattr(request.app.state, "uc_config", None)
     if uc and len(uc) == 2 and uc[0] and uc[1]:
         return (uc[0], uc[1])
-    return ("ahs_demos_catalog", "dev_ariel_hdez_payment_analysis")
+    return ("ahs_demos_catalog", get_default_schema())
 
 
 # =============================================================================

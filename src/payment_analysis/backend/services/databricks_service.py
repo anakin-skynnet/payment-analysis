@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from ..config import DEFAULT_ENTITY
+from ..config import DEFAULT_ENTITY, get_default_schema
 
 if TYPE_CHECKING:
     from databricks.sdk import WorkspaceClient
@@ -67,7 +67,7 @@ class DatabricksConfig:
     token: str | None = None
     warehouse_id: str | None = None
     catalog: str = "ahs_demos_catalog"
-    schema: str = "dev_ariel_hdez_payment_analysis"
+    schema: str = "payment_analysis"
 
     @classmethod
     def from_environment(cls) -> "DatabricksConfig":
@@ -77,7 +77,7 @@ class DatabricksConfig:
             token=os.getenv("DATABRICKS_TOKEN"),
             warehouse_id=os.getenv("DATABRICKS_WAREHOUSE_ID", "148ccb90800933a1"),
             catalog=os.getenv("DATABRICKS_CATALOG", "ahs_demos_catalog"),
-            schema=os.getenv("DATABRICKS_SCHEMA", "dev_ariel_hdez_payment_analysis"),
+            schema=os.getenv("DATABRICKS_SCHEMA") or get_default_schema(),
         )
     
     @property

@@ -17,8 +17,9 @@ prepare_dashboards() {
   if [[ "$TARGET" == "prod" ]]; then
     uv run python scripts/dashboards.py prepare --catalog prod_catalog --schema ahs_demo_payment_analysis_prod
   else
-    # Dev: catalog.schema = ahs_demos_catalog.dev_ariel_hdez_payment_analysis (same as DAB-deployed schema)
-    uv run python scripts/dashboards.py prepare --catalog ahs_demos_catalog --schema dev_ariel_hdez_payment_analysis
+    # Dev: resolve schema from bundle (same as DAB: dev_${current_user}_payment_analysis)
+    DEV_SCHEMA=$(uv run python scripts/resolve_bundle_schema.py dev 2>/dev/null || echo "payment_analysis")
+    uv run python scripts/dashboards.py prepare --catalog ahs_demos_catalog --schema "$DEV_SCHEMA"
   fi
 }
 
@@ -67,7 +68,12 @@ print('   Backend app and API router import OK.')
     echo ""
     echo "4. Prepare dashboards and validate dashboard assets..."
     prepare_dashboards
-    uv run python scripts/dashboards.py validate-assets --catalog "${DATABRICKS_CATALOG:-ahs_demos_catalog}" --schema "${DATABRICKS_SCHEMA:-dev_ariel_hdez_payment_analysis}"
+    if [[ "$TARGET" == "prod" ]]; then
+      VA_SCHEMA="${DATABRICKS_SCHEMA:-ahs_demo_payment_analysis_prod}"
+    else
+      VA_SCHEMA="${DATABRICKS_SCHEMA:-$(uv run python scripts/resolve_bundle_schema.py dev 2>/dev/null || echo "payment_analysis")}"
+    fi
+    uv run python scripts/dashboards.py validate-assets --catalog "${DATABRICKS_CATALOG:-ahs_demos_catalog}" --schema "$VA_SCHEMA"
     echo "   Dashboard assets OK."
     echo ""
     echo "5. Databricks bundle validate..."

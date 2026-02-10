@@ -23,7 +23,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 # Placeholder in source dashboard JSONs (resources/dashboards/*.lvdash.json); replaced with catalog.schema during prepare.
-# Dev: use --catalog ahs_demos_catalog --schema dev_ariel_hdez_payment_analysis so result = ahs_demos_catalog.dev_ariel_hdez_payment_analysis (same as DAB-deployed schema).
+# Replaced with catalog.schema during prepare. Dev: bundle.sh resolves schema via resolve_bundle_schema.py (DAB: dev_{user}_payment_analysis).
 CATALOG_SCHEMA_PLACEHOLDER = "__CATALOG__.__SCHEMA__"
 SOURCE_DIR = REPO_ROOT / "resources" / "dashboards"
 OUT_DIR = REPO_ROOT / "dashboards"
@@ -174,11 +174,11 @@ def main() -> int:
     # prepare
     p_prepare = sub.add_parser("prepare", help="Copy dashboard JSONs to dashboards/ and gold_views.sql to .build/transform/ with catalog/schema")
     p_prepare.add_argument("--catalog", default=os.environ.get("BUNDLE_VAR_catalog", "ahs_demos_catalog"))
-    p_prepare.add_argument("--schema", default=os.environ.get("BUNDLE_VAR_schema", "dev_ariel_hdez_payment_analysis"))
+    p_prepare.add_argument("--schema", default=os.environ.get("BUNDLE_VAR_schema", "payment_analysis"))
     # validate-assets
     p_va = sub.add_parser("validate-assets", help="List tables/views required by dashboards")
     p_va.add_argument("--catalog", default="ahs_demos_catalog")
-    p_va.add_argument("--schema", default="dev_ariel_hdez_payment_analysis")
+    p_va.add_argument("--schema", default="payment_analysis")
     # publish
     p_pub = sub.add_parser("publish", help="Publish all dashboards with embed credentials (after deploy)")
     p_pub.add_argument("--path", default=None, help="Workspace root path")

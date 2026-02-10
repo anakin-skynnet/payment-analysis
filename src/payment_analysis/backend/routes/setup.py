@@ -20,6 +20,7 @@ from ..config import (
     WORKSPACE_URL_PLACEHOLDER,
     app_name,
     ensure_absolute_workspace_url,
+    get_default_schema,
     workspace_id_from_workspace_url,
     workspace_url_from_apps_host,
 )
@@ -75,7 +76,7 @@ def _pipeline_id_env_key(key: str) -> str:
 DEFAULT_IDS: _DefaultIds = {
     "warehouse_id": os.getenv("DATABRICKS_WAREHOUSE_ID", "148ccb90800933a1") or "",
     "catalog": os.getenv("DATABRICKS_CATALOG", "ahs_demos_catalog") or "",
-    "schema": os.getenv("DATABRICKS_SCHEMA", "dev_ariel_hdez_payment_analysis") or "",
+    "schema": get_default_schema(),
     "jobs": {
         "transaction_stream_simulator": os.getenv(_job_id_env_key("transaction_stream_simulator"), "782493643247677") or "782493643247677",
         "create_gold_views": os.getenv(_job_id_env_key("create_gold_views"), "775632375108394") or "775632375108394",
@@ -246,9 +247,11 @@ def _merge_resolved_ids(
 # =============================================================================
 
 def _effective_uc_config(request: Request) -> tuple[str, str]:
-    """Return (catalog, schema) from app state (set at startup from Lakebase app_config or Lakehouse)."""
+    """Return (catalog, schema) from app state (set at startup from Lakebase app_config or Lakehouse). Fallback to default catalog and DAB-style schema (dev_{user}_payment_analysis)."""
     catalog, schema = getattr(request.app.state, "uc_config", (None, None))
-    return (catalog or "", schema or "")
+    catalog = (catalog or "").strip() or DEFAULT_IDS["catalog"]
+    schema = (schema or "").strip() or get_default_schema()
+    return (catalog, schema)
 
 
 def _effective_warehouse_id(request: Request) -> str:
