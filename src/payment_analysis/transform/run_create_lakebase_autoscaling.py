@@ -33,7 +33,10 @@ if not lakebase_project_id or not lakebase_branch_id or not lakebase_endpoint_id
 
 # COMMAND ----------
 
+import time
+
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.errors import NotFound
 from databricks.sdk.service.postgres import (
     Branch,
     BranchSpec,
@@ -99,17 +102,21 @@ except Exception as e:
     else:
         raise
 
-# Wait for endpoint to be ready (have a host) so lakebase_data_init can connect
-import time
+# Wait for endpoint to be visible (get_endpoint) and ready (host available) so lakebase_data_init can connect
 max_wait_seconds = 300
 poll_interval = 15
-for elapsed in range(0, max_wait_seconds, poll_interval):
-    ep = postgres_api.get_endpoint(name=endpoint_name)
-    status = getattr(ep, "status", None)
-    hosts = getattr(status, "hosts", None) if status else None
-    if hosts and isinstance(hosts, list) and len(hosts) > 0:
-        print(f"  Endpoint ready (host available) after {elapsed}s.")
-        break
+elapsed = 0
+while elapsed < max_wait_seconds:
+    try:
+        ep = postgres_api.get_endpoint(name=endpoint_name)
+        status = getattr(ep, "status", None)
+        hosts = getattr(status, "hosts", None) if status else None
+        if hosts and isinstance(hosts, list) and len(hosts) > 0:
+            print(f"  Endpoint ready (host available) after {elapsed}s.")
+            break
+    except NotFound:
+        print(f"  Endpoint not yet registered, waiting... ({elapsed}s)")
+
     if elapsed + poll_interval >= max_wait_seconds:
         raise RuntimeError(
             f"Endpoint {endpoint_name!r} did not become ready within {max_wait_seconds}s. "
@@ -117,6 +124,7 @@ for elapsed in range(0, max_wait_seconds, poll_interval):
         )
     print(f"  Waiting for endpoint to be ready ({elapsed + poll_interval}s)...")
     time.sleep(poll_interval)
+    elapsed += poll_interval
 
 # COMMAND ----------
 
