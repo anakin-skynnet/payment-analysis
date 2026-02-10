@@ -103,28 +103,35 @@ except Exception as e:
         raise
 
 # Wait for endpoint to be visible (get_endpoint) and ready (host available) so lakebase_data_init can connect
-max_wait_seconds = 300
-poll_interval = 15
+max_wait = 300
+interval = 15
 elapsed = 0
-while elapsed < max_wait_seconds:
+while elapsed < max_wait:
     try:
         ep = postgres_api.get_endpoint(name=endpoint_name)
-        status = getattr(ep, "status", None)
-        hosts = getattr(status, "hosts", None) if status else None
-        if hosts and isinstance(hosts, list) and len(hosts) > 0:
-            print(f"  Endpoint ready (host available) after {elapsed}s.")
-            break
-    except NotFound:
-        print(f"  Endpoint not yet registered, waiting... ({elapsed}s)")
 
-    if elapsed + poll_interval >= max_wait_seconds:
-        raise RuntimeError(
-            f"Endpoint {endpoint_name!r} did not become ready within {max_wait_seconds}s. "
-            "Check Compute → Lakebase in the workspace; the endpoint may still be starting."
-        )
-    print(f"  Waiting for endpoint to be ready ({elapsed + poll_interval}s)...")
-    time.sleep(poll_interval)
-    elapsed += poll_interval
+        # For Lakebase Autoscaling, check 'host' (singular)
+        status = getattr(ep, "status", None)
+        host = getattr(status, "host", None) if status else None
+        if host:
+            print(f"✓ Endpoint ready after {elapsed}s")
+            print(f"  Host: {host}")
+            break
+
+        state = getattr(status, "state", "unknown") if status else "unknown"
+        print(f"  State: {state} - waiting... ({elapsed}s)")
+
+    except NotFound:
+        print(f"  Endpoint not registered yet ({elapsed}s)")
+
+    time.sleep(interval)
+    elapsed += interval
+else:
+    print(f"⚠ Timeout after {max_wait}s - check Lakebase UI")
+    raise RuntimeError(
+        f"Endpoint {endpoint_name!r} did not become ready within {max_wait}s. "
+        "Check Compute → Lakebase in the workspace; the endpoint may still be starting."
+    )
 
 # COMMAND ----------
 

@@ -87,15 +87,14 @@ class Runtime:
         logger.info("Using Lakebase Autoscaling (postgres): %s", endpoint_name)
         endpoint = postgres_api.get_endpoint(name=endpoint_name)
         status = getattr(endpoint, "status", None)
-        hosts = getattr(status, "hosts", None) if status else None
-        if hosts is not None and isinstance(hosts, list) and len(hosts) > 0:
-            host = getattr(hosts[0], "host", None) or getattr(hosts[0], "hostname", None)
-        else:
-            host = (
-                getattr(hosts, "host", None) or getattr(hosts, "hostname", None)
-                if hosts
-                else None
-            )
+        # Lakebase Autoscaling uses status.host (singular)
+        host = getattr(status, "host", None) if status else None
+        if not host and status:
+            hosts = getattr(status, "hosts", None)
+            if hosts and isinstance(hosts, list) and len(hosts) > 0:
+                host = getattr(hosts[0], "host", None) or getattr(hosts[0], "hostname", None)
+            elif hosts:
+                host = getattr(hosts, "host", None) or getattr(hosts, "hostname", None)
         if not host:
             raise ValueError("Lakebase Autoscaling endpoint has no host; ensure the compute is running.")
         return f"{prefix}://{username}:@{host}:{port}/{database}"

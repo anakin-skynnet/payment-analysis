@@ -225,11 +225,14 @@ class BaseAgent:
             endpoint = postgres_api.get_endpoint(name=endpoint_name)
             cred = postgres_api.generate_database_credential(endpoint=endpoint_name)
             status = getattr(endpoint, "status", None)
-            hosts = getattr(status, "hosts", None) if status else None
-            if hosts and isinstance(hosts, list) and len(hosts) > 0:
-                host = getattr(hosts[0], "host", None) or getattr(hosts[0], "hostname", None)
-            else:
-                host = getattr(hosts, "host", None) or getattr(hosts, "hostname", None) if hosts else None
+            # Lakebase Autoscaling uses status.host (singular)
+            host = getattr(status, "host", None) if status else None
+            if not host and status:
+                hosts = getattr(status, "hosts", None)
+                if hosts and isinstance(hosts, list) and len(hosts) > 0:
+                    host = getattr(hosts[0], "host", None) or getattr(hosts[0], "hostname", None)
+                elif hosts:
+                    host = getattr(hosts, "host", None) or getattr(hosts, "hostname", None)
             if not host:
                 logger.warning("Lakebase endpoint has no host.")
                 return []
