@@ -23,8 +23,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 # Literal in source dashboard JSONs (resources/dashboards/*.lvdash.json) to replace with catalog.schema.
-# Default prepare uses --catalog ahs_demos_catalog --schema payment_analysis (matches bundle variables).
-DEV_CATALOG_SCHEMA = "ahs_demos_catalog.ahs_demo_payment_analysis_dev"
+# Default prepare uses --catalog ahs_demos_catalog --schema payment_analysis (matches bundle var.schema).
+CATALOG_SCHEMA_PLACEHOLDER = "ahs_demos_catalog.payment_analysis"
 SOURCE_DIR = REPO_ROOT / "resources" / "dashboards"
 OUT_DIR = REPO_ROOT / "dashboards"
 GOLD_VIEWS_SOURCE = REPO_ROOT / "src" / "payment_analysis" / "transform" / "gold_views.sql"
@@ -62,8 +62,8 @@ def cmd_prepare(catalog: str, schema: str) -> None:
     count = 0
     for path in sorted(SOURCE_DIR.glob("*.lvdash.json")):
         content = path.read_text(encoding="utf-8")
-        if DEV_CATALOG_SCHEMA in content:
-            content = content.replace(DEV_CATALOG_SCHEMA, catalog_schema)
+        if CATALOG_SCHEMA_PLACEHOLDER in content:
+            content = content.replace(CATALOG_SCHEMA_PLACEHOLDER, catalog_schema)
         (OUT_DIR / path.name).write_text(content, encoding="utf-8")
         count += 1
     print(f"Prepared {count} dashboards in {OUT_DIR} with catalog.schema = {catalog_schema}")

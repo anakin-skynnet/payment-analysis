@@ -128,9 +128,37 @@ All dependency references use **exactly the same versions** everywhere (no range
 | `bun.lock` | Resolved frontend deps. |
 | `.python-version` | 3.11 (matches Databricks App). |
 
-## Schema consistency
+## Schema consistency: `payment_analysis`
 
-One catalog/schema (defaults: `ahs_demos_catalog`, `payment_analysis`). Effective catalog/schema from Lakehouse `app_config`; set via **Setup & Run** → **Save catalog & schema**. See [Guide — Catalog and schema](GUIDE.md#5-data-sources-ui--backend--databricks).
+The default Unity Catalog schema name is **`payment_analysis`** everywhere:
+
+| Where | Schema |
+|-------|--------|
+| Bundle `var.schema` (dev) | `payment_analysis` (`databricks.yml` variables) |
+| Job notebook params (catalog, schema) | `${var.schema}` → `payment_analysis` unless overridden |
+| Lakebase Postgres (app_config, approval_rules, etc.) | `lakebase_schema: "payment_analysis"` in job params; `LAKEBASE_SCHEMA` env default `payment_analysis` |
+| Backend (Lakebase, Databricks bootstrap) | `payment_analysis` (`config.db.db_schema`, `DATABRICKS_SCHEMA` default) |
+| Dashboard prepare / source assets | Placeholder `ahs_demos_catalog.payment_analysis`; prepare default `--schema payment_analysis` |
+| ML training, gold views, agents | Widget/default `payment_analysis` |
+
+Effective catalog/schema for the app come from Lakehouse `app_config`; set via **Setup & Run** → **Save catalog & schema**. See [Guide — Catalog and schema](GUIDE.md#5-data-sources-ui--backend--databricks). Prod target may override `schema` (e.g. `ahs_demo_payment_analysis_prod`).
+
+### Why do I see two schemas in dev? (e.g. `payment_analysis`, `dev_ariel_hdez_payment_analysis`)
+
+You get **two** in development mode because of how the bundle and the job interact:
+
+| Schema name | Created by | Purpose |
+|-------------|------------|--------|
+| **`payment_analysis`** | **Job 1** (task `ensure_catalog_schema`) | Created with notebook param `schema: ${var.schema}` (= `payment_analysis`). This is the schema where **jobs and pipelines write data** (tables, views) and where **agent tool functions** live (e.g. `get_decline_trends`). The app and all jobs use this name. |
+| **`dev_ariel_hdez_payment_analysis`** | **Bundle** (`resources/unity_catalog.yml`) | Same logical role (data + agent tools). In **development mode** the bundle prefixes resource names, so the schema defined as `name: ${var.schema}` is deployed with a prefix. The bundle creates the four **volumes** (raw_data, checkpoints, ml_artifacts, reports) in this schema. |
+
+Jobs and pipelines use `var.schema` = `payment_analysis`, so **tables, views, and agent tool functions live in `payment_analysis`**. The bundle-created prefixed schema holds the **volumes** in dev. In **production** (`-t prod`) there is no prefix, so you only get one schema (e.g. `payment_analysis` or your prod `var.schema`).
+
+### Are the bundle-created schemas required?
+
+- **Required by the bundle:** The single schema resource (`payment_analysis_schema`) is created by the bundle; in dev it gets a prefix. Agent tool functions are created in the **same schema as data** (`payment_analysis`) by the UC tools job/notebook, not in a separate schema.
+- **Required for the app/jobs to work:** The schema that job params and the app use is **`payment_analysis`** (from the job). Data and agent tools both live there.
+- **Prefixed schema in dev:** Databricks development-mode behavior for multi-developer isolation; the bundle creates it when you deploy with `-t dev`.
 
 ## Resources in the workspace
 

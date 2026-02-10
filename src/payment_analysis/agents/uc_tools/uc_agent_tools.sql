@@ -2,19 +2,15 @@
 -- Unity Catalog functions for Databricks Agent Framework (code-based)
 -- =============================================================================
 -- Run with catalog/schema substituted (e.g. ahs_demos_catalog, payment_analysis).
--- Creates schema agent_tools and functions used by LangGraph agents via UCFunctionToolkit.
+-- Creates functions in DATA_CATALOG.DATA_SCHEMA (same schema as data). Used by LangGraph via UCFunctionToolkit.
 -- Requires: gold views and payments_enriched_silver in DATA_CATALOG.DATA_SCHEMA.
 -- =============================================================================
-
--- Create schema for agent tools (replace __CATALOG__ with your catalog, e.g. ahs_demos_catalog)
-CREATE SCHEMA IF NOT EXISTS __CATALOG__.agent_tools
-COMMENT 'Unity Catalog functions used as tools by payment analysis agents (LangGraph + Model Serving)';
 
 -- -----------------------------------------------------------------------------
 -- Decline Analyst tools
 -- -----------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION __CATALOG__.agent_tools.get_decline_trends()
+CREATE OR REPLACE FUNCTION __CATALOG__.__SCHEMA__.get_decline_trends()
 RETURNS TABLE(
   decline_reason STRING,
   decline_count BIGINT,
@@ -35,7 +31,7 @@ RETURN
   ORDER BY decline_count DESC
   LIMIT 10;
 
-CREATE OR REPLACE FUNCTION __CATALOG__.agent_tools.get_decline_by_segment()
+CREATE OR REPLACE FUNCTION __CATALOG__.__SCHEMA__.get_decline_by_segment()
 RETURNS TABLE(
   merchant_segment STRING,
   decline_reason STRING,
@@ -63,7 +59,7 @@ RETURN
 -- Smart Routing tools
 -- -----------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION __CATALOG__.agent_tools.get_route_performance()
+CREATE OR REPLACE FUNCTION __CATALOG__.__SCHEMA__.get_route_performance()
 RETURNS TABLE(
   payment_solution STRING,
   card_network STRING,
@@ -85,7 +81,7 @@ RETURN
   GROUP BY payment_solution, card_network
   ORDER BY volume DESC;
 
-CREATE OR REPLACE FUNCTION __CATALOG__.agent_tools.get_cascade_recommendations(merchant_segment STRING)
+CREATE OR REPLACE FUNCTION __CATALOG__.__SCHEMA__.get_cascade_recommendations(merchant_segment STRING)
 RETURNS TABLE(
   payment_solution STRING,
   approval_rate DOUBLE,
@@ -111,7 +107,7 @@ RETURN
 -- Smart Retry tools
 -- -----------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION __CATALOG__.agent_tools.get_retry_success_rates()
+CREATE OR REPLACE FUNCTION __CATALOG__.__SCHEMA__.get_retry_success_rates()
 RETURNS TABLE(
   decline_reason STRING,
   retry_count INT,
@@ -134,7 +130,7 @@ RETURN
   GROUP BY decline_reason, retry_count
   ORDER BY decline_reason, retry_count;
 
-CREATE OR REPLACE FUNCTION __CATALOG__.agent_tools.get_recovery_opportunities(min_amount DOUBLE)
+CREATE OR REPLACE FUNCTION __CATALOG__.__SCHEMA__.get_recovery_opportunities(min_amount DOUBLE)
 RETURNS TABLE(
   decline_reason STRING,
   decline_count BIGINT,
@@ -169,7 +165,7 @@ RETURN
 -- Risk Assessor tools
 -- -----------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION __CATALOG__.agent_tools.get_high_risk_transactions(threshold DOUBLE)
+CREATE OR REPLACE FUNCTION __CATALOG__.__SCHEMA__.get_high_risk_transactions(threshold DOUBLE)
 RETURNS TABLE(
   transaction_id STRING,
   merchant_segment STRING,
@@ -198,7 +194,7 @@ RETURN
   ORDER BY fraud_score DESC
   LIMIT 50;
 
-CREATE OR REPLACE FUNCTION __CATALOG__.agent_tools.get_risk_distribution()
+CREATE OR REPLACE FUNCTION __CATALOG__.__SCHEMA__.get_risk_distribution()
 RETURNS TABLE(
   risk_tier STRING,
   transaction_count BIGINT,
@@ -224,7 +220,7 @@ RETURN
 -- Performance Recommender tools
 -- -----------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION __CATALOG__.agent_tools.get_kpi_summary()
+CREATE OR REPLACE FUNCTION __CATALOG__.__SCHEMA__.get_kpi_summary()
 RETURNS TABLE(
   total_transactions BIGINT,
   approval_rate_pct DOUBLE,
@@ -241,7 +237,7 @@ RETURN
     avg_fraud_score
   FROM __CATALOG__.__SCHEMA__.v_executive_kpis;
 
-CREATE OR REPLACE FUNCTION __CATALOG__.agent_tools.get_optimization_opportunities()
+CREATE OR REPLACE FUNCTION __CATALOG__.__SCHEMA__.get_optimization_opportunities()
 RETURNS TABLE(
   optimization_area STRING,
   payment_solution STRING,
@@ -279,7 +275,7 @@ RETURN
   WHERE approval_rate_pct < 85 AND transaction_count > 100
   ORDER BY CASE priority WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 ELSE 3 END, approval_rate_pct;
 
-CREATE OR REPLACE FUNCTION __CATALOG__.agent_tools.get_trend_analysis()
+CREATE OR REPLACE FUNCTION __CATALOG__.__SCHEMA__.get_trend_analysis()
 RETURNS TABLE(
   event_date DATE,
   transaction_count BIGINT,

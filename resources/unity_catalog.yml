@@ -14,22 +14,10 @@ resources:
       comment: |
         Payment Approval Analysis Platform (${var.environment}).
         Bronze: raw events. Silver: enriched transactions. Gold: v_* analytical views.
-        ML: approval_propensity_model, risk_scoring_model, smart_routing_policy, smart_retry_policy.
+        ML models. Agent tool functions (AgentBricks) live here too (catalog.schema.get_*).
       grants:
         - principal: users
-          privileges: [USE_SCHEMA, SELECT]
-        - principal: ${workspace.current_user.userName}
-          privileges: [ALL_PRIVILEGES]
-
-    agent_tools_schema:
-      name: agent_tools
-      catalog_name: ${var.catalog}
-      comment: |
-        Unity Catalog functions used as tools by payment analysis agents
-        (Databricks Agent Framework: LangGraph + Model Serving).
-      grants:
-        - principal: users
-          privileges: [USE_SCHEMA, EXECUTE]
+          privileges: [USE_SCHEMA, SELECT, EXECUTE]
         - principal: ${workspace.current_user.userName}
           privileges: [ALL_PRIVILEGES]
 

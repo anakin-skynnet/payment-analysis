@@ -3,22 +3,22 @@
     {
       "name": "v_card_network_performance",
       "displayName": "V Card Network Performance",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_card_network_performance"
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_card_network_performance"
     },
     {
       "name": "v_decline_recovery_opportunities",
       "displayName": "V Decline Recovery Opportunities",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_decline_recovery_opportunities"
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_decline_recovery_opportunities"
     },
     {
       "name": "v_retry_performance",
       "displayName": "V Retry Performance",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_retry_performance"
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_retry_performance"
     },
     {
       "name": "v_solution_performance",
       "displayName": "V Solution Performance",
-      "asset_name": "ahs_demos_catalog.ahs_demo_payment_analysis_dev.v_solution_performance"
+      "asset_name": "ahs_demos_catalog.payment_analysis.v_solution_performance"
     }
   ],
   "pages": [

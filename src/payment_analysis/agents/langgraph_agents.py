@@ -11,7 +11,7 @@ Dependencies (install in notebook or job cluster):
   %pip install databricks-langchain unitycatalog-langchain[databricks] langgraph langchain-core
   dbutils.library.restartPython()
 
-Requires: UC functions in catalog.agent_tools (run run_create_uc_agent_tools first).
+Requires: UC functions in catalog.schema (e.g. payment_analysis); run run_create_uc_agent_tools first.
 """
 
 from __future__ import annotations
@@ -161,11 +161,11 @@ Recommendations should include:
 - Priority ranking"""
 
 
-def _toolkit_tools(catalog: str, function_names: List[str]) -> "Any":
+def _toolkit_tools(catalog: str, function_names: List[str], schema: str = "payment_analysis") -> "Any":
     """Load UC functions as LangChain tools. Requires databricks-langchain."""
     from databricks_langchain import UCFunctionToolkit
 
-    full_names = [f"{catalog}.agent_tools.{name}" if "." not in name else name for name in function_names]
+    full_names = [f"{catalog}.{schema}.{name}" if "." not in name else name for name in function_names]
     toolkit = UCFunctionToolkit(function_names=full_names)
     return toolkit.tools
 
@@ -180,19 +180,20 @@ def _llm(endpoint: str = "databricks-meta-llama-3-1-70b-instruct", temperature: 
 def create_decline_analyst_agent(
     catalog: str,
     *,
+    schema: str = "payment_analysis",
     llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
     temperature: float = 0.1,
 ) -> "Any":
     """
     Build Decline Analyst agent (LangGraph ReAct) with UC tools.
 
-    Tools: get_decline_trends, get_decline_by_segment (from catalog.agent_tools).
+    Tools: get_decline_trends, get_decline_by_segment (from catalog.schema).
     """
     from langchain_core.messages import SystemMessage
     from langgraph.prebuilt import create_react_agent
 
     llm = _llm(endpoint=llm_endpoint, temperature=temperature)
-    tools = _toolkit_tools(catalog, ["get_decline_trends", "get_decline_by_segment"])
+    tools = _toolkit_tools(catalog, ["get_decline_trends", "get_decline_by_segment"], schema=schema)
     agent = create_react_agent(
         llm,
         tools,
@@ -204,6 +205,7 @@ def create_decline_analyst_agent(
 def create_smart_routing_agent(
     catalog: str,
     *,
+    schema: str = "payment_analysis",
     llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
     temperature: float = 0.1,
 ) -> "Any":
@@ -212,7 +214,7 @@ def create_smart_routing_agent(
     from langgraph.prebuilt import create_react_agent
 
     llm = _llm(endpoint=llm_endpoint, temperature=temperature)
-    tools = _toolkit_tools(catalog, ["get_route_performance", "get_cascade_recommendations"])
+    tools = _toolkit_tools(catalog, ["get_route_performance", "get_cascade_recommendations"], schema=schema)
     return create_react_agent(
         llm,
         tools,
@@ -223,6 +225,7 @@ def create_smart_routing_agent(
 def create_smart_retry_agent(
     catalog: str,
     *,
+    schema: str = "payment_analysis",
     llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
     temperature: float = 0.1,
 ) -> "Any":
@@ -231,7 +234,7 @@ def create_smart_retry_agent(
     from langgraph.prebuilt import create_react_agent
 
     llm = _llm(endpoint=llm_endpoint, temperature=temperature)
-    tools = _toolkit_tools(catalog, ["get_retry_success_rates", "get_recovery_opportunities"])
+    tools = _toolkit_tools(catalog, ["get_retry_success_rates", "get_recovery_opportunities"], schema=schema)
     return create_react_agent(
         llm,
         tools,
@@ -242,6 +245,7 @@ def create_smart_retry_agent(
 def create_risk_assessor_agent(
     catalog: str,
     *,
+    schema: str = "payment_analysis",
     llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
     temperature: float = 0.1,
 ) -> "Any":
@@ -250,7 +254,7 @@ def create_risk_assessor_agent(
     from langgraph.prebuilt import create_react_agent
 
     llm = _llm(endpoint=llm_endpoint, temperature=temperature)
-    tools = _toolkit_tools(catalog, ["get_high_risk_transactions", "get_risk_distribution"])
+    tools = _toolkit_tools(catalog, ["get_high_risk_transactions", "get_risk_distribution"], schema=schema)
     return create_react_agent(
         llm,
         tools,
@@ -261,6 +265,7 @@ def create_risk_assessor_agent(
 def create_performance_recommender_agent(
     catalog: str,
     *,
+    schema: str = "payment_analysis",
     llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
     temperature: float = 0.1,
 ) -> "Any":
@@ -272,6 +277,7 @@ def create_performance_recommender_agent(
     tools = _toolkit_tools(
         catalog,
         ["get_kpi_summary", "get_optimization_opportunities", "get_trend_analysis"],
+        schema=schema,
     )
     return create_react_agent(
         llm,

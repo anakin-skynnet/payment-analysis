@@ -14,6 +14,7 @@ For use cases, technology map, and **impact on accelerating approval rates**, se
 
 | Purpose | Document |
 |--------|----------|
+| **All docs (index)** | [docs/INDEX.md](docs/INDEX.md) — Consolidated summary and document map; start here to find any topic |
 | **Guide** | [docs/GUIDE.md](docs/GUIDE.md) — Business overview, architecture, project structure, control panel & UI, best practices |
 | **Deploy & operate** | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Deploy steps, env vars, version alignment, troubleshooting |
 

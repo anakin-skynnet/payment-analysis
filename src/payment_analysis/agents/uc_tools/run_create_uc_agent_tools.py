@@ -3,7 +3,7 @@ Create Unity Catalog functions for Databricks Agent Framework (code-based).
 
 Run from a Databricks job or notebook with catalog/schema set (e.g. widget or env).
 Requires: gold views and payments_enriched_silver in the given catalog.schema.
-Creates: catalog.agent_tools.* functions used by LangGraph agents via UCFunctionToolkit.
+Creates: catalog.schema.* functions (same schema as data) used by LangGraph agents via UCFunctionToolkit.
 """
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def run(catalog: str, schema: str) -> None:
             continue
         spark.sql(stmt)
 
-    print(f"Created {len(statements)} UC agent tool objects in {catalog}.agent_tools using data from {catalog}.{schema}")
+    print(f"Created {len(statements)} UC agent tool functions in {catalog}.{schema}")
 
 
 def main() -> None:
@@ -54,7 +54,7 @@ def main() -> None:
     except NameError:
         pass
     if not catalog or not schema:
-        parser = argparse.ArgumentParser(description="Create UC agent tools in catalog.agent_tools")
+        parser = argparse.ArgumentParser(description="Create UC agent tool functions in catalog.schema (e.g. payment_analysis)")
         parser.add_argument("--catalog", required=False, default="", help="Unity Catalog name")
         parser.add_argument("--schema", required=False, default="", help="Schema containing payments_enriched_silver and gold views")
         args = parser.parse_args()
