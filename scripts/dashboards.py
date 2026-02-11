@@ -105,8 +105,9 @@ def _select_columns_from_query(query: str) -> list[str]:
 def _make_table_widget(dataset_name: str, columns: list[str], x: int, y: int, width: int = 6, height: int = 4) -> dict:
     """Build a minimal table widget linked to the dataset (dbdemos pattern)."""
     widget_id = str(uuid.uuid4()).replace("-", "")[:12]
-    if not columns:
-        columns = ["*"]
+    # Lakeview requires at least one selected field; "*" is not a valid field name.
+    if not columns or (len(columns) == 1 and columns[0] == "*"):
+        columns = ["value"]  # fallback so widget has a field; user can change in UI if needed
     fields = [{"name": c, "expression": f"`{c}`"} for c in columns]
     return {
         "widget": {
@@ -127,8 +128,10 @@ def _make_table_widget(dataset_name: str, columns: list[str], x: int, y: int, wi
                 "encodings": {
                     "columns": [
                         {
+                            "name": c,
                             "fieldName": c,
                             "displayName": c,
+                            "title": c,
                             "booleanValues": ["false", "true"],
                             "imageUrlTemplate": "{{ @ }}",
                             "imageTitleTemplate": "{{ @ }}",
@@ -142,7 +145,6 @@ def _make_table_widget(dataset_name: str, columns: list[str], x: int, y: int, wi
                             "displayAs": "string",
                             "visible": True,
                             "order": i,
-                            "title": c,
                             "allowSearch": True,
                             "alignContent": "left",
                             "allowHTML": False,
@@ -237,6 +239,81 @@ def cmd_check_widgets() -> int:
             print(e, file=sys.stderr)
         return 1
     print("All dashboards match dbdemos pattern: datasets defined, widgets have datasetName/fields/spec/position.")
+    return 0
+
+
+def _table_column_spec(field_name: str, order: int) -> dict:
+    """Single column encoding for a table widget so Lakeview has fields selected."""
+    return {
+        "name": field_name,
+        "fieldName": field_name,
+        "displayName": field_name,
+        "title": field_name,
+        "order": order,
+        "visible": True,
+        "type": "string",
+        "displayAs": "string",
+        "allowSearch": True,
+        "alignContent": "left",
+        "allowHTML": False,
+        "highlightLinks": False,
+        "useMonospaceFont": False,
+        "preserveWhitespace": False,
+        "booleanValues": ["false", "true"],
+        "imageUrlTemplate": "{{ @ }}",
+        "imageTitleTemplate": "{{ @ }}",
+        "imageWidth": "",
+        "imageHeight": "",
+        "linkUrlTemplate": "{{ @ }}",
+        "linkTextTemplate": "{{ @ }}",
+        "linkTitleTemplate": "{{ @ }}",
+        "linkOpenInNewTab": True,
+    }
+
+
+def cmd_fix_visualization_fields() -> int:
+    """Ensure datasets and table widgets have correct structure so Lakeview does not show 'Visualization has no fields selected'."""
+    fixed = 0
+    for path in sorted(SOURCE_DIR.glob("*.lvdash.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as e:
+            print(f"Error reading {path}: {e}", file=sys.stderr)
+            return 1
+        changed = False
+        # Remove queryLines if present (API allows only one of query or query_lines per dataset)
+        for ds in data.get("datasets", []):
+            if "queryLines" in ds:
+                del ds["queryLines"]
+                changed = True
+        # Table widgets: align query.fields with spec.encodings.columns so Lakeview has fields selected
+        for page in data.get("pages", []):
+            for item in page.get("layout", []):
+                w = item.get("widget", {})
+                spec = w.get("spec", {})
+                if spec.get("widgetType") != "table":
+                    continue
+                queries = w.get("queries", [])
+                main_query = next((q.get("query", {}) for q in queries if q.get("query", {}).get("datasetName")), None)
+                if not main_query:
+                    continue
+                fields = main_query.get("fields", [])
+                if not fields:
+                    continue
+                field_names = [f.get("name") for f in fields if f.get("name")]
+                if not field_names:
+                    continue
+                enc = spec.get("encodings", {})
+                # Rebuild columns from query.fields so visualization has fields selected and settings aligned
+                new_cols = [_table_column_spec(name, i) for i, name in enumerate(field_names)]
+                if enc.get("columns") != new_cols:
+                    enc["columns"] = new_cols
+                    changed = True
+        if changed:
+            path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+            print(f"Fixed {path.name}: dataset and widget field selections")
+            fixed += 1
+    print(f"Updated {fixed} dashboard(s) for visualization fields.")
     return 0
 
 
@@ -425,6 +502,8 @@ def main() -> int:
     sub.add_parser("link-widgets", help="Add layout with table widgets linked to each dataset (dbdemos pattern)")
     # check-widgets
     sub.add_parser("check-widgets", help="Verify widgets reference datasets in the same file and every dataset has a widget")
+    # fix-visualization-fields
+    sub.add_parser("fix-visualization-fields", help="Add 'name' to table columns so Lakeview does not show 'no fields selected'")
     args = parser.parse_args()
 
     if args.cmd == "prepare":
@@ -439,6 +518,8 @@ def main() -> int:
         return cmd_link_widgets()
     if args.cmd == "check-widgets":
         return cmd_check_widgets()
+    if args.cmd == "fix-visualization-fields":
+        return cmd_fix_visualization_fields()
     return 1
 
 

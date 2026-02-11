@@ -96,7 +96,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "decline_reason"
                   },
                   {
                     "fieldName": "decline_count",
@@ -123,7 +124,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "decline_count"
                   },
                   {
                     "fieldName": "pct_of_declines",
@@ -150,7 +152,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "pct_of_declines"
                   },
                   {
                     "fieldName": "avg_fraud_score",
@@ -177,7 +180,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "avg_fraud_score"
                   },
                   {
                     "fieldName": "avg_amount",
@@ -204,7 +208,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "avg_amount"
                   },
                   {
                     "fieldName": "total_declined_value",
@@ -231,7 +236,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "total_declined_value"
                   },
                   {
                     "fieldName": "affected_merchants",
@@ -258,7 +264,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "affected_merchants"
                   },
                   {
                     "fieldName": "low_risk_declines",
@@ -285,7 +292,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "low_risk_declines"
                   },
                   {
                     "fieldName": "recoverable_pct",
@@ -312,7 +320,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "recoverable_pct"
                   }
                 ]
               },
@@ -410,7 +419,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "decline_reason"
                   },
                   {
                     "fieldName": "merchant_segment",
@@ -437,7 +447,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "merchant_segment"
                   },
                   {
                     "fieldName": "card_network",
@@ -464,7 +475,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "card_network"
                   },
                   {
                     "fieldName": "decline_count",
@@ -491,7 +503,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "decline_count"
                   },
                   {
                     "fieldName": "potential_recovery_value",
@@ -518,7 +531,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "potential_recovery_value"
                   },
                   {
                     "fieldName": "avg_fraud_score",
@@ -545,7 +559,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "avg_fraud_score"
                   },
                   {
                     "fieldName": "avg_device_trust",
@@ -572,7 +587,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "avg_device_trust"
                   },
                   {
                     "fieldName": "recovery_likelihood",
@@ -599,7 +615,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "recovery_likelihood"
                   },
                   {
                     "fieldName": "recommended_action",
@@ -626,7 +643,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "recommended_action"
                   }
                 ]
               },

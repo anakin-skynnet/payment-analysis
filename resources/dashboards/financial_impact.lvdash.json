@@ -88,7 +88,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "total_transaction_value"
                   },
                   {
                     "fieldName": "approved_value",
@@ -115,7 +116,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "approved_value"
                   },
                   {
                     "fieldName": "declined_value",
@@ -142,7 +144,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "declined_value"
                   },
                   {
                     "fieldName": "avg_transaction_amount",
@@ -169,7 +172,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "avg_transaction_amount"
                   },
                   {
                     "fieldName": "total_transactions",
@@ -196,7 +200,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "total_transactions"
                   },
                   {
                     "fieldName": "approved_count",
@@ -223,7 +228,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "approved_count"
                   },
                   {
                     "fieldName": "declined_count",
@@ -250,7 +256,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "declined_count"
                   }
                 ]
               },
@@ -328,7 +335,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "decline_reason"
                   },
                   {
                     "fieldName": "total_declined_value",
@@ -355,7 +363,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "total_declined_value"
                   },
                   {
                     "fieldName": "decline_count",
@@ -382,7 +391,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "decline_count"
                   },
                   {
                     "fieldName": "recoverable_pct",
@@ -409,7 +419,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "recoverable_pct"
                   }
                 ]
               },

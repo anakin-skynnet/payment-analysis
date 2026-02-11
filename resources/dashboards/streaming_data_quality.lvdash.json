@@ -85,7 +85,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "bronze_last_24h"
                   },
                   {
                     "fieldName": "silver_last_24h",
@@ -112,7 +113,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "silver_last_24h"
                   },
                   {
                     "fieldName": "retention_pct_24h",
@@ -139,7 +141,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "retention_pct_24h"
                   },
                   {
                     "fieldName": "latest_bronze_ingestion",
@@ -166,7 +169,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "latest_bronze_ingestion"
                   },
                   {
                     "fieldName": "latest_silver_event",
@@ -193,7 +197,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "latest_silver_event"
                   }
                 ]
               },
@@ -263,7 +268,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "hour"
                   },
                   {
                     "fieldName": "bronze_record_count",
@@ -290,7 +296,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "bronze_record_count"
                   }
                 ]
               },
@@ -360,7 +367,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "hour"
                   },
                   {
                     "fieldName": "silver_record_count",
@@ -387,7 +395,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "silver_record_count"
                   }
                 ]
               },

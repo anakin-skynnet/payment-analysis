@@ -84,7 +84,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "total_transactions"
                   },
                   {
                     "fieldName": "approved_count",
@@ -111,7 +112,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "approved_count"
                   },
                   {
                     "fieldName": "declined_count",
@@ -138,7 +140,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "declined_count"
                   },
                   {
                     "fieldName": "avg_fraud_score",
@@ -165,7 +168,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "avg_fraud_score"
                   },
                   {
                     "fieldName": "avg_aml_risk_score",
@@ -192,7 +196,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "avg_aml_risk_score"
                   },
                   {
                     "fieldName": "total_transaction_value",
@@ -219,7 +224,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "total_transaction_value"
                   }
                 ]
               },
@@ -301,7 +307,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "decline_reason"
                   },
                   {
                     "fieldName": "decline_count",
@@ -328,7 +335,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "decline_count"
                   },
                   {
                     "fieldName": "avg_fraud_score",
@@ -355,7 +363,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "avg_fraud_score"
                   },
                   {
                     "fieldName": "total_declined_value",
@@ -382,7 +391,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "total_declined_value"
                   },
                   {
                     "fieldName": "recoverable_pct",
@@ -409,7 +419,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "recoverable_pct"
                   }
                 ]
               },

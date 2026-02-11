@@ -76,7 +76,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "payment_solution"
                   },
                   {
                     "fieldName": "avg_latency_ms",
@@ -103,7 +104,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "avg_latency_ms"
                   },
                   {
                     "fieldName": "transaction_count",
@@ -130,7 +132,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "transaction_count"
                   },
                   {
                     "fieldName": "approval_rate_pct",
@@ -157,7 +160,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "approval_rate_pct"
                   }
                 ]
               },
@@ -231,7 +235,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "card_network"
                   },
                   {
                     "fieldName": "avg_latency_ms",
@@ -258,7 +263,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "avg_latency_ms"
                   },
                   {
                     "fieldName": "transaction_count",
@@ -285,7 +291,8 @@
                     "allowHTML": false,
                     "highlightLinks": false,
                     "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "preserveWhitespace": false,
+                    "name": "transaction_count"
                   }
                 ]
               },
