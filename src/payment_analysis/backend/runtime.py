@@ -196,8 +196,14 @@ class Runtime:
         SQLModel.metadata.schema = schema_name
         for table in SQLModel.metadata.tables.values():
             table.schema = schema_name
-        with self.engine.connect() as conn:
-            conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
-            conn.commit()
+
+        # Only create the schema in local dev. In Lakebase, the schema is created by Job 1
+        # (lakebase_data_init); the app's service principal has no database-level CREATE
+        # privilege (permission denied for database databricks_postgres).
+        if self._dev_db_port:
+            with self.engine.connect() as conn:
+                conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
+                conn.commit()
+
         SQLModel.metadata.create_all(self.engine)
         logger.info("Database models initialized successfully")
