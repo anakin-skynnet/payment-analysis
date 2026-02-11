@@ -242,6 +242,12 @@ def _merge_resolved_ids(
     return out_jobs, out_pipelines
 
 
+def resolve_orchestrator_job_id(ws: WorkspaceClient) -> str:
+    """Return the Job 6 (Deploy Agents) job ID from the workspace, or '0' if not found. Used by the orchestrator chat so it works without DATABRICKS_JOB_ID_ORCHESTRATOR_AGENT set."""
+    resolved_jobs, _ = _resolve_job_and_pipeline_ids(ws)
+    return resolved_jobs.get("orchestrator_agent", "0") or "0"
+
+
 # =============================================================================
 # Endpoints
 # =============================================================================

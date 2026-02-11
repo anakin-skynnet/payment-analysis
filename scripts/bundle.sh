@@ -31,6 +31,12 @@ case "$CMD" in
   deploy)
     echo "Building web UI (required for app to serve frontend)..."
     uv run apx build
+    echo "Cleaning workspace dashboards (except dbdemos*)..."
+    if uv run python scripts/dashboards.py clean-workspace-except-dbdemos 2>/dev/null; then
+      echo "Workspace dashboards cleaned."
+    else
+      echo "Clean skipped (no workspace path or folder empty)."
+    fi
     prepare_dashboards
     echo "Deploying bundle (-t $TARGET)..."
     EXTRA_VARS=()

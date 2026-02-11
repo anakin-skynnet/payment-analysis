@@ -217,7 +217,8 @@ def main() -> int:
         try:
             job_id_int = int(job_id_str)
             job = w.jobs.get(job_id=job_id_int)
-            tasks = list(job.settings.tasks or [])
+            settings = getattr(job, "settings", None)
+            tasks = list(getattr(settings, "tasks", None) or [])
             updated = False
             for t in tasks:
                 if t.task_key == "lakebase_data_init" and getattr(t, "notebook_task", None):
@@ -228,8 +229,8 @@ def main() -> int:
                     t.notebook_task.base_parameters = params
                     updated = True
                     break
-            if updated:
-                w.jobs.update(job_id=job_id_int, new_settings=job.settings)
+            if updated and settings is not None:
+                w.jobs.update(job_id=job_id_int, new_settings=settings)
                 print("  Job base_parameters updated.")
             else:
                 print("  No task 'lakebase_data_init' found; job not modified.")

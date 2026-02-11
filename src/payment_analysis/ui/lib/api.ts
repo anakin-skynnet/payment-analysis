@@ -136,6 +136,15 @@ export interface AuthorizationEvent {
   result: string;
 }
 
+export interface ChatIn {
+  message: string;
+}
+
+export interface ChatOut {
+  genie_url?: string | null;
+  reply: string;
+}
+
 export interface ComplexValue {
   display?: string | null;
   primary?: boolean | null;
@@ -172,6 +181,14 @@ export interface DashboardList {
   categories: Record<string, number>;
   dashboards: DashboardInfo[];
   total: number;
+}
+
+export interface DataQualitySummaryOut {
+  bronze_last_24h: number;
+  latest_bronze_ingestion: string;
+  latest_silver_event: string;
+  retention_pct_24h: number;
+  silver_last_24h: number;
 }
 
 export interface DatabricksKPIOut {
@@ -271,6 +288,11 @@ export interface FolderUrlOut {
   workspace_path: string;
 }
 
+export interface GeographyOut {
+  country: string;
+  transaction_count: number;
+}
+
 export interface HTTPValidationError {
   detail?: ValidationError[];
 }
@@ -329,6 +351,16 @@ export interface KPIOut {
   approval_rate: number;
   approved: number;
   total: number;
+}
+
+export interface LastHourPerformanceOut {
+  active_segments: number;
+  approval_rate_pct: number;
+  avg_fraud_score: number;
+  declines_last_hour: number;
+  high_risk_transactions: number;
+  total_value: number;
+  transactions_last_hour: number;
 }
 
 export interface MLPredictionInput {
@@ -406,6 +438,16 @@ export interface OnlineFeatureOut {
   feature_value_str?: string | null;
   id: string;
   source: string;
+}
+
+export interface OrchestratorChatIn {
+  message: string;
+}
+
+export interface OrchestratorChatOut {
+  agents_used?: string[];
+  reply: string;
+  run_page_url?: string | null;
 }
 
 export interface ReasonCodeInsightOut {
@@ -678,6 +720,10 @@ export interface GetFactorsDelayingApprovalParams {
   limit?: number;
 }
 
+export interface GetGeographyParams {
+  limit?: number;
+}
+
 export interface GetFalseInsightsMetricParams {
   days?: number;
 }
@@ -926,6 +972,36 @@ export function useGetAgentUrlSuspense<TData = { data: AgentUrlOut }>(options: {
   return useSuspenseQuery({ queryKey: getAgentUrlKey(options.params), queryFn: () => getAgentUrl(options.params), ...options?.query });
 }
 
+export const postChat = async (data: ChatIn, options?: RequestInit): Promise<{ data: ChatOut }> => {
+  const res = await fetch("/api/agents/chat", { ...options, method: "POST", headers: { "Content-Type": "application/json", ...options?.headers }, body: JSON.stringify(data) });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export function usePostChat(options?: { mutation?: UseMutationOptions<{ data: ChatOut }, ApiError, ChatIn> }) {
+  return useMutation({ mutationFn: (data) => postChat(data), ...options?.mutation });
+}
+
+export const postOrchestratorChat = async (data: OrchestratorChatIn, options?: RequestInit): Promise<{ data: OrchestratorChatOut }> => {
+  const res = await fetch("/api/agents/orchestrator/chat", { ...options, method: "POST", headers: { "Content-Type": "application/json", ...options?.headers }, body: JSON.stringify(data) });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export function usePostOrchestratorChat(options?: { mutation?: UseMutationOptions<{ data: OrchestratorChatOut }, ApiError, OrchestratorChatIn> }) {
+  return useMutation({ mutationFn: (data) => postOrchestratorChat(data), ...options?.mutation });
+}
+
 export const getCountries = async (params?: GetCountriesParams, options?: RequestInit): Promise<{ data: CountryOut[] }> => {
   const searchParams = new URLSearchParams();
   if (params?.limit != null) searchParams.set("limit", String(params?.limit));
@@ -951,6 +1027,29 @@ export function useGetCountries<TData = { data: CountryOut[] }>(options?: { para
 
 export function useGetCountriesSuspense<TData = { data: CountryOut[] }>(options?: { params?: GetCountriesParams; query?: Omit<UseSuspenseQueryOptions<{ data: CountryOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getCountriesKey(options?.params), queryFn: () => getCountries(options?.params), ...options?.query });
+}
+
+export const getDataQualitySummary = async (options?: RequestInit): Promise<{ data: DataQualitySummaryOut }> => {
+  const res = await fetch("/api/analytics/data-quality", { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getDataQualitySummaryKey = () => {
+  return ["/api/analytics/data-quality"] as const;
+};
+
+export function useGetDataQualitySummary<TData = { data: DataQualitySummaryOut }>(options?: { query?: Omit<UseQueryOptions<{ data: DataQualitySummaryOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getDataQualitySummaryKey(), queryFn: () => getDataQualitySummary(), ...options?.query });
+}
+
+export function useGetDataQualitySummarySuspense<TData = { data: DataQualitySummaryOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: DataQualitySummaryOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getDataQualitySummaryKey(), queryFn: () => getDataQualitySummary(), ...options?.query });
 }
 
 export const recentDecisions = async (params?: RecentDecisionsParams, options?: RequestInit): Promise<{ data: DecisionLog[] }> => {
@@ -1074,6 +1173,33 @@ export function useGetFactorsDelayingApprovalSuspense<TData = { data: ReasonCode
   return useSuspenseQuery({ queryKey: getFactorsDelayingApprovalKey(options?.params), queryFn: () => getFactorsDelayingApproval(options?.params), ...options?.query });
 }
 
+export const getGeography = async (params?: GetGeographyParams, options?: RequestInit): Promise<{ data: GeographyOut[] }> => {
+  const searchParams = new URLSearchParams();
+  if (params?.limit != null) searchParams.set("limit", String(params?.limit));
+  const queryString = searchParams.toString();
+  const url = queryString ? `/api/analytics/geography?${queryString}` : `/api/analytics/geography`;
+  const res = await fetch(url, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getGeographyKey = (params?: GetGeographyParams) => {
+  return ["/api/analytics/geography", params] as const;
+};
+
+export function useGetGeography<TData = { data: GeographyOut[] }>(options?: { params?: GetGeographyParams; query?: Omit<UseQueryOptions<{ data: GeographyOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getGeographyKey(options?.params), queryFn: () => getGeography(options?.params), ...options?.query });
+}
+
+export function useGetGeographySuspense<TData = { data: GeographyOut[] }>(options?: { params?: GetGeographyParams; query?: Omit<UseSuspenseQueryOptions<{ data: GeographyOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getGeographyKey(options?.params), queryFn: () => getGeography(options?.params), ...options?.query });
+}
+
 export const getFalseInsightsMetric = async (params?: GetFalseInsightsMetricParams, options?: RequestInit): Promise<{ data: FalseInsightsMetricOut[] }> => {
   const searchParams = new URLSearchParams();
   if (params?.days != null) searchParams.set("days", String(params?.days));
@@ -1160,6 +1286,29 @@ export function useGetDatabricksKpis<TData = { data: DatabricksKPIOut }>(options
 
 export function useGetDatabricksKpisSuspense<TData = { data: DatabricksKPIOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: DatabricksKPIOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getDatabricksKpisKey(), queryFn: () => getDatabricksKpis(), ...options?.query });
+}
+
+export const getLastHourPerformance = async (options?: RequestInit): Promise<{ data: LastHourPerformanceOut }> => {
+  const res = await fetch("/api/analytics/last-hour", { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getLastHourPerformanceKey = () => {
+  return ["/api/analytics/last-hour"] as const;
+};
+
+export function useGetLastHourPerformance<TData = { data: LastHourPerformanceOut }>(options?: { query?: Omit<UseQueryOptions<{ data: LastHourPerformanceOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getLastHourPerformanceKey(), queryFn: () => getLastHourPerformance(), ...options?.query });
+}
+
+export function useGetLastHourPerformanceSuspense<TData = { data: LastHourPerformanceOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: LastHourPerformanceOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getLastHourPerformanceKey(), queryFn: () => getLastHourPerformance(), ...options?.query });
 }
 
 export const getModels = async (params?: GetModelsParams, options?: RequestInit): Promise<{ data: ModelOut[] }> => {

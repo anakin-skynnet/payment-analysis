@@ -33,7 +33,7 @@ SELECT
     MAX(event_time) as period_end
 FROM payments_enriched_silver;
 
--- View 2: Approval Trends by Hour
+-- View 2: Approval Trends by Hour (historical)
 CREATE OR REPLACE VIEW v_approval_trends_hourly AS
 SELECT 
     DATE_TRUNC('hour', event_time) as hour,
@@ -47,6 +47,21 @@ FROM payments_enriched_silver
 WHERE event_time >= CURRENT_TIMESTAMP() - INTERVAL 7 DAYS
 GROUP BY DATE_TRUNC('hour', event_time)
 ORDER BY hour DESC;
+
+-- View 2b: Approval Trends by Second (real-time, last hour)
+CREATE OR REPLACE VIEW v_approval_trends_by_second AS
+SELECT 
+    DATE_TRUNC('second', event_time) as event_second,
+    COUNT(*) as transaction_count,
+    SUM(CASE WHEN is_approved THEN 1 ELSE 0 END) as approved_count,
+    ROUND(SUM(CASE WHEN is_approved THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as approval_rate_pct,
+    ROUND(AVG(fraud_score), 3) as avg_fraud_score,
+    ROUND(SUM(amount), 2) as total_value
+FROM payments_enriched_silver
+WHERE event_time >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR
+GROUP BY DATE_TRUNC('second', event_time)
+ORDER BY event_second DESC
+LIMIT 3600;
 
 -- View 3: Performance by Geography
 CREATE OR REPLACE VIEW v_performance_by_geography AS
@@ -254,6 +269,17 @@ WHERE _ingested_at >= CURRENT_TIMESTAMP() - INTERVAL 7 DAYS
 GROUP BY DATE_TRUNC('hour', _ingested_at)
 ORDER BY hour DESC;
 
+-- View 13b: Streaming ingestion by second (real-time, bronze)
+CREATE OR REPLACE VIEW v_streaming_ingestion_by_second AS
+SELECT
+    DATE_TRUNC('second', _ingested_at) AS event_second,
+    COUNT(*) AS bronze_record_count
+FROM payments_raw_bronze
+WHERE _ingested_at >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR
+GROUP BY DATE_TRUNC('second', _ingested_at)
+ORDER BY event_second DESC
+LIMIT 3600;
+
 -- View 14: Silver processed by hour (enriched records)
 CREATE OR REPLACE VIEW v_silver_processed_hourly AS
 SELECT
@@ -263,6 +289,17 @@ FROM payments_enriched_silver
 WHERE event_timestamp >= CURRENT_TIMESTAMP() - INTERVAL 7 DAYS
 GROUP BY DATE_TRUNC('hour', event_timestamp)
 ORDER BY hour DESC;
+
+-- View 14b: Silver processed by second (real-time)
+CREATE OR REPLACE VIEW v_silver_processed_by_second AS
+SELECT
+    DATE_TRUNC('second', event_timestamp) AS event_second,
+    COUNT(*) AS silver_record_count
+FROM payments_enriched_silver
+WHERE event_timestamp >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR
+GROUP BY DATE_TRUNC('second', event_timestamp)
+ORDER BY event_second DESC
+LIMIT 3600;
 
 -- View 14b: Real-time streaming volume per second (from silver; always includes current second for live widget)
 -- Uses payments_enriched_silver so the view exists even when streaming/bronze is not set up.

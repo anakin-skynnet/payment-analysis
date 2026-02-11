@@ -22,6 +22,7 @@ Single entry point for all documentation. Use this page to find where each topic
 | Document | Purpose | When to use |
 |----------|---------|-------------|
 | **[README.md](../README.md)** | Project intro, quick start, doc links. | First open; share with others. |
+| **[BUSINESS_AND_SOLUTION.md](BUSINESS_AND_SOLUTION.md)** | **Payment services context and requirement map.** Getnet services, data foundation, Smart Checkout / Reason Codes / Smart Retry context, Brazil focus, entry systems. **Map: Business requirement → Solution → Description.** | Business context and how each requirement is met. |
 | **[GUIDE.md](GUIDE.md)** | **What** the platform does, **how** it’s built. Business overview, use cases, technology map, component impact on approval rates, architecture, project structure, workspace ↔ UI mapping, data sources, control panel, best practices, verification. | Understand scope, architecture, and where things live. |
 | **[DEPLOYMENT.md](DEPLOYMENT.md)** | **Deploy & operate.** Prerequisites, quick start, 7 steps, app config and paths, version alignment, schema consistency (`payment_analysis`), troubleshooting, scripts, job inventory, fixes (Lakebase, catalog/schema, PAT, UI, dashboards). | Deploy, configure env, fix errors. |
 | **[AGENT_FRAMEWORK_DATABRICKS.md](AGENT_FRAMEWORK_DATABRICKS.md)** | **AgentBricks.** Convert Python agents to MLflow + LangGraph + UC functions; single schema for tools (`payment_analysis`); log/register, deploy to Model Serving, Multi-Agent Supervisor; custom vs AgentBricks comparison; best practice (same schema as data). | Use or migrate to AgentBricks. |
@@ -35,7 +36,7 @@ Single entry point for all documentation. Use this page to find where each topic
 - **Goal:** Accelerate approval rates; reduce false declines, suboptimal routing, missed retries.
 - **Approach:** Real-time ML (approval, risk, routing, retry), rules engine, 7 AI agents, Vector Search, 12 dashboards, one decision layer and control panel.
 - **Flow:** Simulator or pipelines → Lakeflow (Bronze → Silver → Gold) → Unity Catalog → ML + rules + agents → FastAPI + React app.
-- **Details:** [GUIDE.md §1–2, §1b](GUIDE.md) (business overview, use cases, technology map, component impact, architecture).
+- **Details:** [BUSINESS_AND_SOLUTION.md](BUSINESS_AND_SOLUTION.md) (payment context, requirement map), [GUIDE.md §1–2, §1b](GUIDE.md) (use cases, technology map, component impact, architecture).
 
 ### Project structure
 - **Backend:** `src/payment_analysis/backend/` (FastAPI, routes, config, Lakebase).
@@ -91,6 +92,7 @@ Single entry point for all documentation. Use this page to find where each topic
 ## One-paragraph summaries (consolidated)
 
 - **README.md** — Project name and goal (accelerate payment approval rates); high-level approach (ML, agents, rules, dashboards); doc table; quick start (deploy, run jobs 1–6, set app env); references (Apps Cookbook, apx, AI Dev Kit); optional pre-commit build.
+- **BUSINESS_AND_SOLUTION.md** — Payment services context (Antifraud, 3DS, Network Token, etc.); data foundation; Smart Checkout / Reason Codes / Smart Retry current view; geographic focus (Brazil); entry systems (Checkout, PD, WS, SEP); counter metrics; **Business requirement → Solution → Description** map for the platform.
 - **GUIDE.md** — Business overview and use cases (Smart Retry, Smart Checkout, declines, risk, routing, decisioning); technology map and component impact; architecture (Databricks, FastAPI + React); project structure and bundle resources; workspace ↔ UI mapping; data sources and catalog/schema; control panel (Setup & Run, dashboards, rules, agents); best practices and verification.
 - **DEPLOYMENT.md** — Prerequisites; one-command deploy (`bundle.sh deploy dev`); 7 steps (jobs 1–7, pipelines); app env (LAKEBASE_*, DATABRICKS_WAREHOUSE_ID); version alignment (Python/frontend exact versions); schema consistency (`payment_analysis`); troubleshooting and fixes (Lakebase, catalog/schema, PAT, UI); scripts; job inventory and notebook paths.
 - **AGENT_FRAMEWORK_DATABRICKS.md** — Map Python agents to AgentBricks; same schema as data (`payment_analysis`); UC functions as tools; LangGraph agents; log/register and Model Serving; Multi-Agent Supervisor; custom vs AgentBricks comparison; hybrid app + endpoints.
@@ -100,7 +102,8 @@ Single entry point for all documentation. Use this page to find where each topic
 
 ## Cross-references
 
-- **GUIDE** → Deployment (for deploy steps and env), DEPLOYMENT (catalog/schema).
+- **BUSINESS_AND_SOLUTION** → GUIDE (architecture, use cases), DEPLOYMENT (deploy).
+- **GUIDE** → BUSINESS_AND_SOLUTION (payment context, requirement map), Deployment (deploy steps and env), DEPLOYMENT (catalog/schema).
 - **DEPLOYMENT** → Guide (architecture, structure), AGENT_FRAMEWORK_DATABRICKS (AgentBricks).
 - **AGENT_FRAMEWORK_DATABRICKS** → DEPLOYMENT (schema), Guide (overview).
 - **AGENTS.md** → DEPLOYMENT (version alignment, commands), .cursor/rules (project.mdc).

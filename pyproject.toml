@@ -68,6 +68,10 @@ version = "{version}"
 artifacts = ["src/payment_analysis/__dist__", "src/payment_analysis/_metadata.py"]
 exclude = ["src/payment_analysis/ui"]
 
+# Raw SQL with text() uses session.execute(); SQLModel recommends exec() for ORM select only (Apps Cookbook / SQLAlchemy 2).
+[tool.ty.rules]
+deprecated = "ignore"
+
 # Exclude Databricks-only notebooks from type checking (dbutils, spark, Lakeflow are runtime-injected)
 # Exclude files/ (bundle sync copy) so ty only checks src/ and resolves imports correctly
 # Exclude LangGraph/UC agent code (Databricks-only: spark/dbutils or optional deps)

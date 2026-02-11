@@ -215,5 +215,5 @@ def serialize_context(ctx: DecisionContext) -> dict:
     dump = getattr(ctx, "model_dump", None)
     if callable(dump):
         return dump()
-    return ctx.dict()  # type: ignore[no-any-return]
+    return ctx.dict()
 

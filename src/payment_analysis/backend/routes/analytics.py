@@ -170,6 +170,32 @@ class CountryOut(BaseModel):
     name: str
 
 
+class GeographyOut(BaseModel):
+    """Transaction count by country for geographic distribution (e.g. Brazil %)."""
+    country: str
+    transaction_count: int
+
+
+class LastHourPerformanceOut(BaseModel):
+    """Last-hour performance for real-time monitor (from v_last_hour_performance)."""
+    transactions_last_hour: int
+    approval_rate_pct: float
+    avg_fraud_score: float
+    total_value: float
+    active_segments: int
+    high_risk_transactions: int
+    declines_last_hour: int
+
+
+class DataQualitySummaryOut(BaseModel):
+    """Data quality summary (bronze/silver volumes, retention) from v_data_quality_summary."""
+    bronze_last_24h: int
+    silver_last_24h: int
+    retention_pct_24h: float
+    latest_bronze_ingestion: str
+    latest_silver_event: str
+
+
 class DedupCollisionStatsOut(BaseModel):
     colliding_keys: int
     avg_rows_per_key: float
@@ -315,9 +341,16 @@ async def kpis(session: SessionDep, service: DatabricksServiceDep) -> KPIOut:
         try:
             data = await service.get_kpis()
             total = int(data.get("total_transactions", 0))
-            approval_pct = float(data.get("approval_rate", 0.0))
-            approval_rate = (approval_pct / 100.0) if approval_pct > 1 else approval_pct
-            approved = int(data.get("approved_count", total * approval_rate))
+            approved = int(data.get("approved_count", 0))
+            approval_pct = data.get("approval_rate")
+            if approval_pct is not None:
+                pct = float(approval_pct)
+                approval_rate = (pct / 100.0) if pct > 1 else pct
+            else:
+                approval_rate = 0.0
+            # Prefer rate derived from counts when view returns 0/null (e.g. empty table)
+            if total and (approval_rate is None or approval_rate == 0.0):
+                approval_rate = float(approved) / float(total)
             return KPIOut(total=total, approved=approved, approval_rate=approval_rate)
         except Exception:
             pass
@@ -466,6 +499,42 @@ async def entry_system_distribution(
     """Transaction distribution by entry system for the given entity (coverage check)."""
     data = await service.get_entry_system_distribution(entity=entity)
     return [EntrySystemDistributionOut(**row) for row in data]
+
+
+@router.get(
+    "/geography",
+    response_model=list[GeographyOut],
+    operation_id="getGeography",
+)
+async def geography(
+    service: DatabricksServiceDep,
+    limit: int = Query(50, ge=1, le=200, description="Max countries to return"),
+) -> list[GeographyOut]:
+    """Transaction count by country for geographic distribution (e.g. Brazil %). Data from Databricks v_performance_by_geography."""
+    data = await service.get_performance_by_geography(limit=limit)
+    return [GeographyOut(country=str(r.get("country", "")), transaction_count=int(r.get("transaction_count", 0))) for r in data]
+
+
+@router.get(
+    "/last-hour",
+    response_model=LastHourPerformanceOut,
+    operation_id="getLastHourPerformance",
+)
+async def last_hour_performance(service: DatabricksServiceDep) -> LastHourPerformanceOut:
+    """Last-hour performance for real-time monitor. Data from Databricks v_last_hour_performance."""
+    data = await service.get_last_hour_performance()
+    return LastHourPerformanceOut(**data)
+
+
+@router.get(
+    "/data-quality",
+    response_model=DataQualitySummaryOut,
+    operation_id="getDataQualitySummary",
+)
+async def data_quality_summary(service: DatabricksServiceDep) -> DataQualitySummaryOut:
+    """Data quality summary (bronze/silver volumes, retention). Data from Databricks v_data_quality_summary."""
+    data = await service.get_data_quality_summary()
+    return DataQualitySummaryOut(**data)
 
 
 @router.get(

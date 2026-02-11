@@ -33,7 +33,26 @@ The [aibi-marketing-campaign dashboard](https://github.com/databricks-demos/dbde
 | **table** | 1 | All columns | `columns: [{ fieldName, displayName, visible, order, ... }]` | true |
 | **pie** | 3 | category + metric | `angle: { fieldName: "sum(y)", scale: quantitative }`, `color: { fieldName: "x", scale: categorical }` | false |
 
-Bar charts use `scale.sort: { "by": "y-reversed" }` for descending order. Only real time dimensions (`hour`, `date`, `day`, `period_start`, `event_timestamp`, `first_detected`) trigger line charts; single-row multi-column datasets use table so all KPIs are visible.
+Bar charts use `scale.sort: { "by": "y-reversed" }` for descending order. Time dimensions (`hour`, `date`, `event_second`, `period_start`, `event_timestamp`, `first_detected`) trigger line/area charts; single-row multi-column datasets use table so all KPIs are visible. Source datasets may use `query` or `queryLines`; the script reads both via `_get_dataset_query()`.
+
+## BI expert: chart widget selection guide
+
+Use the right chart type for the analysis goal (per [Databricks visualization types](https://docs.databricks.com/en/dashboards/visualizations/types.html)):
+
+| Goal | Widget type | Best for |
+|------|-------------|----------|
+| **Comparison / rankings** | **Bar** | Category comparisons, distributions (sort by value descending) |
+| **Trends over time** | **Line** | Time series, continuous metrics |
+| **Volume / cumulative over time** | **Area** | Throughput, records per second, cumulative trends |
+| **Proportions (part-of-whole)** | **Pie** | Percentage breakdowns, composition (max 5–7 slices; use bar if many categories) |
+| **Two numeric variables** | **Scatter** | Correlations, distributions, outlier detection |
+| **Two dimensions + value** | **Heatmap** | Intensity across two categories, matrix patterns |
+| **Geography** | **Choropleth** | Regional metrics, country/region colored by value |
+| **Single KPI** | **Counter** | One prominent metric, goals |
+| **Detailed data / lists** | **Table** | Multi-column detail, drill-down |
+| **Multi-dimensional summary** | **Pivot** | Cross-tabulated aggregations (when supported) |
+
+**Quick selection:** Comparison → Bar (or Dual Y-Axis); Trends → Line, Area; Proportions → Pie; Relationships → Scatter, Heatmap; Geography → Choropleth; KPIs → Counter; Details → Table. The `best-widgets` command applies this mapping from each dataset’s columns (time → line/area, category + value → bar/pie, geography → choropleth, two numerics → scatter, two categories + value → heatmap, single metric → counter, else table).
 
 ## Visualization catalog alignment (AI/BI)
 

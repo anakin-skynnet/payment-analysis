@@ -2,6 +2,8 @@
 
 Single reference for **what** the platform does, **how** it is built, and how it aligns with best practices. For deploy steps, env vars, and troubleshooting see [Deployment](DEPLOYMENT.md).
 
+**Payment services context and requirement map:** For Getnet payment services (Antifraud, 3DS, Network Token, etc.), Smart Checkout / Reason Codes / Smart Retry context, data foundation, geographic focus, and a **Business requirement → Solution → Description** map, see **[BUSINESS_AND_SOLUTION.md](BUSINESS_AND_SOLUTION.md)**.
+
 ---
 
 ## 1. Business overview & impact

@@ -170,7 +170,7 @@ def _toolkit_tools(catalog: str, function_names: List[str], schema: str = "payme
     return toolkit.tools
 
 
-def _llm(endpoint: str = "databricks-meta-llama-3-1-70b-instruct", temperature: float = 0.1) -> "Any":
+def _llm(endpoint: str = "databricks-meta-llama-3-3-70b-instruct", temperature: float = 0.1) -> "Any":
     """Chat model for Databricks Model Serving. Requires databricks-langchain."""
     from databricks_langchain import ChatDatabricks
 
@@ -181,7 +181,7 @@ def create_decline_analyst_agent(
     catalog: str,
     *,
     schema: str = "payment_analysis",
-    llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
+    llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
     temperature: float = 0.1,
 ) -> "Any":
     """
@@ -206,7 +206,7 @@ def create_smart_routing_agent(
     catalog: str,
     *,
     schema: str = "payment_analysis",
-    llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
+    llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
     temperature: float = 0.1,
 ) -> "Any":
     """Build Smart Routing & Cascading agent (same role as SmartRoutingAgent in agent_framework.py)."""
@@ -226,7 +226,7 @@ def create_smart_retry_agent(
     catalog: str,
     *,
     schema: str = "payment_analysis",
-    llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
+    llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
     temperature: float = 0.1,
 ) -> "Any":
     """Build Smart Retry agent (same role as SmartRetryAgent in agent_framework.py)."""
@@ -246,7 +246,7 @@ def create_risk_assessor_agent(
     catalog: str,
     *,
     schema: str = "payment_analysis",
-    llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
+    llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
     temperature: float = 0.1,
 ) -> "Any":
     """Build Risk Assessor agent (same role as RiskAssessorAgent in agent_framework.py)."""
@@ -266,7 +266,7 @@ def create_performance_recommender_agent(
     catalog: str,
     *,
     schema: str = "payment_analysis",
-    llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
+    llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
     temperature: float = 0.1,
 ) -> "Any":
     """Build Performance Recommender agent (same role as PerformanceRecommenderAgent in agent_framework.py)."""

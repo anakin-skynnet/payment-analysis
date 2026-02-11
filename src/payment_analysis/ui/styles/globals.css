@@ -228,14 +228,15 @@
   .content-section {
     margin-top: var(--content-section-gap);
   }
-  /* Nav group label — sidebar section headings */
+  /* Nav group label — sidebar section headings (reference: getnet Command Center) */
   .nav-group-label {
     font-size: 0.6875rem;
     font-weight: 600;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted-foreground);
-    padding: 0.5rem 0.75rem 0.25rem;
+    padding: 0.625rem 0.75rem 0.375rem;
+    margin-top: 0.125rem;
   }
 }
 

@@ -15,6 +15,7 @@ For use cases, technology map, and **impact on accelerating approval rates**, se
 | Purpose | Document |
 |--------|----------|
 | **All docs (index)** | [docs/INDEX.md](docs/INDEX.md) — Consolidated summary and document map; start here to find any topic |
+| **Business context & solution map** | [docs/BUSINESS_AND_SOLUTION.md](docs/BUSINESS_AND_SOLUTION.md) — Payment services context, Smart Checkout / Reason Codes / Smart Retry, requirement → solution map |
 | **Guide** | [docs/GUIDE.md](docs/GUIDE.md) — Business overview, architecture, project structure, control panel & UI, best practices |
 | **Deploy & operate** | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Deploy steps, env vars, version alignment, troubleshooting |
 

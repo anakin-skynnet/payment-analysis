@@ -105,9 +105,7 @@ def main() -> int:
         once = getattr(args, "once", False)
         while len(run_results) < len(runs):
             for key, run_id in runs:
-                if key in run_results and not once:
-                    continue
-                if key in run_results and once:
+                if key in run_results:
                     continue
                 try:
                     run = _get_run_with_retry(ws, run_id)

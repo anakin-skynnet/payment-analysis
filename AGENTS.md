@@ -109,6 +109,15 @@ This file is the **single source of truth** for the AI agent working on this rep
 
 **Registry (backend):** `src/payment_analysis/backend/routes/agents.py` — `AGENTS` list (Genie, Model Serving, AI Gateway, Custom) with metadata, example queries, workspace URLs. Catalog/schema from `app_config` when available.
 
+**Orchestrator in the app UI:** The Command Center (and similar dashboards) show two chat panels: **Getnet AI Assistant** (lightweight chat) and **Agent Recommendations** (orchestrator). The orchestrator runs Job 6 (Deploy Agents) via `POST /api/agents/orchestrator/chat`, so it is registered and usable from the Databricks app UI. Requirements:
+
+1. **Job 6 deployed** — Bundle deploy creates "[${var.environment}] 6. Deploy Agents (Orchestrator & Specialists)" in the workspace. The backend resolves its job ID automatically when you open the app from **Compute → Apps** (no env var needed).
+2. **Open app from Compute → Apps** — So the platform forwards your token; the backend uses it to list jobs (resolve Job 6 ID) and to run the job.
+3. **Optional:** Set `DATABRICKS_JOB_ID_ORCHESTRATOR_AGENT` in the app environment if you want to pin a specific job ID instead of auto-resolution.
+4. **Catalog/schema** — Orchestrator runs with the effective catalog/schema (from app_config or env). Save them in Setup & Run if needed.
+
+To verify: Open the app from Compute → Apps → payment-analysis, go to Command Center, open the **Agent Recommendations** panel (floating button), send a message (e.g. "How can I improve approval rates?"). The backend starts Job 6, waits for the run, and returns the synthesized reply and agents used.
+
 ---
 
 ## 10. Common prompts and requests

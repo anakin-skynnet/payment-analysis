@@ -4,7 +4,7 @@ alwaysApply: true
 
 # Cursor Agent Rules
 
-**Unified agent context:** See [AGENTS.md](../../AGENTS.md) at repo root for the single source of truth (solution scope, prompts, MCP reference, agent framework, and common requests). The rules below align with it.
+**Unified agent context:** For full knowledge and context from all conversation prompts (dashboards, real-time views, workspace cleanup, orchestrator UI, commands, key paths), read [.cursor/AGENT_CONTEXT.md](../../.cursor/AGENT_CONTEXT.md). For solution scope, MCP reference, agent framework, and common requests, see [AGENTS.md](../../AGENTS.md). The rules below align with both.
 
 # Do's and Don'ts
 - OpenAPI client is generated at build time; don't manually regenerate.

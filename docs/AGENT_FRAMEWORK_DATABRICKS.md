@@ -155,7 +155,7 @@ from payment_analysis.agents.langgraph_agents import create_decline_analyst_agen
 from langchain_core.messages import HumanMessage
 
 catalog = "ahs_demos_catalog"  # or from widget/var
-agent = create_decline_analyst_agent(catalog, llm_endpoint="databricks-meta-llama-3-1-70b-instruct")
+agent = create_decline_analyst_agent(catalog, llm_endpoint="databricks-meta-llama-3-3-70b-instruct")
 result = agent.invoke({"messages": [HumanMessage(content="What are the top decline reasons?")]})
 ```
 
@@ -172,7 +172,7 @@ from payment_analysis.agents.langgraph_agents import get_all_agent_builders
 mlflow.set_registry_uri("databricks-uc")
 catalog = "ahs_demos_catalog"  # or var.catalog (same as data catalog)
 model_registry_schema = "agents"  # Bundle creates this schema (unity_catalog.yml agents_schema)
-llm_endpoint = "databricks-meta-llama-3-1-70b-instruct"
+llm_endpoint = "databricks-meta-llama-3-3-70b-instruct"
 
 for create_fn, name in get_all_agent_builders():
     with mlflow.start_run():

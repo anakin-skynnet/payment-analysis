@@ -11,7 +11,7 @@
       "name": "ds_hourly",
       "displayName": "Hourly Approval Trends",
       "queryLines": [
-        "SELECT hour, transaction_count, approved_count, approval_rate_pct, avg_fraud_score, total_value FROM __CATALOG__.__SCHEMA__.v_approval_trends_hourly ORDER BY hour DESC LIMIT 168"
+        "SELECT event_second, transaction_count, approved_count, approval_rate_pct, avg_fraud_score, total_value FROM __CATALOG__.__SCHEMA__.v_approval_trends_by_second ORDER BY event_second DESC"
       ]
     }
   ],
@@ -257,8 +257,8 @@
                   "datasetName": "ds_hourly",
                   "fields": [
                     {
-                      "name": "hour",
-                      "expression": "`hour`"
+                      "name": "event_second",
+                      "expression": "`event_second`"
                     },
                     {
                       "name": "sum(transaction_count)",
@@ -274,13 +274,13 @@
               "widgetType": "line",
               "encodings": {
                 "x": {
-                  "fieldName": "hour",
+                  "fieldName": "event_second",
                   "scale": {
                     "type": "temporal"
                   },
-                  "displayName": "Hour",
+                  "displayName": "Event Second",
                   "axis": {
-                    "title": "Hour"
+                    "title": "Event Second"
                   }
                 },
                 "y": {

@@ -289,10 +289,17 @@ class DatabricksService:
         
         if results:
             row = results[0]
+            total = row.get("total_transactions", 0) or 0
+            approved = row.get("approved_count", 0) or 0
+            rate_pct = row.get("approval_rate_pct")
+            if rate_pct is None and total:
+                rate_pct = (approved * 100.0 / total) if total else 0.0
+            else:
+                rate_pct = float(rate_pct) if rate_pct is not None else 0.0
             return {
-                "total_transactions": row.get("total_transactions", 0),
-                "approved_count": row.get("approved_count", 0),
-                "approval_rate": row.get("approval_rate_pct", 0.0),
+                "total_transactions": total,
+                "approved_count": approved,
+                "approval_rate": rate_pct,
                 "avg_fraud_score": row.get("avg_fraud_score", 0.0),
                 "total_value": row.get("total_transaction_value", 0.0),
                 "period_start": str(row.get("period_start", "")),
@@ -459,6 +466,63 @@ class DatabricksService:
         """
         results = await self.execute_query(query)
         return results or MockDataGenerator.entry_system_distribution()
+
+    async def get_last_hour_performance(self) -> dict[str, Any]:
+        """Fetch last-hour performance (transactions, approval rate, etc.) for real-time monitor."""
+        query = f"""
+            SELECT transactions_last_hour, approval_rate_pct, avg_fraud_score, total_value,
+                   active_segments, high_risk_transactions, declines_last_hour
+            FROM {self.config.full_schema_name}.v_last_hour_performance
+            LIMIT 1
+        """
+        results = await self.execute_query(query)
+        if results:
+            row = results[0]
+            return {
+                "transactions_last_hour": int(row.get("transactions_last_hour", 0) or 0),
+                "approval_rate_pct": float(row.get("approval_rate_pct", 0) or 0),
+                "avg_fraud_score": float(row.get("avg_fraud_score", 0) or 0),
+                "total_value": float(row.get("total_value", 0) or 0),
+                "active_segments": int(row.get("active_segments", 0) or 0),
+                "high_risk_transactions": int(row.get("high_risk_transactions", 0) or 0),
+                "declines_last_hour": int(row.get("declines_last_hour", 0) or 0),
+            }
+        return MockDataGenerator.last_hour_performance()
+
+    async def get_data_quality_summary(self) -> dict[str, Any]:
+        """Fetch data quality summary (bronze/silver volumes, retention) from Databricks."""
+        query = f"""
+            SELECT bronze_last_24h, silver_last_24h, retention_pct_24h,
+                   latest_bronze_ingestion, latest_silver_event
+            FROM {self.config.full_schema_name}.v_data_quality_summary
+            LIMIT 1
+        """
+        try:
+            results = await self.execute_query(query)
+            if results:
+                row = results[0]
+                return {
+                    "bronze_last_24h": int(row.get("bronze_last_24h", 0) or 0),
+                    "silver_last_24h": int(row.get("silver_last_24h", 0) or 0),
+                    "retention_pct_24h": float(row.get("retention_pct_24h", 0) or 0),
+                    "latest_bronze_ingestion": str(row.get("latest_bronze_ingestion", "") or ""),
+                    "latest_silver_event": str(row.get("latest_silver_event", "") or ""),
+                }
+        except Exception as e:
+            logger.debug("get_data_quality_summary failed: %s", e)
+        return MockDataGenerator.data_quality_summary()
+
+    async def get_performance_by_geography(self, limit: int = 50) -> list[dict[str, Any]]:
+        """Fetch transaction counts by country for geographic distribution (e.g. Brazil %)."""
+        limit = max(1, min(limit, 200))
+        query = f"""
+            SELECT country, transaction_count
+            FROM {self.config.full_schema_name}.v_performance_by_geography
+            ORDER BY transaction_count DESC
+            LIMIT {limit}
+        """
+        results = await self.execute_query(query)
+        return results or MockDataGenerator.performance_by_geography()
 
     async def get_countries(self, limit: int = 200) -> list[dict[str, Any]]:
         """Fetch countries/entities from Lakehouse table for the filter dropdown. Users can add/remove rows in the table."""
@@ -930,6 +994,12 @@ class DatabricksService:
             return MockDataGenerator.reason_code_insights(50)
         elif "v_entry_system_distribution_br" in query_lower:
             return MockDataGenerator.entry_system_distribution()
+        elif "v_performance_by_geography" in query_lower:
+            return MockDataGenerator.performance_by_geography()
+        elif "v_last_hour_performance" in query_lower:
+            return [MockDataGenerator.last_hour_performance()]
+        elif "v_data_quality_summary" in query_lower:
+            return [MockDataGenerator.data_quality_summary()]
         elif ".countries" in query_lower:
             return MockDataGenerator.countries()
         elif "v_dedup_collision_stats" in query_lower:
@@ -1193,6 +1263,41 @@ class MockDataGenerator:
             }
             for es, tc, ac, ar, tv in rows
         ]
+
+    @staticmethod
+    def performance_by_geography() -> list[dict[str, Any]]:
+        """Mock performance by country for geographic distribution."""
+        return [
+            {"country": "BR", "transaction_count": 350000},
+            {"country": "MX", "transaction_count": 80000},
+            {"country": "AR", "transaction_count": 25000},
+            {"country": "CO", "transaction_count": 20000},
+            {"country": "CL", "transaction_count": 15000},
+        ]
+
+    @staticmethod
+    def last_hour_performance() -> dict[str, Any]:
+        """Mock last-hour performance for real-time monitor."""
+        return {
+            "transactions_last_hour": 55200,
+            "approval_rate_pct": 92.5,
+            "avg_fraud_score": 0.12,
+            "total_value": 125000.0,
+            "active_segments": 4,
+            "high_risk_transactions": 8,
+            "declines_last_hour": 4140,
+        }
+
+    @staticmethod
+    def data_quality_summary() -> dict[str, Any]:
+        """Mock data quality summary."""
+        return {
+            "bronze_last_24h": 500000,
+            "silver_last_24h": 498000,
+            "retention_pct_24h": 99.6,
+            "latest_bronze_ingestion": str(datetime.now().isoformat()),
+            "latest_silver_event": str(datetime.now().isoformat()),
+        }
 
     @staticmethod
     def countries() -> list[dict[str, Any]]:

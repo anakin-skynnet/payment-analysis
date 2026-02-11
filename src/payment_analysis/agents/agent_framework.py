@@ -16,7 +16,6 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Callable, Any
 from enum import Enum
 from datetime import datetime
-import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -37,7 +36,6 @@ class AgentStatus(Enum):
     IDLE = "idle"
     THINKING = "thinking"
     TOOL_USE = "tool_use"
-    RESPONDING = "responding"
     ERROR = "error"
     COMPLETE = "complete"
 
@@ -72,7 +70,7 @@ class BaseAgent:
         role: AgentRole,
         catalog: str,
         schema: str,
-        llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
+        llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
         *,
         lakebase_project_id: str = "",
         lakebase_branch_id: str = "",
@@ -317,7 +315,7 @@ class SmartRoutingAgent(BaseAgent):
         lakebase_branch_id: str = "",
         lakebase_endpoint_id: str = "",
         lakebase_schema: str = "payment_analysis",
-        llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
+        llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
     ):
         super().__init__(
             AgentRole.SMART_ROUTING,
@@ -425,7 +423,7 @@ class SmartRetryAgent(BaseAgent):
         lakebase_branch_id: str = "",
         lakebase_endpoint_id: str = "",
         lakebase_schema: str = "payment_analysis",
-        llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
+        llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
     ):
         super().__init__(
             AgentRole.SMART_RETRY,
@@ -547,7 +545,7 @@ class DeclineAnalystAgent(BaseAgent):
         lakebase_branch_id: str = "",
         lakebase_endpoint_id: str = "",
         lakebase_schema: str = "payment_analysis",
-        llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
+        llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
     ):
         super().__init__(
             AgentRole.DECLINE_ANALYST,
@@ -642,7 +640,7 @@ class RiskAssessorAgent(BaseAgent):
         lakebase_branch_id: str = "",
         lakebase_endpoint_id: str = "",
         lakebase_schema: str = "payment_analysis",
-        llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
+        llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
     ):
         super().__init__(
             AgentRole.RISK_ASSESSOR,
@@ -746,7 +744,7 @@ class PerformanceRecommenderAgent(BaseAgent):
         lakebase_branch_id: str = "",
         lakebase_endpoint_id: str = "",
         lakebase_schema: str = "payment_analysis",
-        llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
+        llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
     ):
         super().__init__(
             AgentRole.PERFORMANCE_RECOMMENDER,
@@ -886,7 +884,7 @@ class OrchestratorAgent(BaseAgent):
         lakebase_branch_id: str = "",
         lakebase_endpoint_id: str = "",
         lakebase_schema: str = "payment_analysis",
-        llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
+        llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
     ):
         super().__init__(
             AgentRole.ORCHESTRATOR,
@@ -986,7 +984,7 @@ def setup_agent_framework(
     lakebase_schema: str = "payment_analysis",
     model_registry_catalog: str = "",
     model_registry_schema: str = "agents",
-    llm_endpoint: str = "databricks-meta-llama-3-1-70b-instruct",
+    llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
 ) -> OrchestratorAgent:
     """Initialize the multi-agent framework. When Lakebase IDs are set, approval rules are read from OLTP Lakebase Postgres. model_registry_* define the UC registry for AgentBricks (catalog.schema.agent_name)."""
     orchestrator = OrchestratorAgent(
@@ -996,7 +994,7 @@ def setup_agent_framework(
         lakebase_branch_id=lakebase_branch_id,
         lakebase_endpoint_id=lakebase_endpoint_id,
         lakebase_schema=lakebase_schema,
-        llm_endpoint=llm_endpoint or "databricks-meta-llama-3-1-70b-instruct",
+        llm_endpoint=llm_endpoint or "databricks-meta-llama-3-3-70b-instruct",
     )
     reg = f"{model_registry_catalog or catalog}.{model_registry_schema or 'agents'}"
     logger.info("Agent framework initialized (Orchestrator + 5 specialists); model registry: %s", reg)
@@ -1016,7 +1014,7 @@ def get_notebook_config() -> Dict[str, Any]:
         "lakebase_schema": "payment_analysis",
         "model_registry_catalog": "ahs_demos_catalog",
         "model_registry_schema": "agents",
-        "llm_endpoint": "databricks-meta-llama-3-1-70b-instruct",
+        "llm_endpoint": "databricks-meta-llama-3-3-70b-instruct",
     }
     try:
         from databricks.sdk.runtime import dbutils
@@ -1042,7 +1040,7 @@ def get_notebook_config() -> Dict[str, Any]:
             "lakebase_schema": (dbutils.widgets.get("lakebase_schema") or defaults["lakebase_schema"]).strip() or "payment_analysis",
             "model_registry_catalog": (dbutils.widgets.get("model_registry_catalog") or defaults["model_registry_catalog"]).strip() or defaults["catalog"],
             "model_registry_schema": (dbutils.widgets.get("model_registry_schema") or defaults["model_registry_schema"]).strip() or "agents",
-            "llm_endpoint": (dbutils.widgets.get("llm_endpoint") or defaults["llm_endpoint"]).strip() or "databricks-meta-llama-3-1-70b-instruct",
+            "llm_endpoint": (dbutils.widgets.get("llm_endpoint") or defaults["llm_endpoint"]).strip() or "databricks-meta-llama-3-3-70b-instruct",
         }
     except Exception:
         return defaults
@@ -1057,12 +1055,12 @@ def run_framework(config: Dict[str, Any]) -> Dict[str, Any]:
     schema = config["schema"]
     query = config["query"]
     agent_role = (config.get("agent_role") or "orchestrator").strip().lower()
+    llm_endpoint = (config.get("llm_endpoint") or "").strip() or "databricks-meta-llama-3-3-70b-instruct"
     lakebase_kw = {
         "lakebase_project_id": config.get("lakebase_project_id") or "",
         "lakebase_branch_id": config.get("lakebase_branch_id") or "",
         "lakebase_endpoint_id": config.get("lakebase_endpoint_id") or "",
         "lakebase_schema": config.get("lakebase_schema") or "payment_analysis",
-        "llm_endpoint": config.get("llm_endpoint") or "databricks-meta-llama-3-1-70b-instruct",
     }
     registry_kw = {
         "model_registry_catalog": config.get("model_registry_catalog") or catalog,
@@ -1070,7 +1068,9 @@ def run_framework(config: Dict[str, Any]) -> Dict[str, Any]:
     }
 
     if agent_role == "orchestrator":
-        orchestrator = setup_agent_framework(catalog, schema, **lakebase_kw, **registry_kw)
+        orchestrator = setup_agent_framework(
+            catalog, schema, llm_endpoint=llm_endpoint, **lakebase_kw, **registry_kw
+        )
         return orchestrator.handle_query(query)
 
     # Optional: run a single specialist (e.g. for ad-hoc or debug)
@@ -1083,7 +1083,7 @@ def run_framework(config: Dict[str, Any]) -> Dict[str, Any]:
     }
     agent_class = specialist_map.get(agent_role)
     if agent_class:
-        agent = agent_class(catalog, schema, **lakebase_kw)
+        agent = agent_class(catalog, schema, llm_endpoint=llm_endpoint, **lakebase_kw)
         response = agent.think(query)
         return {"query": query, "agents_used": [agent_role], "agent_responses": {agent_role: response}, "synthesis": response}
     raise ValueError(f"Unknown agent_role={agent_role!r}. Use one of: orchestrator, {', '.join(specialist_map)}")
@@ -1091,6 +1091,7 @@ def run_framework(config: Dict[str, Any]) -> Dict[str, Any]:
 
 # Databricks notebook entry point (Job 6: single task run_agent_framework)
 if __name__ == "__main__":
+    import json
     config = get_notebook_config()
     query = config["query"]
     agent_role = config["agent_role"]
@@ -1108,3 +1109,11 @@ if __name__ == "__main__":
     print("\n--- Synthesis ---")
     print(result.get("synthesis", ""))
     print("\n--- Done ---")
+
+    # Exit with result so Jobs API get_run_output() can return it (e.g. for app orchestrator chat).
+    try:
+        from databricks.sdk.runtime import dbutils
+        payload = json.dumps({"synthesis": result.get("synthesis", ""), "agents_used": result.get("agents_used", [])})
+        dbutils.notebook.exit(payload)  # type: ignore[call-arg]
+    except Exception:
+        pass

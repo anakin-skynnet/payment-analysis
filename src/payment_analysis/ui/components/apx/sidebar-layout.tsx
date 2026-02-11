@@ -1,7 +1,4 @@
-/**
- * Sidebar layout and breadcrumb. UI/navigation should match reference:
- * @see config/ui-reference.ts (PAYMENT_APPROVAL_UI_REFERENCE)
- */
+/** Sidebar layout and breadcrumb — getnet Global Payments Command Center. */
 import { Outlet, useLocation, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
@@ -19,8 +16,12 @@ import SidebarUserFooter from "@/components/apx/sidebar-user-footer";
 import { ModeToggle } from "@/components/apx/mode-toggle";
 import { CountrySelect } from "@/components/apx/country-select";
 import Logo from "@/components/apx/logo";
+import { cn } from "@/lib/utils";
 
 const PATH_LABELS: Record<string, string> = {
+  "/command-center": "Command Center",
+  "/about": "About this platform",
+  "/initiatives": "Payment Services & Data",
   "/dashboard": "Executive overview",
   "/dashboards": "Dashboards",
   "/setup": "Control panel",
@@ -30,12 +31,13 @@ const PATH_LABELS: Record<string, string> = {
   "/decisioning": "Recommendations & decisions",
   "/rules": "Rules",
   "/experiments": "Experiments",
-  "/incidents": "Incidents",
+  "/incidents": "Real-Time Monitor",
+  "/alerts-data-quality": "Alerts & Data Quality",
   "/declines": "Declines",
   "/smart-checkout": "Smart Checkout",
   "/reason-codes": "Reason Codes",
   "/smart-retry": "Smart Retry",
-  "/profile": "Profile",
+  "/profile": "Settings",
 };
 
 // Friendly names for embedded dashboard breadcrumb (id -> label)
@@ -65,9 +67,9 @@ function Breadcrumb() {
   const embedLabel = embedId ? DASHBOARD_EMBED_LABELS[embedId] ?? embedId.replace(/_/g, " ") : null;
   const label = embedLabel ? `${baseLabel} / ${embedLabel}` : baseLabel;
   return (
-    <nav className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0 flex-1" aria-label="Breadcrumb">
-      <Link to="/" className="link-anchor hover:text-foreground transition-colors truncate max-w-[8rem] sm:max-w-none" aria-label="Home — PagoNxt Getnet Risk & Portfolio Intelligence">
-        Home
+    <nav className={cn("flex items-center gap-1.5 text-sm text-muted-foreground min-w-0 flex-1", path === "/command-center" && "md:opacity-70")} aria-label="Breadcrumb">
+      <Link to="/command-center" className="link-anchor hover:text-foreground transition-colors truncate max-w-[8rem] sm:max-w-none" aria-label="Command Center">
+        Overview
       </Link>
       <span aria-hidden className="shrink-0">/</span>
       {path === "/dashboards" && embedId ? (
@@ -111,15 +113,25 @@ function SidebarLayout({ children }: SidebarLayoutProps) {
       <SidebarInset className="flex flex-col h-screen">
         <header
           role="banner"
-          className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border flex min-h-[3.5rem] shrink-0 items-center gap-3 px-4 md:px-6 py-2.5 transition-colors duration-200 shadow-sm overflow-visible"
+          className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border flex min-h-[3.75rem] shrink-0 items-center gap-4 px-4 md:px-6 py-3 transition-colors duration-200 shadow-sm overflow-visible"
           aria-label="App header"
         >
           <SidebarTrigger className="-ml-1 cursor-pointer rounded-lg p-2 transition-colors hover:bg-sidebar-accent/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" aria-label="Toggle sidebar" />
-          <Breadcrumb />
-          <div className="flex-1 min-w-0" aria-hidden />
-          <div className="flex items-center gap-2 shrink-0" role="group" aria-label="Workspace and appearance">
-            <CountrySelect className="flex" />
+          <div className="flex flex-col min-w-0 flex-1 md:flex-row md:items-center md:gap-4">
+            <h1 className="text-base md:text-lg font-semibold text-foreground truncate order-2 md:order-1">
+              getnet Global Payments Command Center
+            </h1>
+            <Breadcrumb />
+          </div>
+          <div className="flex items-center gap-2 shrink-0" role="group" aria-label="Workspace and profile">
+            <CountrySelect className="hidden sm:flex" />
             <ModeToggle />
+            <Link
+              to="/profile"
+              className="rounded-full bg-muted px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+            >
+              CCO Login
+            </Link>
           </div>
         </header>
         <a

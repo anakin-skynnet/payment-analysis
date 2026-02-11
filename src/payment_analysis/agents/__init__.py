@@ -20,9 +20,6 @@ from .agent_framework import (
     setup_agent_framework,
 )
 
-# Backward compatibility alias
-RoutingOptimizerAgent = SmartRoutingAgent
-
 __all__ = [
     "BaseAgent",
     "SmartRoutingAgent",
@@ -30,7 +27,6 @@ __all__ = [
     "DeclineAnalystAgent",
     "RiskAssessorAgent",
     "PerformanceRecommenderAgent",
-    "RoutingOptimizerAgent",  # Alias for backward compatibility
     "OrchestratorAgent",
     "setup_agent_framework",
 ]

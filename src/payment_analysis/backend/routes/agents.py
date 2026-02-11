@@ -12,14 +12,19 @@ NOTE: Workspace URLs are constructed dynamically based on environment variables.
 
 from __future__ import annotations
 
+import json
 import os
+import time
 from enum import Enum
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from databricks.sdk import WorkspaceClient
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from ..config import AppConfig, get_default_schema
+from ..dependencies import get_workspace_client
+from .setup import resolve_orchestrator_job_id
 
 router = APIRouter(tags=["agents"])
 
@@ -214,8 +219,8 @@ AGENTS = [
             AgentCapability.NATURAL_LANGUAGE_ANALYTICS,
         ],
         use_case="Ask complex questions about payment performance, get AI-generated insights, and receive personalized recommendations for improving approval rates based on your specific merchant portfolio.",
-        databricks_resource="Mosaic AI Gateway: databricks-meta-llama-3-1-70b-instruct",
-        workspace_url=f"{get_workspace_url()}/serving-endpoints/databricks-meta-llama-3-1-70b-instruct",
+        databricks_resource="Mosaic AI Gateway: databricks-meta-llama-3-3-70b-instruct",
+        workspace_url=f"{get_workspace_url()}/serving-endpoints/databricks-meta-llama-3-3-70b-instruct",
         tags=["ai-gateway", "llm", "conversational", "insights"],
         example_queries=[
             "Explain why our approval rate dropped last week",
@@ -237,8 +242,8 @@ AGENTS = [
             AgentCapability.REAL_TIME_DECISIONING,
         ],
         use_case="Real-time risk consultation for high-value or suspicious transactions. Get natural language explanations of risk factors and specific recommendations for fraud prevention.",
-        databricks_resource="Mosaic AI Gateway: databricks-meta-llama-3-1-70b-instruct",
-        workspace_url=f"{get_workspace_url()}/serving-endpoints/databricks-meta-llama-3-1-70b-instruct",
+        databricks_resource="Mosaic AI Gateway: databricks-meta-llama-3-3-70b-instruct",
+        workspace_url=f"{get_workspace_url()}/serving-endpoints/databricks-meta-llama-3-3-70b-instruct",
         tags=["ai-gateway", "risk", "fraud", "aml"],
         example_queries=[
             "Is this transaction risky? Explain the risk factors.",
@@ -351,6 +356,159 @@ class AgentUrlOut(BaseModel):
     url: str
     agent_type: str
     databricks_resource: str | None = None
+
+
+class ChatIn(BaseModel):
+    """Inbound message for Getnet AI Assistant."""
+    message: str = Field(..., min_length=1, max_length=4000)
+
+
+class ChatOut(BaseModel):
+    """Response from Getnet AI Assistant."""
+    reply: str
+    genie_url: str | None = Field(None, description="Open in Genie for full natural-language analytics")
+
+
+@router.post("/chat", response_model=ChatOut, operation_id="postChat")
+async def chat(request: Request, body: ChatIn) -> ChatOut:
+    """
+    Getnet AI Assistant: conversational interface over payment data.
+    Returns a reply and optional Genie URL for natural-language queries in the workspace.
+    """
+    workspace_url = get_workspace_url()
+    genie_url = f"{workspace_url.rstrip('/')}/genie" if workspace_url else None
+    reply = (
+        "I can help you explore payment and approval data. For natural language questions "
+        "(e.g. top merchants by approval rate, decline reasons, trends), open Genie in your "
+        "workspace to run queries against your Databricks tables and dashboards."
+    )
+    return ChatOut(reply=reply, genie_url=genie_url)
+
+
+# =============================================================================
+# Agent Framework Orchestrator Chat (Job 6 – Deploy Agents)
+# =============================================================================
+
+class OrchestratorChatIn(BaseModel):
+    """Message for the Agent Framework orchestrator (recommendations & payment analysis)."""
+    message: str = Field(..., min_length=1, max_length=4000)
+
+
+class OrchestratorChatOut(BaseModel):
+    """Response from the orchestrator (synthesis from specialists)."""
+    reply: str
+    run_page_url: str | None = Field(None, description="URL to view the job run in Databricks")
+    agents_used: list[str] = Field(default_factory=list)
+
+
+def _orchestrator_job_id() -> str:
+    return os.getenv("DATABRICKS_JOB_ID_ORCHESTRATOR_AGENT", "582671124403091") or "582671124403091"
+
+
+@router.post("/orchestrator/chat", response_model=OrchestratorChatOut, operation_id="postOrchestratorChat")
+async def orchestrator_chat(
+    request: Request,
+    body: OrchestratorChatIn,
+    ws: WorkspaceClient = Depends(get_workspace_client),
+) -> OrchestratorChatOut:
+    """
+    Run the Agent Framework orchestrator (Job 6 – Deploy Agents): routes the query to
+    Smart Routing, Smart Retry, Decline Analyst, Risk Assessor, and Performance Recommender,
+    then returns the synthesized recommendation and payment analysis.
+    Requires Databricks token (open app from Compute → Apps).
+    """
+    job_id_str = _orchestrator_job_id().strip()
+    if not job_id_str or job_id_str == "0":
+        job_id_str = resolve_orchestrator_job_id(ws).strip()
+    if not job_id_str or job_id_str == "0":
+        raise HTTPException(
+            status_code=400,
+            detail="Orchestrator job ID is not set. Deploy the bundle (Job 6 – Deploy Agents exists), open this app from Compute → Apps, then use the assistant. Optionally set DATABRICKS_JOB_ID_ORCHESTRATOR_AGENT.",
+        )
+    try:
+        job_id = int(job_id_str)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid orchestrator job ID.") from None
+
+    catalog, schema = _effective_uc(request)
+    notebook_params: dict[str, str] = {
+        "catalog": catalog,
+        "schema": schema,
+        "query": body.message.strip(),
+        "agent_role": "orchestrator",
+    }
+
+    try:
+        run = ws.jobs.run_now(
+            job_id=job_id,
+            notebook_params=notebook_params,
+            python_params=None,
+            jar_params=None,
+            spark_submit_params=None,
+        )
+        run_id = run.run_id
+    except Exception as e:
+        msg = str(e).lower()
+        if "not found" in msg or "404" in msg:
+            raise HTTPException(status_code=404, detail=f"Job not found: {e}") from e
+        if "forbidden" in msg or "403" in msg:
+            raise HTTPException(status_code=403, detail=str(e)) from e
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    host = get_workspace_url().rstrip("/")
+    run_page_url = f"{host}/#job/{job_id}/run/{run_id}" if host else None
+
+    # Poll until run completes (timeout 120s)
+    timeout_s = 120
+    poll_interval_s = 4
+    elapsed = 0
+    while elapsed < timeout_s:
+        time.sleep(min(poll_interval_s, timeout_s - elapsed))
+        elapsed += poll_interval_s
+        run_info = ws.jobs.get_run(run_id)
+        state_obj = getattr(run_info, "state", None)
+        state = getattr(state_obj, "life_cycle_state", None) or ""
+        if state == "TERMINATED":
+            result_state = getattr(state_obj, "result_state", None) or "UNKNOWN"
+            if result_state != "SUCCESS":
+                return OrchestratorChatOut(
+                    reply=f"The agent run finished with state: {result_state}. Check the run in Databricks for details.",
+                    run_page_url=run_page_url,
+                    agents_used=[],
+                )
+            try:
+                out = ws.jobs.get_run_output(run_id)
+                nb_out = getattr(out, "notebook_output", None)
+                notebook_result = getattr(nb_out, "result", None) if nb_out else None
+                if notebook_result:
+                    data = json.loads(notebook_result)
+                    synthesis = (data.get("synthesis") or "").strip()
+                    agents_used = data.get("agents_used") or []
+                    return OrchestratorChatOut(
+                        reply=synthesis or "No synthesis returned.",
+                        run_page_url=run_page_url,
+                        agents_used=agents_used,
+                    )
+            except Exception:
+                pass
+            return OrchestratorChatOut(
+                reply="The run completed successfully. View the full output in the run page.",
+                run_page_url=run_page_url,
+                agents_used=[],
+            )
+        if state in ("FAILED", "INTERNAL_ERROR", "SKIPPED"):
+            msg = getattr(state_obj, "state_message", None) or state
+            return OrchestratorChatOut(
+                reply=f"The agent run did not complete: {msg}. Open the run page for details.",
+                run_page_url=run_page_url,
+                agents_used=[],
+            )
+
+    return OrchestratorChatOut(
+        reply="The run is still in progress. Open the run page to view the result when it completes.",
+        run_page_url=run_page_url,
+        agents_used=[],
+    )
 
 
 @router.get("/agents/{agent_id}/url", response_model=AgentUrlOut, operation_id="getAgentUrl")

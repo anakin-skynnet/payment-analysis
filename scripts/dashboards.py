@@ -42,6 +42,7 @@ GOLD_VIEWS_OUT_DIR = REPO_ROOT / ".build" / "transform"
 ASSETS = [
     ("v_executive_kpis", "gold_views.sql"),
     ("v_approval_trends_hourly", "gold_views.sql"),
+    ("v_approval_trends_by_second", "gold_views.sql"),
     ("v_performance_by_geography", "gold_views.sql"),
     ("v_top_decline_reasons", "gold_views.sql"),
     ("v_decline_recovery_opportunities", "gold_views.sql"),
@@ -53,8 +54,10 @@ ASSETS = [
     ("v_merchant_segment_performance", "gold_views.sql"),
     ("v_daily_trends", "gold_views.sql"),
     ("v_streaming_ingestion_hourly", "gold_views.sql"),
+    ("v_streaming_ingestion_by_second", "gold_views.sql"),
     ("v_streaming_volume_per_second", "gold_views.sql"),
     ("v_silver_processed_hourly", "gold_views.sql"),
+    ("v_silver_processed_by_second", "gold_views.sql"),
     ("v_data_quality_summary", "gold_views.sql"),
     ("v_uc_data_quality_metrics", "gold_views.sql"),
     ("payment_metrics", "gold_views.sql"),
@@ -227,7 +230,7 @@ def cmd_check_widgets() -> int:
                                 # Columns and values MUST exist in the dataset (allow aggregate names like sum(col) → col)
                                 ds = datasets_by_name.get(dn)
                                 if ds:
-                                    ds_columns = set(_select_columns_from_query(ds.get("query", "")))
+                                    ds_columns = set(_select_columns_from_query(_get_dataset_query(ds)))
                                     widget_fields = [f.get("name") for f in query.get("fields", []) if f.get("name")]
                                     if ds_columns and widget_fields:
                                         def _base_column(f: str) -> str:
@@ -257,6 +260,15 @@ def cmd_check_widgets() -> int:
         return 1
     print("All dashboards match dbdemos pattern: datasets defined, widgets have datasetName/fields/spec/position.")
     return 0
+
+
+def _strip_optional_widget_spec_keys(data: dict) -> None:
+    """Remove optional/unnecessary keys from widget specs (e.g. widgetHeaderAlignment when ALIGNMENT_UNSPECIFIED)."""
+    for page in data.get("pages", []):
+        for item in page.get("layout", []):
+            spec = (item.get("widget") or {}).get("spec")
+            if isinstance(spec, dict) and spec.get("widgetHeaderAlignment") == "ALIGNMENT_UNSPECIFIED":
+                spec.pop("widgetHeaderAlignment", None)
 
 
 def _table_column_spec(field_name: str, order: int) -> dict:
@@ -296,13 +308,24 @@ def _dataset_by_name(data: dict, name: str) -> dict | None:
     return None
 
 
+def _get_dataset_query(dataset: dict) -> str:
+    """Return the dataset SQL query string from 'query' or from 'queryLines' joined (for source JSONs that use queryLines)."""
+    q = dataset.get("query")
+    if q and isinstance(q, str) and q.strip():
+        return q.strip()
+    lines = dataset.get("queryLines")
+    if isinstance(lines, list) and lines:
+        return " ".join(str(l).strip() for l in lines if l).strip()
+    return ""
+
+
 # Names that suggest a numeric value column for charts (Y-axis or value). Match whole-word or trailing _count/_value/ etc. so "country" doesn't match but "decline_count" does.
 _NUMERIC_LIKE = re.compile(
     r"(?:\b|_)(count|pct|rate|value|amount|score|ms|cost|total|avg|sum|volume|records_per|transactions?|approved|declined)(?:\b|_|$)",
     re.IGNORECASE,
 )
-# Only these column names are treated as time dimensions (line chart X-axis). Avoid false matches like "transactions_last_hour".
-_TIME_DIMENSION_NAMES = frozenset(("hour", "date", "day", "period_start", "event_timestamp", "first_detected"))
+# Only these column names are treated as time dimensions (line/area chart X-axis). Avoid false matches like "transactions_last_hour".
+_TIME_DIMENSION_NAMES = frozenset(("hour", "date", "day", "period_start", "event_timestamp", "event_second", "first_detected"))
 # Geographic columns for choropleth (map): country/region by name.
 _GEOGRAPHIC_COLUMNS = frozenset(("country", "region", "state", "nation"))
 # Categorical columns that work well for bar/pie (category + metric).
@@ -319,10 +342,11 @@ def _display_name(col: str) -> str:
 
 
 def _recommend_widget_type(columns: list[str], query: str) -> tuple[str, list[str], dict]:
-    """Recommend best widget type and encodings from dataset columns (dbdemos-style).
-    Aligns with AI/BI visualization catalog: line (metrics over time), pie/bar (proportionality/categories),
-    table (multi-column detail), counter (single value). See resources/dashboards/README.md and
-    https://learn.microsoft.com/en-us/azure/databricks/dashboards/visualization-types . Returns (widget_type, fields, encodings)."""
+    """Recommend best chart/widget type from dataset columns (BI expert guide).
+    Mapping: Comparison/rankings → bar; Trends over time → line or area (area for volume/throughput);
+    Proportions (part-of-whole, few slices) → pie; Two numeric vars → scatter; Two categories + value → heatmap;
+    Geography + value → choropleth; Single KPI → counter; Multi-column detail → table.
+    See resources/dashboards/README.md and Databricks visualization types. Returns (widget_type, fields, encodings)."""
     if not columns:
         return "table", [], {"columns": []}
     q_lower = (query or "").lower()
@@ -438,6 +462,7 @@ def cmd_best_widgets() -> int:
         except json.JSONDecodeError as e:
             print(f"Error reading {path}: {e}", file=sys.stderr)
             return 1
+        _strip_optional_widget_spec_keys(data)
         datasets_by_name = {ds.get("name"): ds for ds in data.get("datasets", []) if ds.get("name")}
         changed = False
         for page in data.get("pages", []):
@@ -451,7 +476,7 @@ def cmd_best_widgets() -> int:
                 dataset = datasets_by_name.get(dataset_name)
                 if not dataset:
                     continue
-                ds_query = dataset.get("query", "")
+                ds_query = _get_dataset_query(dataset)
                 columns = _select_columns_from_query(ds_query)
                 if not columns:
                     existing = [f.get("name") for f in main_query.get("fields", []) if f.get("name")]
@@ -598,6 +623,7 @@ def cmd_fix_widget_settings() -> int:
         except json.JSONDecodeError as e:
             print(f"Error reading {path}: {e}", file=sys.stderr)
             return 1
+        _strip_optional_widget_spec_keys(data)
         datasets_by_name = {ds.get("name"): ds for ds in data.get("datasets", []) if ds.get("name")}
         changed = False
         for page in data.get("pages", []):
@@ -653,6 +679,7 @@ def cmd_fix_visualization_fields() -> int:
         except json.JSONDecodeError as e:
             print(f"Error reading {path}: {e}", file=sys.stderr)
             return 1
+        _strip_optional_widget_spec_keys(data)
         datasets_by_name = {ds.get("name"): ds for ds in data.get("datasets", []) if ds.get("name")}
         changed = False
         # Remove queryLines if present (API allows only one of query or query_lines per dataset)
@@ -675,7 +702,7 @@ def cmd_fix_visualization_fields() -> int:
                 dataset = _dataset_by_name(data, dataset_name) if dataset_name else None
                 if not dataset:
                     continue
-                ds_query = dataset.get("query", "")
+                ds_query = _get_dataset_query(dataset)
                 field_names = _select_columns_from_query(ds_query)
                 if not field_names:
                     # SELECT * or unparseable: keep existing fields if present, else fallback
@@ -713,6 +740,7 @@ def cmd_link_widgets() -> int:
         except json.JSONDecodeError as e:
             print(f"Error reading {path}: {e}", file=sys.stderr)
             return 1
+        _strip_optional_widget_spec_keys(data)
         datasets = data.get("datasets", [])
         pages = data.get("pages", [])
         if not datasets or not pages:
@@ -733,7 +761,7 @@ def cmd_link_widgets() -> int:
                 if not ds_name or ds_name in linked:
                     continue
                 # Add a table widget for this dataset
-                query = ds.get("query", "")
+                query = _get_dataset_query(ds)
                 cols = _select_columns_from_query(query)
                 if not cols and "query" in ds:
                     # Fallback: use displayName or name as single column placeholder
@@ -764,7 +792,9 @@ def cmd_prepare(catalog: str, schema: str) -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     count = 0
     for path in sorted(SOURCE_DIR.glob("*.lvdash.json")):
-        content = path.read_text(encoding="utf-8")
+        data = json.loads(path.read_text(encoding="utf-8"))
+        _strip_optional_widget_spec_keys(data)
+        content = json.dumps(data, indent=2)
         if CATALOG_SCHEMA_PLACEHOLDER in content:
             content = content.replace(CATALOG_SCHEMA_PLACEHOLDER, catalog_schema)
         if CATALOG_SCHEMA_PLACEHOLDER in content:
@@ -845,6 +875,81 @@ def cmd_delete_workspace_dashboards(path: str | None, recursive: bool) -> int:
     except FileNotFoundError:
         print("Error: databricks CLI not found.", file=sys.stderr)
         return 1
+
+
+def cmd_clean_non_dbdemos_dashboards(path: str | None, dry_run: bool) -> int:
+    """List dashboards under workspace .../dashboards and delete any whose name does NOT start with 'dbdemos'."""
+    root = path or get_workspace_root()
+    if not root:
+        print(
+            "Error: could not get workspace path. Pass --path /Workspace/Users/.../payment-analysis",
+            file=sys.stderr,
+        )
+        return 1
+    dashboards_path = f"{root.rstrip('/')}/dashboards"
+    try:
+        result = subprocess.run(
+            ["databricks", "workspace", "list", dashboards_path, "-o", "json"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        result.check_returncode()
+        objects = json.loads(result.stdout)
+    except subprocess.TimeoutExpired:
+        print("Error: workspace list timed out", file=sys.stderr)
+        return 1
+    except json.JSONDecodeError as e:
+        print(f"Error: failed to parse workspace list: {e}", file=sys.stderr)
+        return 1
+    except FileNotFoundError:
+        print("Error: databricks CLI not found.", file=sys.stderr)
+        return 1
+    except subprocess.CalledProcessError as e:
+        print(f"Error: workspace list failed: {e.stderr or e}. Deploy first or pass --path.", file=sys.stderr)
+        return 1
+    all_objs = objects if isinstance(objects, list) else []
+    dashboards = [o for o in all_objs if o.get("object_type") == "DASHBOARD"]
+    to_delete = []
+    for o in dashboards:
+        p = (o.get("path") or "").strip()
+        if not p:
+            continue
+        name = p.split("/")[-1]
+        if not name.lower().startswith("dbdemos"):
+            to_delete.append(p)
+    if not to_delete:
+        print(f"No dashboards to delete (all under {dashboards_path} start with 'dbdemos' or folder is empty).")
+        return 0
+    print(f"Deleting {len(to_delete)} dashboard(s) that do not start with 'dbdemos':")
+    for p in to_delete:
+        print(f"  - {p}")
+    if dry_run:
+        print("Dry run: no changes made.")
+        return 0
+    failed = []
+    for p in to_delete:
+        try:
+            subprocess.run(
+                ["databricks", "workspace", "delete", p],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            print(f"Deleted: {p.split('/')[-1]}")
+        except subprocess.CalledProcessError as e:
+            err = (e.stderr or e.stdout or str(e)).strip()
+            if "RESOURCE_DOES_NOT_EXIST" in err or "does not exist" in err.lower():
+                pass
+            else:
+                print(f"Failed: {p} — {err}", file=sys.stderr)
+                failed.append(p)
+    if failed:
+        print(f"Failed to delete {len(failed)} dashboard(s).", file=sys.stderr)
+        return 1
+    print(f"Successfully deleted {len(to_delete)} dashboard(s).")
+    return 0
 
 
 def cmd_publish(path: str | None, dry_run: bool) -> int:
@@ -938,6 +1043,10 @@ def main() -> int:
     p_del = sub.add_parser("delete-workspace-dashboards", help="Delete workspace .../dashboards so deploy recreates them from config")
     p_del.add_argument("--path", default=None, help="Workspace root path")
     p_del.add_argument("--no-recursive", action="store_true", help="Do not delete folder recursively")
+    # clean-workspace-except-dbdemos
+    p_clean = sub.add_parser("clean-workspace-except-dbdemos", help="Delete all dashboards under .../dashboards except those whose name starts with 'dbdemos'")
+    p_clean.add_argument("--path", default=None, help="Workspace root path")
+    p_clean.add_argument("--dry-run", action="store_true", help="Only list dashboards that would be deleted")
     args = parser.parse_args()
 
     if args.cmd == "prepare":
@@ -960,6 +1069,8 @@ def main() -> int:
         return cmd_fix_widget_settings()
     if args.cmd == "delete-workspace-dashboards":
         return cmd_delete_workspace_dashboards(args.path, recursive=not getattr(args, "no_recursive", False))
+    if args.cmd == "clean-workspace-except-dbdemos":
+        return cmd_clean_non_dbdemos_dashboards(args.path, dry_run=getattr(args, "dry_run", False))
     return 1
 
 

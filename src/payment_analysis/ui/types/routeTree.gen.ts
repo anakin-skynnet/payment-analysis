@@ -19,13 +19,17 @@ import { Route as SidebarReasonCodesRouteImport } from './../routes/_sidebar/rea
 import { Route as SidebarProfileRouteImport } from './../routes/_sidebar/profile'
 import { Route as SidebarNotebooksRouteImport } from './../routes/_sidebar/notebooks'
 import { Route as SidebarModelsRouteImport } from './../routes/_sidebar/models'
+import { Route as SidebarInitiativesRouteImport } from './../routes/_sidebar/initiatives'
 import { Route as SidebarIncidentsRouteImport } from './../routes/_sidebar/incidents'
 import { Route as SidebarExperimentsRouteImport } from './../routes/_sidebar/experiments'
 import { Route as SidebarDeclinesRouteImport } from './../routes/_sidebar/declines'
 import { Route as SidebarDecisioningRouteImport } from './../routes/_sidebar/decisioning'
 import { Route as SidebarDashboardsRouteImport } from './../routes/_sidebar/dashboards'
 import { Route as SidebarDashboardRouteImport } from './../routes/_sidebar/dashboard'
+import { Route as SidebarCommandCenterRouteImport } from './../routes/_sidebar/command-center'
+import { Route as SidebarAlertsDataQualityRouteImport } from './../routes/_sidebar/alerts-data-quality'
 import { Route as SidebarAiAgentsRouteImport } from './../routes/_sidebar/ai-agents'
+import { Route as SidebarAboutRouteImport } from './../routes/_sidebar/about'
 
 const SidebarRouteRoute = SidebarRouteRouteImport.update({
   id: '/_sidebar',
@@ -76,6 +80,11 @@ const SidebarModelsRoute = SidebarModelsRouteImport.update({
   path: '/models',
   getParentRoute: () => SidebarRouteRoute,
 } as any)
+const SidebarInitiativesRoute = SidebarInitiativesRouteImport.update({
+  id: '/initiatives',
+  path: '/initiatives',
+  getParentRoute: () => SidebarRouteRoute,
+} as any)
 const SidebarIncidentsRoute = SidebarIncidentsRouteImport.update({
   id: '/incidents',
   path: '/incidents',
@@ -106,21 +115,41 @@ const SidebarDashboardRoute = SidebarDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => SidebarRouteRoute,
 } as any)
+const SidebarCommandCenterRoute = SidebarCommandCenterRouteImport.update({
+  id: '/command-center',
+  path: '/command-center',
+  getParentRoute: () => SidebarRouteRoute,
+} as any)
+const SidebarAlertsDataQualityRoute =
+  SidebarAlertsDataQualityRouteImport.update({
+    id: '/alerts-data-quality',
+    path: '/alerts-data-quality',
+    getParentRoute: () => SidebarRouteRoute,
+  } as any)
 const SidebarAiAgentsRoute = SidebarAiAgentsRouteImport.update({
   id: '/ai-agents',
   path: '/ai-agents',
   getParentRoute: () => SidebarRouteRoute,
 } as any)
+const SidebarAboutRoute = SidebarAboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => SidebarRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof SidebarAboutRoute
   '/ai-agents': typeof SidebarAiAgentsRoute
+  '/alerts-data-quality': typeof SidebarAlertsDataQualityRoute
+  '/command-center': typeof SidebarCommandCenterRoute
   '/dashboard': typeof SidebarDashboardRoute
   '/dashboards': typeof SidebarDashboardsRoute
   '/decisioning': typeof SidebarDecisioningRoute
   '/declines': typeof SidebarDeclinesRoute
   '/experiments': typeof SidebarExperimentsRoute
   '/incidents': typeof SidebarIncidentsRoute
+  '/initiatives': typeof SidebarInitiativesRoute
   '/models': typeof SidebarModelsRoute
   '/notebooks': typeof SidebarNotebooksRoute
   '/profile': typeof SidebarProfileRoute
@@ -132,13 +161,17 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof SidebarAboutRoute
   '/ai-agents': typeof SidebarAiAgentsRoute
+  '/alerts-data-quality': typeof SidebarAlertsDataQualityRoute
+  '/command-center': typeof SidebarCommandCenterRoute
   '/dashboard': typeof SidebarDashboardRoute
   '/dashboards': typeof SidebarDashboardsRoute
   '/decisioning': typeof SidebarDecisioningRoute
   '/declines': typeof SidebarDeclinesRoute
   '/experiments': typeof SidebarExperimentsRoute
   '/incidents': typeof SidebarIncidentsRoute
+  '/initiatives': typeof SidebarInitiativesRoute
   '/models': typeof SidebarModelsRoute
   '/notebooks': typeof SidebarNotebooksRoute
   '/profile': typeof SidebarProfileRoute
@@ -152,13 +185,17 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_sidebar': typeof SidebarRouteRouteWithChildren
+  '/_sidebar/about': typeof SidebarAboutRoute
   '/_sidebar/ai-agents': typeof SidebarAiAgentsRoute
+  '/_sidebar/alerts-data-quality': typeof SidebarAlertsDataQualityRoute
+  '/_sidebar/command-center': typeof SidebarCommandCenterRoute
   '/_sidebar/dashboard': typeof SidebarDashboardRoute
   '/_sidebar/dashboards': typeof SidebarDashboardsRoute
   '/_sidebar/decisioning': typeof SidebarDecisioningRoute
   '/_sidebar/declines': typeof SidebarDeclinesRoute
   '/_sidebar/experiments': typeof SidebarExperimentsRoute
   '/_sidebar/incidents': typeof SidebarIncidentsRoute
+  '/_sidebar/initiatives': typeof SidebarInitiativesRoute
   '/_sidebar/models': typeof SidebarModelsRoute
   '/_sidebar/notebooks': typeof SidebarNotebooksRoute
   '/_sidebar/profile': typeof SidebarProfileRoute
@@ -172,13 +209,17 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/ai-agents'
+    | '/alerts-data-quality'
+    | '/command-center'
     | '/dashboard'
     | '/dashboards'
     | '/decisioning'
     | '/declines'
     | '/experiments'
     | '/incidents'
+    | '/initiatives'
     | '/models'
     | '/notebooks'
     | '/profile'
@@ -190,13 +231,17 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/ai-agents'
+    | '/alerts-data-quality'
+    | '/command-center'
     | '/dashboard'
     | '/dashboards'
     | '/decisioning'
     | '/declines'
     | '/experiments'
     | '/incidents'
+    | '/initiatives'
     | '/models'
     | '/notebooks'
     | '/profile'
@@ -209,13 +254,17 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_sidebar'
+    | '/_sidebar/about'
     | '/_sidebar/ai-agents'
+    | '/_sidebar/alerts-data-quality'
+    | '/_sidebar/command-center'
     | '/_sidebar/dashboard'
     | '/_sidebar/dashboards'
     | '/_sidebar/decisioning'
     | '/_sidebar/declines'
     | '/_sidebar/experiments'
     | '/_sidebar/incidents'
+    | '/_sidebar/initiatives'
     | '/_sidebar/models'
     | '/_sidebar/notebooks'
     | '/_sidebar/profile'
@@ -303,6 +352,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SidebarModelsRouteImport
       parentRoute: typeof SidebarRouteRoute
     }
+    '/_sidebar/initiatives': {
+      id: '/_sidebar/initiatives'
+      path: '/initiatives'
+      fullPath: '/initiatives'
+      preLoaderRoute: typeof SidebarInitiativesRouteImport
+      parentRoute: typeof SidebarRouteRoute
+    }
     '/_sidebar/incidents': {
       id: '/_sidebar/incidents'
       path: '/incidents'
@@ -345,6 +401,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SidebarDashboardRouteImport
       parentRoute: typeof SidebarRouteRoute
     }
+    '/_sidebar/command-center': {
+      id: '/_sidebar/command-center'
+      path: '/command-center'
+      fullPath: '/command-center'
+      preLoaderRoute: typeof SidebarCommandCenterRouteImport
+      parentRoute: typeof SidebarRouteRoute
+    }
+    '/_sidebar/alerts-data-quality': {
+      id: '/_sidebar/alerts-data-quality'
+      path: '/alerts-data-quality'
+      fullPath: '/alerts-data-quality'
+      preLoaderRoute: typeof SidebarAlertsDataQualityRouteImport
+      parentRoute: typeof SidebarRouteRoute
+    }
     '/_sidebar/ai-agents': {
       id: '/_sidebar/ai-agents'
       path: '/ai-agents'
@@ -352,17 +422,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SidebarAiAgentsRouteImport
       parentRoute: typeof SidebarRouteRoute
     }
+    '/_sidebar/about': {
+      id: '/_sidebar/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof SidebarAboutRouteImport
+      parentRoute: typeof SidebarRouteRoute
+    }
   }
 }
 
 interface SidebarRouteRouteChildren {
+  SidebarAboutRoute: typeof SidebarAboutRoute
   SidebarAiAgentsRoute: typeof SidebarAiAgentsRoute
+  SidebarAlertsDataQualityRoute: typeof SidebarAlertsDataQualityRoute
+  SidebarCommandCenterRoute: typeof SidebarCommandCenterRoute
   SidebarDashboardRoute: typeof SidebarDashboardRoute
   SidebarDashboardsRoute: typeof SidebarDashboardsRoute
   SidebarDecisioningRoute: typeof SidebarDecisioningRoute
   SidebarDeclinesRoute: typeof SidebarDeclinesRoute
   SidebarExperimentsRoute: typeof SidebarExperimentsRoute
   SidebarIncidentsRoute: typeof SidebarIncidentsRoute
+  SidebarInitiativesRoute: typeof SidebarInitiativesRoute
   SidebarModelsRoute: typeof SidebarModelsRoute
   SidebarNotebooksRoute: typeof SidebarNotebooksRoute
   SidebarProfileRoute: typeof SidebarProfileRoute
@@ -374,13 +455,17 @@ interface SidebarRouteRouteChildren {
 }
 
 const SidebarRouteRouteChildren: SidebarRouteRouteChildren = {
+  SidebarAboutRoute: SidebarAboutRoute,
   SidebarAiAgentsRoute: SidebarAiAgentsRoute,
+  SidebarAlertsDataQualityRoute: SidebarAlertsDataQualityRoute,
+  SidebarCommandCenterRoute: SidebarCommandCenterRoute,
   SidebarDashboardRoute: SidebarDashboardRoute,
   SidebarDashboardsRoute: SidebarDashboardsRoute,
   SidebarDecisioningRoute: SidebarDecisioningRoute,
   SidebarDeclinesRoute: SidebarDeclinesRoute,
   SidebarExperimentsRoute: SidebarExperimentsRoute,
   SidebarIncidentsRoute: SidebarIncidentsRoute,
+  SidebarInitiativesRoute: SidebarInitiativesRoute,
   SidebarModelsRoute: SidebarModelsRoute,
   SidebarNotebooksRoute: SidebarNotebooksRoute,
   SidebarProfileRoute: SidebarProfileRoute,

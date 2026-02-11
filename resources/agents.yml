@@ -40,7 +40,7 @@ resources:
               lakebase_schema: "payment_analysis"
               model_registry_catalog: ${var.catalog}
               model_registry_schema: "agents"
-              llm_endpoint: "databricks-meta-llama-3-1-70b-instruct"
+              llm_endpoint: "databricks-meta-llama-3-3-70b-instruct"
               query: "Run comprehensive payment analysis: routing, retries, declines, risk, and performance optimizations."
           timeout_seconds: 3600
       schedule:

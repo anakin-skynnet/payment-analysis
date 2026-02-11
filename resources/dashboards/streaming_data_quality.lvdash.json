@@ -8,24 +8,24 @@
       ]
     },
     {
-      "name": "ds_bronze_hourly",
-      "displayName": "Bronze Ingestion Hourly",
+      "name": "ds_bronze_by_second",
+      "displayName": "Bronze Ingestion by Second",
       "queryLines": [
-        "SELECT hour, bronze_record_count FROM __CATALOG__.__SCHEMA__.v_streaming_ingestion_hourly ORDER BY hour DESC LIMIT 168"
+        "SELECT event_second, bronze_record_count FROM __CATALOG__.__SCHEMA__.v_streaming_ingestion_by_second ORDER BY event_second DESC"
       ]
     },
     {
-      "name": "ds_silver_hourly",
-      "displayName": "Silver Processed Hourly",
+      "name": "ds_silver_by_second",
+      "displayName": "Silver Processed by Second",
       "queryLines": [
-        "SELECT hour, silver_record_count FROM __CATALOG__.__SCHEMA__.v_silver_processed_hourly ORDER BY hour DESC LIMIT 168"
+        "SELECT event_second, silver_record_count FROM __CATALOG__.__SCHEMA__.v_silver_processed_by_second ORDER BY event_second DESC"
       ]
     },
     {
       "name": "ds_volume_per_second",
       "displayName": "Incoming volume per second",
       "queryLines": [
-        "SELECT hour, records_per_second FROM __CATALOG__.__SCHEMA__.v_streaming_volume_per_second ORDER BY hour DESC LIMIT 168"
+        "SELECT hour, records_per_second FROM __CATALOG__.__SCHEMA__.v_streaming_volume_per_second ORDER BY hour DESC"
       ]
     }
   ],
@@ -492,11 +492,11 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_bronze_hourly",
+                  "datasetName": "ds_bronze_by_second",
                   "fields": [
                     {
-                      "name": "hour",
-                      "expression": "`hour`"
+                      "name": "event_second",
+                      "expression": "`event_second`"
                     },
                     {
                       "name": "sum(bronze_record_count)",
@@ -512,13 +512,13 @@
               "widgetType": "area",
               "encodings": {
                 "x": {
-                  "fieldName": "hour",
+                  "fieldName": "event_second",
                   "scale": {
                     "type": "temporal"
                   },
-                  "displayName": "Hour",
+                  "displayName": "Event Second",
                   "axis": {
-                    "title": "Hour"
+                    "title": "Event Second"
                   }
                 },
                 "y": {
@@ -534,7 +534,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "Bronze Ingestion Hourly",
+                "title": "Bronze Ingestion by Second",
                 "showDescription": false
               }
             }
@@ -553,11 +553,11 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_silver_hourly",
+                  "datasetName": "ds_silver_by_second",
                   "fields": [
                     {
-                      "name": "hour",
-                      "expression": "`hour`"
+                      "name": "event_second",
+                      "expression": "`event_second`"
                     },
                     {
                       "name": "sum(silver_record_count)",
@@ -573,13 +573,13 @@
               "widgetType": "area",
               "encodings": {
                 "x": {
-                  "fieldName": "hour",
+                  "fieldName": "event_second",
                   "scale": {
                     "type": "temporal"
                   },
-                  "displayName": "Hour",
+                  "displayName": "Event Second",
                   "axis": {
-                    "title": "Hour"
+                    "title": "Event Second"
                   }
                 },
                 "y": {
@@ -595,7 +595,7 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "Silver Processed Hourly",
+                "title": "Silver Processed by Second",
                 "showDescription": false
               }
             }
