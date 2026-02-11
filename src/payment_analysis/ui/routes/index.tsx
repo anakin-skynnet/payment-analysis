@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/apx/navbar";
 import Logo from "@/components/apx/logo";
 import { motion } from "motion/react";
-import { BarChart3, ArrowRight, CheckCircle2, LogIn, CreditCard, ListChecks, RotateCcw, Database, MessageSquareText, Zap, Shield, LineChart, Eye } from "lucide-react";
+import { BarChart3, ArrowRight, CheckCircle2, LogIn, CreditCard, ListChecks, RotateCcw, Database, MessageSquareText, Zap, Shield, LineChart, Eye, Sparkles, Layers, GitBranch, Brain } from "lucide-react";
 import { BubbleBackground } from "@/components/backgrounds/bubble";
 import { getWorkspaceUrl } from "@/config/workspace";
 import { useGetAuthStatus } from "@/lib/api";
@@ -53,6 +53,13 @@ const initiatives = [
   },
 ];
 
+const databricksPillars = [
+  { icon: Layers, label: "Lakehouse", desc: "One source of truth" },
+  { icon: GitBranch, label: "Lakeflow", desc: "Streaming pipelines" },
+  { icon: Brain, label: "ML & AI", desc: "Models and agents" },
+  { icon: Sparkles, label: "Genie", desc: "Ask your data" },
+];
+
 function Index() {
   const { data } = useGetAuthStatus();
   const workspaceUrl = getWorkspaceUrl();
@@ -99,20 +106,20 @@ function Index() {
 
             <motion.div variants={item} className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5">
               <Zap className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">For Getnet leadership — accelerate approval rates</span>
+              <span className="text-sm font-semibold text-primary">PagoNxt Getnet — Accelerate approval rates</span>
             </motion.div>
 
             <motion.h1
               variants={item}
               className="hero-impact text-4xl md:text-5xl lg:text-6xl text-foreground leading-tight"
             >
-              Risk &amp; Portfolio Intelligence
+              Accelerate approval rates
             </motion.h1>
             <motion.p
               variants={item}
               className="hero-impact-sub text-xl md:text-2xl text-primary max-w-lg"
             >
-              One platform to maximize approvals and control risk.
+              Risk &amp; portfolio intelligence on one platform.
             </motion.p>
             <motion.p
               variants={item}
@@ -137,13 +144,30 @@ function Index() {
               ))}
             </motion.div>
 
+            {/* Powered by Databricks — platform trust for CEO */}
+            <motion.section variants={item} className="rounded-xl border border-border/80 bg-muted/40 dark:bg-muted/20 p-4" aria-labelledby="databricks-heading">
+              <h2 id="databricks-heading" className="sr-only">Powered by Databricks</h2>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Powered by Databricks</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {databricksPillars.map(({ icon: Icon, label, desc }) => (
+                  <div key={label} className="flex items-start gap-2 rounded-lg bg-background/80 dark:bg-card/80 p-2.5 border border-border/60">
+                    <Icon className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">{label}</p>
+                      <p className="text-[11px] text-muted-foreground">{desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.section>
+
             {/* Value proposition */}
             <motion.section variants={item} className="text-left" aria-labelledby="value-prop-heading">
               <h2 id="value-prop-heading" className="sr-only">
-                Why this platform matters for Getnet
+                Why this matters for Getnet
               </h2>
               <p className="text-sm font-semibold text-foreground mb-3">
-                Why this platform matters for Getnet
+                Why this matters for Getnet
               </p>
               <ul className="space-y-2">
                 {valueProps.map((text, i) => (
@@ -171,7 +195,7 @@ function Index() {
 
             {/* Initiative cards — business-oriented, impactful */}
             <motion.section variants={item} className="space-y-3" aria-labelledby="initiatives-heading">
-              <h2 id="initiatives-heading" className="section-label">Key initiatives</h2>
+              <h2 id="initiatives-heading" className="section-label">Where to act</h2>
               <div className="grid gap-4 sm:grid-cols-1">
                 {initiatives.map((init) => {
                   const Icon = init.icon;

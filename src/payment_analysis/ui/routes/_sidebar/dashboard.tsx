@@ -189,6 +189,11 @@ function Dashboard() {
         <p className="page-section-description">
           Last 30 days: portfolio approval rate, volume, and what’s driving or delaying approvals. Use the links below to drill into trends and take action.
         </p>
+        <div className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 px-3 py-2 text-xs text-muted-foreground">
+          <span className="font-medium text-primary">Powered by Databricks</span>
+          <span aria-hidden>·</span>
+          <span>Lakehouse, Lakeflow pipelines, Genie</span>
+        </div>
       </motion.div>
 
       {/* Data flow & storytelling — one system */}

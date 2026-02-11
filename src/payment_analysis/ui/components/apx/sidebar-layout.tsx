@@ -66,7 +66,7 @@ function Breadcrumb() {
   const label = embedLabel ? `${baseLabel} / ${embedLabel}` : baseLabel;
   return (
     <nav className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0 flex-1" aria-label="Breadcrumb">
-      <Link to="/" className="link-anchor hover:text-foreground transition-colors truncate max-w-[8rem] sm:max-w-none" aria-label="Home — Getnet Risk & Portfolio Intelligence">
+      <Link to="/" className="link-anchor hover:text-foreground transition-colors truncate max-w-[8rem] sm:max-w-none" aria-label="Home — PagoNxt Getnet Risk & Portfolio Intelligence">
         Home
       </Link>
       <span aria-hidden className="shrink-0">/</span>
@@ -96,13 +96,13 @@ function SidebarLayout({ children }: SidebarLayoutProps) {
         <SidebarHeader className="sidebar-header">
           <div className="sidebar-header-inner">
             <Logo to="/" showText />
-            <p className="text-[11px] font-medium text-primary tracking-wide px-2 pt-0.5" aria-hidden>For Getnet leadership · Accelerate approval rates</p>
+            <p className="text-[11px] font-medium text-primary tracking-wide px-2 pt-0.5" aria-hidden>PagoNxt Getnet · Accelerate approval rates</p>
           </div>
         </SidebarHeader>
         <SidebarContent>{children}</SidebarContent>
         <SidebarFooter className="border-t border-sidebar-border pt-3">
           <p className="px-3 pb-2 text-[11px] text-muted-foreground leading-snug" aria-hidden>
-            Live data from your workspace — one view of portfolio performance
+            Powered by Databricks · Live data from your workspace
           </p>
           <SidebarUserFooter />
         </SidebarFooter>

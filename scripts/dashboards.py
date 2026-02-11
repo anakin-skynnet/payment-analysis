@@ -23,9 +23,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 # Placeholder in source dashboard JSONs (resources/dashboards/*.lvdash.json); replaced with catalog.schema during prepare.
-# Replaced with catalog.schema during prepare. Schema is always "payment_analysis".
 CATALOG_SCHEMA_PLACEHOLDER = "__CATALOG__.__SCHEMA__"
 SOURCE_DIR = REPO_ROOT / "resources" / "dashboards"
+# Bundle (resources/dashboards.yml) reads from .build/dashboards/*.lvdash.json — must write here so deploy finds them.
+BUILD_DASHBOARDS_DIR = REPO_ROOT / ".build" / "dashboards"
+# Legacy: also write to dashboards/ for workspace sync / publish discovery.
 OUT_DIR = REPO_ROOT / "dashboards"
 GOLD_VIEWS_SOURCE = REPO_ROOT / "src" / "payment_analysis" / "transform" / "gold_views.sql"
 LAKEHOUSE_BOOTSTRAP_SOURCE = REPO_ROOT / "src" / "payment_analysis" / "transform" / "lakehouse_bootstrap.sql"
@@ -58,15 +60,17 @@ PUBLISH_TIMEOUT = 60
 
 def cmd_prepare(catalog: str, schema: str) -> None:
     catalog_schema = f"{catalog}.{schema}"
+    BUILD_DASHBOARDS_DIR.mkdir(parents=True, exist_ok=True)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     count = 0
     for path in sorted(SOURCE_DIR.glob("*.lvdash.json")):
         content = path.read_text(encoding="utf-8")
         if CATALOG_SCHEMA_PLACEHOLDER in content:
             content = content.replace(CATALOG_SCHEMA_PLACEHOLDER, catalog_schema)
+        (BUILD_DASHBOARDS_DIR / path.name).write_text(content, encoding="utf-8")
         (OUT_DIR / path.name).write_text(content, encoding="utf-8")
         count += 1
-    print(f"Prepared {count} dashboards in {OUT_DIR} with catalog.schema = {catalog_schema}")
+    print(f"Prepared {count} dashboards in {OUT_DIR} and {BUILD_DASHBOARDS_DIR} with catalog.schema = {catalog_schema}")
     GOLD_VIEWS_OUT_DIR.mkdir(parents=True, exist_ok=True)
     header = f"-- Catalog/schema for this run (must match dashboard asset_name)\nUSE CATALOG {catalog};\nUSE SCHEMA {schema};\n\n"
     (GOLD_VIEWS_OUT_DIR / "gold_views.sql").write_text(header + GOLD_VIEWS_SOURCE.read_text(encoding="utf-8"), encoding="utf-8")

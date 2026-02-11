@@ -79,6 +79,23 @@ App resource: `resources/fastapi_app.yml`. Runtime spec: `app.yml` at project ro
 
 Validate before deploy: `./scripts/bundle.sh validate dev` (runs dashboard prepare then `databricks bundle validate`).
 
+#### Dashboard visuals not showing?
+
+Following the [dbdemos](https://github.com/databricks-demos/dbdemos) pattern, dashboards must be **prepared**, **deployed**, and **published** so that visuals and embeds work:
+
+1. **Prepare** (writes `.build/dashboards/*.lvdash.json` and `.build/transform/*.sql` with catalog/schema):  
+   Run **before** every bundle validate/deploy:  
+   `uv run python scripts/dashboards.py prepare` (or `--catalog X --schema Y` for prod).  
+   The bundle reads dashboard definitions from `.build/dashboards/`; if these files are missing, deploy fails with "failed to read serialized dashboard from file_path".
+
+2. **Deploy** with dashboards included: In `databricks.yml`, **include** `resources/dashboards.yml` (uncomment `- resources/dashboards`) so the bundle creates/updates the 12 AI/BI dashboards in the workspace. If you previously commented it out to avoid "Node named '...' already exists", you can leave it commented and only ensure prepare has run for other assets; to **create or replace** dashboards, uncomment and deploy.
+
+3. **Publish** (embed credentials): After deploy, run  
+   `uv run python scripts/dashboards.py publish`  
+   so each dashboard is published with **embed credentials**. Without this, iframes in the app may load but show no visuals. The deploy script runs publish automatically; if it was skipped, run it manually.
+
+4. **Data**: Gold views and Lakeflow tables must exist and have data. Run **Job 3** (Initialize Ingestion / Create Gold Views) and the **Lakeflow ETL pipeline** so `v_executive_kpis`, `payments_enriched_silver`, etc. exist in the catalog/schema used by the dashboards. Empty or missing tables produce empty charts.
+
 ### Why one databricks.yml
 
 - **Source of truth:** The file at **repo root** `databricks.yml` is the only one used for `databricks bundle validate -t dev` and `databricks bundle deploy -t dev`. The bundle CLI runs from the project root and reads only the root `databricks.yml`.

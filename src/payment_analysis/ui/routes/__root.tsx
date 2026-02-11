@@ -4,16 +4,11 @@ import { WorkspaceUrlBootstrapper } from "@/components/apx/workspace-url-bootstr
 import { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { ErrorBoundary } from "react-error-boundary";
+import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import { Toaster } from "sonner";
 
-function RootErrorFallback({
-  error,
-  resetErrorBoundary,
-}: {
-  error: Error;
-  resetErrorBoundary: () => void;
-}) {
+function RootErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+  const message = error instanceof Error ? error.message : String(error);
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 p-8 text-center bg-background">
       <div className="rounded-2xl border border-border/80 bg-card p-8 shadow-lg max-w-md w-full space-y-6">
@@ -26,7 +21,7 @@ function RootErrorFallback({
         </div>
         <div className="space-y-2" role="alert" aria-live="assertive">
           <h1 className="text-xl font-semibold font-heading">Something went wrong loading this view</h1>
-          <p className="text-sm text-muted-foreground leading-relaxed">{error.message}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{message}</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
           <Button onClick={resetErrorBoundary} className="min-w-[140px]">
