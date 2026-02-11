@@ -5,7 +5,7 @@
       "git": {
         "branch": "main",
         "origin_url": "https://github.com/anakin-skynnet/payment-analysis.git",
-        "commit": "fa413e51a2d770c92777cbe22394fa31f3db0c12",
+        "commit": "5a1eaddec76112fa0731aa7d4d90fd7a7931b5fc",
         "bundle_root_path": "."
       }
     },
