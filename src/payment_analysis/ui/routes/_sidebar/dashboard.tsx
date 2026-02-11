@@ -404,10 +404,10 @@ function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
-              Approval Trends (Hourly)
+              Approval Trends (Real-Time by Second)
             </CardTitle>
             <CardDescription>
-              Transaction volume and approval rates by hour
+              Transaction volume and approval rates per second
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -421,11 +421,11 @@ function Dashboard() {
               <div className="space-y-3">
                 {trends.slice(0, 8).map((t) => (
                   <div
-                    key={t.hour}
+                    key={t.event_second}
                     className="flex items-center justify-between"
                   >
                     <span className="text-sm font-mono w-20 shrink-0">
-                      {t.hour}
+                      {t.event_second}
                     </span>
                     <div className="flex-1 mx-3">
                       <div className="w-full bg-muted rounded-full h-2">

@@ -25,7 +25,7 @@
       "name": "ds_volume_per_second",
       "displayName": "Incoming volume per second",
       "queryLines": [
-        "SELECT hour, records_per_second FROM __CATALOG__.__SCHEMA__.v_streaming_volume_per_second ORDER BY hour DESC"
+        "SELECT event_second, records_per_second FROM __CATALOG__.__SCHEMA__.v_streaming_volume_per_second ORDER BY event_second DESC"
       ]
     }
   ],
@@ -434,8 +434,8 @@
                   "datasetName": "ds_volume_per_second",
                   "fields": [
                     {
-                      "name": "hour",
-                      "expression": "`hour`"
+                      "name": "event_second",
+                      "expression": "`event_second`"
                     },
                     {
                       "name": "sum(records_per_second)",
@@ -451,7 +451,7 @@
               "widgetType": "area",
               "encodings": {
                 "x": {
-                  "fieldName": "hour",
+                  "fieldName": "event_second",
                   "scale": {
                     "type": "temporal"
                   },

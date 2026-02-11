@@ -43,8 +43,8 @@ class DatabricksKPIOut(BaseModel):
 
 
 class ApprovalTrendOut(BaseModel):
-    """Approval trend data point."""
-    hour: str
+    """Approval trend data point (per-second real-time)."""
+    event_second: str
     transaction_count: int
     approved_count: int
     approval_rate_pct: float
@@ -392,10 +392,10 @@ async def databricks_kpis(service: DatabricksServiceDep) -> DatabricksKPIOut:
 
 
 @router.get("/trends", response_model=list[ApprovalTrendOut], operation_id="getApprovalTrends")
-async def approval_trends(service: DatabricksServiceDep, hours: int = 168) -> list[ApprovalTrendOut]:
-    """Get approval rate trends from Databricks."""
-    hours = max(1, min(hours, 720))  # Limit to 30 days
-    data = await service.get_approval_trends(hours)
+async def approval_trends(service: DatabricksServiceDep, seconds: int = 3600) -> list[ApprovalTrendOut]:
+    """Get approval rate trends by second (real-time) from Databricks."""
+    seconds = max(1, min(seconds, 3600))  # Limit to 1 hour of per-second data
+    data = await service.get_approval_trends(seconds)
     return [ApprovalTrendOut(**row) for row in data]
 
 

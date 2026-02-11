@@ -8,8 +8,8 @@
       ]
     },
     {
-      "name": "ds_hourly",
-      "displayName": "Hourly Approval Trends",
+      "name": "ds_by_second",
+      "displayName": "Real-Time Approval Trends (by second)",
       "queryLines": [
         "SELECT event_second, transaction_count, approved_count, approval_rate_pct, avg_fraud_score, total_value FROM __CATALOG__.__SCHEMA__.v_approval_trends_by_second ORDER BY event_second DESC"
       ]
@@ -254,7 +254,7 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ds_hourly",
+                  "datasetName": "ds_by_second",
                   "fields": [
                     {
                       "name": "event_second",

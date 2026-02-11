@@ -240,7 +240,7 @@ Aligns the app with Databricks Apps best practices and confirms **all data and A
 | **Dashboards** | DBSQL dashboards in workspace (embed URLs) | N/A |
 | **Jobs / Pipelines** | Databricks Jobs & Pipelines APIs | N/A |
 
-**Unity Catalog views used by analytics** (via `DatabricksService.execute_query()`): `v_executive_kpis`, `v_approval_trends_hourly`, `v_solution_performance`, `v_top_decline_reasons`, `v_smart_checkout_*`, `v_3ds_funnel_br`, `v_reason_codes_br`, `v_reason_code_insights_br`, `v_entry_system_distribution_br`, `v_dedup_collision_stats`, `v_false_insights_metric`, `v_retry_performance`, plus country and recommendation tables (see `databricks_service.py`).
+**Unity Catalog views used by analytics** (via `DatabricksService.execute_query()`): `v_executive_kpis`, `v_approval_trends_hourly` (per-second granularity, column `event_second`), `v_approval_trends_by_second`, `v_solution_performance`, `v_top_decline_reasons`, `v_smart_checkout_*`, `v_3ds_funnel_br`, `v_reason_codes_br`, `v_reason_code_insights_br`, `v_entry_system_distribution_br`, `v_dedup_collision_stats`, `v_false_insights_metric`, `v_retry_performance`, plus country and recommendation tables (see `databricks_service.py`).
 
 **AI/ML sources:** Model Serving (approval, risk, routing); Genie / Mosaic AI Gateway (linked from UI); agents listed from workspace config.
 

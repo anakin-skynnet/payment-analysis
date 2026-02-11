@@ -31,7 +31,7 @@ case "$CMD" in
   deploy)
     echo "Building web UI (required for app to serve frontend)..."
     uv run apx build
-    echo "Cleaning workspace dashboards (except dbdemos*)..."
+    echo "Cleaning workspace dashboards (except dbdemos*) to overwrite existing and avoid duplicates..."
     if uv run python scripts/dashboards.py clean-workspace-except-dbdemos 2>/dev/null; then
       echo "Workspace dashboards cleaned."
     else

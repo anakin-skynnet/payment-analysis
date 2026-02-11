@@ -60,7 +60,7 @@ Our widget choices follow the [AI/BI dashboard visualization types](https://lear
 
 | Official type | Best for (per docs) | Our use | Verified |
 |---------------|---------------------|---------|----------|
-| **Line** | Change in one or more metrics over time | Time series (approval trends, volume per second, bronze/silver hourly, daily trends, alerts over time) | ✓ |
+| **Line** | Change in one or more metrics over time | Time series (approval trends by second, volume per second, bronze/silver by second, daily trends, alerts over time) | ✓ |
 | **Pie** | Proportionality between metrics; *not* for time series | Category distribution (solution, geography, decline reason, routing, segment, etc.) | ✓ |
 | **Bar** | Change in metrics over time or across categories; proportionality | Category + metric when not using pie (sort by value descending) | ✓ |
 | **Table** | Standard table; reorder, hide, format | Multi-column KPI rows (executive KPIs, last hour, quality summary), alert detail, multi-field datasets | ✓ |

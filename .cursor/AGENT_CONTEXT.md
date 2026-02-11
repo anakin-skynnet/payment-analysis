@@ -23,11 +23,11 @@ This file consolidates knowledge and context from all conversation prompts so th
 
 - **Gold views (by-second, real-time):** In `src/payment_analysis/transform/gold_views.sql`:
   - `v_approval_trends_by_second` — approval trends by second (last 1 hour).
-  - `v_streaming_ingestion_by_second` — bronze ingestion by second.
-  - `v_silver_processed_by_second` — silver processed by second.
-  - Hourly views kept for historical use where needed.
+  - `v_approval_trends_hourly` — same per-second granularity (event_second), last 1 hour; name kept for backward compatibility.
+  - `v_streaming_ingestion_by_second`, `v_streaming_ingestion_hourly` (now by-second), `v_silver_processed_by_second`, `v_silver_processed_hourly` (now by-second) — bronze/silver ingestion by second.
+  - `v_streaming_volume_per_second` — volume per second; time column is `event_second`.
 
-- **Dashboard datasets:** Executive Overview, Daily Trends, and Streaming Data Quality use the by-second views; dataset time column is `event_second` (widgets use it on x-axis). `v_streaming_volume_per_second` still uses column name `hour` in the view.
+- **Dashboard datasets:** Executive Overview, Daily Trends, Real-Time Monitoring, and Streaming Data Quality use by-second views; time column is `event_second` (widgets use it on x-axis).
 
 - **Dashboard script** `scripts/dashboards.py`:
   - ASSETS list includes the new by-second views.
@@ -85,7 +85,7 @@ This file consolidates knowledge and context from all conversation prompts so th
 | Agent framework (orchestrator + specialists) | `src/payment_analysis/agents/agent_framework.py` |
 | Agent API (list, chat, orchestrator chat) | `src/payment_analysis/backend/routes/agents.py` |
 | Job ID resolution (setup + orchestrator) | `src/payment_analysis/backend/routes/setup.py` (`resolve_orchestrator_job_id`, `_resolve_job_and_pipeline_ids`) |
-| Gold views (hourly + by-second) | `src/payment_analysis/transform/gold_views.sql` |
+| Gold views (by-second real-time + daily/other) | `src/payment_analysis/transform/gold_views.sql` |
 | Dashboard source JSONs | `resources/dashboards/*.lvdash.json` |
 | Dashboard script | `scripts/dashboards.py` |
 | Bundle app + job bindings | `resources/fastapi_app.yml`, `resources/agents.yml` |

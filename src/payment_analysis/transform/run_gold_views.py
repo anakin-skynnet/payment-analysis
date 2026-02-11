@@ -48,7 +48,7 @@ if not spark.catalog.tableExists("payments_enriched_silver"):  # type: ignore[na
     )
 
 # Ensure payments_raw_bronze exists so streaming/quality views (v_streaming_ingestion_by_second,
-# v_streaming_ingestion_hourly, v_data_quality_summary) can be created. The Lakeflow pipeline creates
+# v_streaming_ingestion_hourly [now by-second], v_data_quality_summary) can be created. The Lakeflow pipeline creates
 # this table when it runs; if the pipeline has not run yet, create a minimal stub so dashboards work.
 if not spark.catalog.tableExists("payments_raw_bronze"):  # type: ignore[name-defined]
     spark.sql(

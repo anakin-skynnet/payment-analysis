@@ -33,10 +33,10 @@ SELECT
     MAX(event_time) as period_end
 FROM payments_enriched_silver;
 
--- View 2: Approval Trends by Hour (historical)
+-- View 2: Approval Trends by Second (real-time). View name v_approval_trends_hourly kept for backward compatibility.
 CREATE OR REPLACE VIEW v_approval_trends_hourly AS
 SELECT 
-    DATE_TRUNC('hour', event_time) as hour,
+    DATE_TRUNC('second', event_time) as event_second,
     COUNT(*) as transaction_count,
     SUM(CASE WHEN is_approved THEN 1 ELSE 0 END) as approved_count,
     ROUND(SUM(CASE WHEN is_approved THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as approval_rate_pct,
@@ -44,9 +44,10 @@ SELECT
     ROUND(SUM(amount), 2) as total_value,
     COUNT(DISTINCT merchant_segment) as active_segments
 FROM payments_enriched_silver
-WHERE event_time >= CURRENT_TIMESTAMP() - INTERVAL 7 DAYS
-GROUP BY DATE_TRUNC('hour', event_time)
-ORDER BY hour DESC;
+WHERE event_time >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR
+GROUP BY DATE_TRUNC('second', event_time)
+ORDER BY event_second DESC
+LIMIT 3600;
 
 -- View 2b: Approval Trends by Second (real-time, last hour)
 CREATE OR REPLACE VIEW v_approval_trends_by_second AS
@@ -259,15 +260,16 @@ ORDER BY event_date DESC;
 -- STREAMING & DATA QUALITY VIEWS
 -- ===========================================================================
 
--- View 13: Streaming ingestion by hour (bronze layer)
+-- View 13: Streaming ingestion by second (bronze layer, real-time)
 CREATE OR REPLACE VIEW v_streaming_ingestion_hourly AS
 SELECT
-    DATE_TRUNC('hour', _ingested_at) AS hour,
+    DATE_TRUNC('second', _ingested_at) AS event_second,
     COUNT(*) AS bronze_record_count
 FROM payments_raw_bronze
-WHERE _ingested_at >= CURRENT_TIMESTAMP() - INTERVAL 7 DAYS
-GROUP BY DATE_TRUNC('hour', _ingested_at)
-ORDER BY hour DESC;
+WHERE _ingested_at >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR
+GROUP BY DATE_TRUNC('second', _ingested_at)
+ORDER BY event_second DESC
+LIMIT 3600;
 
 -- View 13b: Streaming ingestion by second (real-time, bronze)
 CREATE OR REPLACE VIEW v_streaming_ingestion_by_second AS
@@ -280,15 +282,16 @@ GROUP BY DATE_TRUNC('second', _ingested_at)
 ORDER BY event_second DESC
 LIMIT 3600;
 
--- View 14: Silver processed by hour (enriched records)
+-- View 14: Silver processed by second (enriched records, real-time)
 CREATE OR REPLACE VIEW v_silver_processed_hourly AS
 SELECT
-    DATE_TRUNC('hour', event_timestamp) AS hour,
+    DATE_TRUNC('second', event_timestamp) AS event_second,
     COUNT(*) AS silver_record_count
 FROM payments_enriched_silver
-WHERE event_timestamp >= CURRENT_TIMESTAMP() - INTERVAL 7 DAYS
-GROUP BY DATE_TRUNC('hour', event_timestamp)
-ORDER BY hour DESC;
+WHERE event_timestamp >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR
+GROUP BY DATE_TRUNC('second', event_timestamp)
+ORDER BY event_second DESC
+LIMIT 3600;
 
 -- View 14b: Silver processed by second (real-time)
 CREATE OR REPLACE VIEW v_silver_processed_by_second AS
@@ -301,21 +304,21 @@ GROUP BY DATE_TRUNC('second', event_timestamp)
 ORDER BY event_second DESC
 LIMIT 3600;
 
--- View 14b: Real-time streaming volume per second (from silver; always includes current second for live widget)
+-- View 14c: Real-time streaming volume per second (from silver; always includes current second for live widget)
 -- Uses payments_enriched_silver so the view exists even when streaming/bronze is not set up.
 CREATE OR REPLACE VIEW v_streaming_volume_per_second AS
-SELECT hour, records_per_second FROM (
+SELECT event_second, records_per_second FROM (
     SELECT
-        DATE_TRUNC('second', event_timestamp) AS hour,
+        DATE_TRUNC('second', event_timestamp) AS event_second,
         COUNT(*) AS records_per_second
     FROM payments_enriched_silver
     WHERE event_timestamp >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR
     GROUP BY DATE_TRUNC('second', event_timestamp)
     UNION ALL
-    SELECT DATE_TRUNC('second', CURRENT_TIMESTAMP()) AS hour, CAST(0 AS BIGINT) AS records_per_second
+    SELECT DATE_TRUNC('second', CURRENT_TIMESTAMP()) AS event_second, CAST(0 AS BIGINT) AS records_per_second
 ) AS t
-ORDER BY hour DESC
-LIMIT 168;
+ORDER BY event_second DESC
+LIMIT 3600;
 
 -- View 15: Data quality summary (single row: volumes and retention)
 CREATE OR REPLACE VIEW v_data_quality_summary AS

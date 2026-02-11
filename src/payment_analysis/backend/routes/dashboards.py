@@ -81,7 +81,7 @@ DASHBOARDS = [
     DashboardInfo(
         id="realtime_monitoring",
         name="Real-Time Payment Monitoring",
-        description="Live monitoring of payment system health and alerts. Shows last hour performance, active alerts, and real-time metrics.",
+        description="Live monitoring with per-second real-time charts, last hour summary KPIs, and active alerts.",
         category=DashboardCategory.OPERATIONS,
         tags=["realtime", "monitoring", "alerts", "health"],
         url_path="/sql/dashboards/realtime_monitoring",

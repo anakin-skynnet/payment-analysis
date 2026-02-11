@@ -97,7 +97,7 @@ export interface ApprovalTrendOut {
   approval_rate_pct: number;
   approved_count: number;
   avg_fraud_score: number;
-  hour: string;
+  event_second: string;
   total_value: number;
   transaction_count: number;
 }
@@ -798,7 +798,7 @@ export interface GetStreamingTpsParams {
 }
 
 export interface GetApprovalTrendsParams {
-  hours?: number;
+  seconds?: number;
 }
 
 export interface ListDashboardsParams {
@@ -1712,7 +1712,7 @@ export function useGetStreamingTpsSuspense<TData = { data: StreamingTpsPointOut[
 
 export const getApprovalTrends = async (params?: GetApprovalTrendsParams, options?: RequestInit): Promise<{ data: ApprovalTrendOut[] }> => {
   const searchParams = new URLSearchParams();
-  if (params?.hours != null) searchParams.set("hours", String(params?.hours));
+  if (params?.seconds != null) searchParams.set("seconds", String(params?.seconds));
   const queryString = searchParams.toString();
   const url = queryString ? `/api/analytics/trends?${queryString}` : `/api/analytics/trends`;
   const res = await fetch(url, { ...options, method: "GET" });

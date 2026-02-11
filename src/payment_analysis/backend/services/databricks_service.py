@@ -308,20 +308,20 @@ class DatabricksService:
         
         return MockDataGenerator.kpis()
     
-    async def get_approval_trends(self, hours: int = 168) -> list[dict[str, Any]]:
-        """Fetch approval rate trends over specified hours."""
-        hours = min(max(hours, 1), 720)  # Clamp to 1-720 hours
+    async def get_approval_trends(self, seconds: int = 3600) -> list[dict[str, Any]]:
+        """Fetch approval rate trends by second (real-time; last N seconds, max 3600)."""
+        seconds = min(max(seconds, 1), 3600)  # Clamp to 1-3600 seconds (1 hour)
         
         query = f"""
-            SELECT hour, transaction_count, approved_count,
+            SELECT event_second, transaction_count, approved_count,
                    approval_rate_pct, avg_fraud_score, total_value
             FROM {self.config.full_schema_name}.v_approval_trends_hourly
-            ORDER BY hour DESC
-            LIMIT {hours}
+            ORDER BY event_second DESC
+            LIMIT {seconds}
         """
         
         results = await self.execute_query(query)
-        return results or MockDataGenerator.approval_trends(hours)
+        return results or MockDataGenerator.approval_trends(seconds)
     
     async def get_decline_summary(self) -> list[dict[str, Any]]:
         """Fetch top decline reasons with recovery potential."""
@@ -493,9 +493,9 @@ class DatabricksService:
         """Fetch real-time TPS (transactions per second) from v_streaming_volume_per_second for live monitor."""
         limit_seconds = max(60, min(limit_seconds, 3600))
         query = f"""
-            SELECT hour AS event_second, records_per_second
+            SELECT event_second, records_per_second
             FROM {self.config.full_schema_name}.v_streaming_volume_per_second
-            ORDER BY hour ASC
+            ORDER BY event_second ASC
             LIMIT {limit_seconds}
         """
         try:
@@ -1031,7 +1031,7 @@ class DatabricksService:
         elif "v_top_decline_reasons" in query_lower:
             return MockDataGenerator.decline_summary()
         elif "v_approval_trends" in query_lower:
-            return MockDataGenerator.approval_trends(24)
+            return MockDataGenerator.approval_trends(3600)
         elif "v_solution_performance" in query_lower:
             return MockDataGenerator.solution_performance()
         elif "v_smart_checkout_service_path_br" in query_lower:
@@ -1096,21 +1096,22 @@ class MockDataGenerator:
         }
     
     @staticmethod
-    def approval_trends(hours: int) -> list[dict[str, Any]]:
-        """Generate mock approval trends."""
+    def approval_trends(seconds: int) -> list[dict[str, Any]]:
+        """Generate mock approval trends by second (real-time)."""
         import random
         
         base_time = datetime.now()
+        n = min(seconds, 3600)
         return [
             {
-                "hour": (base_time - timedelta(hours=i)).isoformat(),
+                "event_second": (base_time - timedelta(seconds=i)).isoformat(),
                 "transaction_count": random.randint(500, 1500),
                 "approved_count": random.randint(400, 1300),
                 "approval_rate_pct": round(random.uniform(82, 92), 2),
                 "avg_fraud_score": round(random.uniform(0.05, 0.20), 3),
                 "total_value": round(random.uniform(50000, 150000), 2),
             }
-            for i in range(hours)
+            for i in range(n)
         ]
     
     @staticmethod

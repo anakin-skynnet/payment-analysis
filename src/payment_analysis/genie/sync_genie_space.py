@@ -108,7 +108,7 @@ This space provides access to payment transaction analytics.
 - For overall metrics, start with v_executive_kpis
 - For decline analysis, use v_top_decline_reasons
 - For geographic breakdown, use v_performance_by_geography
-- For time trends, use v_daily_trends or v_approval_trends_hourly
+- For time trends, use v_daily_trends or v_approval_trends_by_second (or v_approval_trends_hourly; both return per-second data with event_second)
 """
 }
 
