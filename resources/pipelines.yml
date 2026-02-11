@@ -38,7 +38,7 @@ resources:
       development: true
       photon: true
 
-    # 9. Dedicated real-time pipeline (single notebook)
+    # 9. Dedicated real-time pipeline (single notebook). Continuous streaming (not triggered).
     payment_realtime_pipeline:
       name: "[${var.environment}] 9. Payment Real-Time Stream"
       catalog: ${var.catalog}
@@ -49,12 +49,11 @@ resources:
         schema_name: ${var.schema}
         spark.databricks.delta.optimizeWrite.enabled: "true"
         spark.databricks.delta.autoCompact.enabled: "true"
-        pipelines.trigger.interval: "2 seconds"
         pipelines.enableAutoOptimize: "true"
       libraries:
         - notebook:
             path: ${workspace.root_path}/src/payment_analysis/streaming/realtime_pipeline
       serverless: true
       continuous: true
-      development: true
+      development: false
       photon: true

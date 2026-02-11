@@ -878,6 +878,84 @@ def cmd_delete_workspace_dashboards(path: str | None, recursive: bool) -> int:
         return 1
 
 
+def _list_workspace_recursive(path: str, timeout_per_call: int = 30) -> list[dict]:
+    """List workspace path and recurse into directories. Returns flat list of all objects (path, object_type)."""
+    try:
+        result = subprocess.run(
+            ["databricks", "workspace", "list", path.rstrip("/"), "-o", "json"],
+            capture_output=True,
+            text=True,
+            timeout=timeout_per_call,
+        )
+        result.check_returncode()
+        objects = json.loads(result.stdout)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, json.JSONDecodeError):
+        return []
+    all_objs = objects if isinstance(objects, list) else []
+    out: list[dict] = []
+    for o in all_objs:
+        p = (o.get("path") or "").strip()
+        obj_type = (o.get("object_type") or "").strip()
+        if not p:
+            continue
+        out.append({"path": p, "object_type": obj_type})
+        if obj_type == "DIRECTORY":
+            out.extend(_list_workspace_recursive(p, timeout_per_call))
+    return out
+
+
+def cmd_clean_all_my_dashboards_except_dbdemos(path: str | None, dry_run: bool) -> int:
+    """List all dashboards under workspace (recursive) and delete any whose name does NOT start with 'dbdemos'.
+    Default: scan from bundle root (your project folder). Use --path /Workspace/Users/<you>/ to scan your entire user workspace."""
+    root = (path or get_workspace_root() or "").rstrip("/")
+    if not root:
+        print(
+            "Error: could not get workspace path. Pass --path /Workspace/Users/.../payment-analysis or /Workspace/Users/<you>/",
+            file=sys.stderr,
+        )
+        return 1
+    print(f"Scanning workspace under {root} for dashboards (keeping names starting with 'dbdemos')...")
+    all_objs = _list_workspace_recursive(root)
+    dashboards = [o["path"] for o in all_objs if o.get("object_type") == "DASHBOARD"]
+    to_delete = []
+    for p in dashboards:
+        name = p.split("/")[-1]
+        if not name.lower().startswith("dbdemos"):
+            to_delete.append(p)
+    if not to_delete:
+        print("No dashboards to delete (all dashboards found start with 'dbdemos' or none found).")
+        return 0
+    print(f"Deleting {len(to_delete)} dashboard(s) that do not start with 'dbdemos':")
+    for p in to_delete:
+        print(f"  - {p}")
+    if dry_run:
+        print("Dry run: no changes made.")
+        return 0
+    failed = []
+    for p in to_delete:
+        try:
+            subprocess.run(
+                ["databricks", "workspace", "delete", p],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            print(f"Deleted: {p.split('/')[-1]}")
+        except subprocess.CalledProcessError as e:
+            err = (e.stderr or e.stdout or str(e)).strip()
+            if "RESOURCE_DOES_NOT_EXIST" in err or "does not exist" in err.lower():
+                pass
+            else:
+                print(f"Failed: {p} — {err}", file=sys.stderr)
+                failed.append(p)
+    if failed:
+        print(f"Failed to delete {len(failed)} dashboard(s).", file=sys.stderr)
+        return 1
+    print(f"Successfully deleted {len(to_delete)} dashboard(s).")
+    return 0
+
+
 def cmd_clean_non_dbdemos_dashboards(path: str | None, dry_run: bool) -> int:
     """List dashboards under workspace .../dashboards and delete any whose name does NOT start with 'dbdemos'."""
     root = path or get_workspace_root()
@@ -1048,6 +1126,13 @@ def main() -> int:
     p_clean = sub.add_parser("clean-workspace-except-dbdemos", help="Delete all dashboards under .../dashboards except those whose name starts with 'dbdemos'")
     p_clean.add_argument("--path", default=None, help="Workspace root path")
     p_clean.add_argument("--dry-run", action="store_true", help="Only list dashboards that would be deleted")
+    # clean-all-my-dashboards-except-dbdemos
+    p_clean_all = sub.add_parser(
+        "clean-all-my-dashboards-except-dbdemos",
+        help="Recursively find and delete ALL dashboards in your workspace (where you are owner) except names starting with 'dbdemos'. Default: scan from your user folder.",
+    )
+    p_clean_all.add_argument("--path", default=None, help="Workspace path to scan (e.g. /Workspace/Users/<you>/). Default: parent of bundle root = your user folder.")
+    p_clean_all.add_argument("--dry-run", action="store_true", help="Only list dashboards that would be deleted")
     args = parser.parse_args()
 
     if args.cmd == "prepare":
@@ -1072,6 +1157,8 @@ def main() -> int:
         return cmd_delete_workspace_dashboards(args.path, recursive=not getattr(args, "no_recursive", False))
     if args.cmd == "clean-workspace-except-dbdemos":
         return cmd_clean_non_dbdemos_dashboards(args.path, dry_run=getattr(args, "dry_run", False))
+    if args.cmd == "clean-all-my-dashboards-except-dbdemos":
+        return cmd_clean_all_my_dashboards_except_dbdemos(args.path, dry_run=getattr(args, "dry_run", False))
     return 1
 
 

@@ -119,7 +119,7 @@ function SidebarLayout({ children }: SidebarLayoutProps) {
           <SidebarTrigger className="-ml-1 cursor-pointer rounded-lg p-2 transition-colors hover:bg-sidebar-accent/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" aria-label="Toggle sidebar" />
           <div className="flex flex-col min-w-0 flex-1 md:flex-row md:items-center md:gap-4">
             <h1 className="text-base md:text-lg font-semibold text-foreground truncate order-2 md:order-1">
-              getnet Global Payments Command Center
+              Getnet Global Payments Command Center
             </h1>
             <Breadcrumb />
           </div>

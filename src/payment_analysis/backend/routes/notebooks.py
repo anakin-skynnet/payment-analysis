@@ -28,8 +28,6 @@ from ..dependencies import ConfigDep, _request_host_for_derivation
 
 router = APIRouter(tags=["notebooks"])
 
-_databricks_config = AppConfig().databricks
-
 
 def _workspace_base_url_for_request(request: Request, config: AppConfig) -> str:
     """Return absolute Databricks workspace base URL for links (notebooks, folders). Same logic as GET /api/config/workspace."""

@@ -136,21 +136,6 @@ class DatabricksConfig(BaseSettings):
         description="Workspace ID (e.g. for dashboard embed URL query param 'o'). Set DATABRICKS_WORKSPACE_ID.",
         validation_alias="DATABRICKS_WORKSPACE_ID",
     )
-    workspace_path: str = Field(
-        description="Workspace deployment path",
-        default="/Workspace/Users/${workspace.current_user.userName}/payment-analysis"
-    )
-
-    def get_notebook_path(self, relative_path: str) -> str:
-        """Construct full notebook workspace path dynamically."""
-        user_email = os.getenv("DATABRICKS_USER", "${workspace.current_user.userName}")
-        folder = os.getenv("BUNDLE_FOLDER", "payment-analysis")
-        base_path = f"/Workspace/Users/{user_email}/{folder}/files"
-        return f"{base_path}/{relative_path}"
-    
-    def get_workspace_url(self, path: str) -> str:
-        """Construct full workspace URL dynamically."""
-        return f"{self.workspace_url}/workspace{path}"
 
 
 class DatabaseConfig(BaseSettings):
@@ -166,11 +151,6 @@ class DatabaseConfig(BaseSettings):
         description="Postgres database name inside the Lakebase instance (match bundle lakebase_database_name)",
         default="payment_analysis",
         validation_alias="LAKEBASE_DATABASE_NAME",
-    )
-    instance_name: str = Field(
-        default="",
-        description="(Unused) Lakebase Autoscaling only; kept for backward compatibility.",
-        validation_alias="PGAPPNAME",
     )
     postgres_project_id: str = Field(
         default="",

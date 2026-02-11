@@ -24,7 +24,7 @@ resources:
       index_type: "DELTA_SYNC"
       delta_sync_index_spec:
         source_table: "${var.catalog}.${var.schema}.transaction_summaries_for_search"
-        pipeline_type: "TRIGGERED"
+        pipeline_type: "CONTINUOUS"
         embedding_source_columns:
           - name: "summary_text"
             embedding_model_endpoint_name: "databricks-bge-large-en"

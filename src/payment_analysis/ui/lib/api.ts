@@ -644,6 +644,11 @@ export interface SolutionPerformanceOut {
   transaction_count: number;
 }
 
+export interface StreamingTpsPointOut {
+  event_second: string;
+  records_per_second: number;
+}
+
 export interface TaskIn {
   action?: string | null;
   owner?: string | null;
@@ -786,6 +791,10 @@ export interface GetSmartCheckoutPathPerformanceParams {
 export interface GetSmartCheckoutServicePathsParams {
   entity?: string;
   limit?: number;
+}
+
+export interface GetStreamingTpsParams {
+  limit_seconds?: number;
 }
 
 export interface GetApprovalTrendsParams {
@@ -1672,6 +1681,33 @@ export function useGetSolutionPerformance<TData = { data: SolutionPerformanceOut
 
 export function useGetSolutionPerformanceSuspense<TData = { data: SolutionPerformanceOut[] }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: SolutionPerformanceOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getSolutionPerformanceKey(), queryFn: () => getSolutionPerformance(), ...options?.query });
+}
+
+export const getStreamingTps = async (params?: GetStreamingTpsParams, options?: RequestInit): Promise<{ data: StreamingTpsPointOut[] }> => {
+  const searchParams = new URLSearchParams();
+  if (params?.limit_seconds != null) searchParams.set("limit_seconds", String(params?.limit_seconds));
+  const queryString = searchParams.toString();
+  const url = queryString ? `/api/analytics/streaming-tps?${queryString}` : `/api/analytics/streaming-tps`;
+  const res = await fetch(url, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getStreamingTpsKey = (params?: GetStreamingTpsParams) => {
+  return ["/api/analytics/streaming-tps", params] as const;
+};
+
+export function useGetStreamingTps<TData = { data: StreamingTpsPointOut[] }>(options?: { params?: GetStreamingTpsParams; query?: Omit<UseQueryOptions<{ data: StreamingTpsPointOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getStreamingTpsKey(options?.params), queryFn: () => getStreamingTps(options?.params), ...options?.query });
+}
+
+export function useGetStreamingTpsSuspense<TData = { data: StreamingTpsPointOut[] }>(options?: { params?: GetStreamingTpsParams; query?: Omit<UseSuspenseQueryOptions<{ data: StreamingTpsPointOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getStreamingTpsKey(options?.params), queryFn: () => getStreamingTps(options?.params), ...options?.query });
 }
 
 export const getApprovalTrends = async (params?: GetApprovalTrendsParams, options?: RequestInit): Promise<{ data: ApprovalTrendOut[] }> => {

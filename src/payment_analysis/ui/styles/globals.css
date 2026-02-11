@@ -57,6 +57,8 @@
   --sidebar-accent-foreground: oklch(0.28 0.05 27);
   --sidebar-border: oklch(0.92 0.01 0);
   --sidebar-ring: oklch(0.52 0.22 27);
+  --getnet-red: #EC0000;
+  --neon-cyan: #00B8D4;
 }
 
 .dark {
@@ -67,7 +69,7 @@
   --card-foreground: oklch(0.97 0.005 260);
   --popover: oklch(0.19 0.012 260);
   --popover-foreground: oklch(0.97 0.005 260);
-  /* Getnet red — primary accent for key actions and data highlights */
+  /* Getnet red — primary accent for key actions and data highlights (Santander/Getnet #EC0000) */
   --primary: oklch(0.62 0.22 27);
   --primary-foreground: oklch(0.14 0.02 27);
   --secondary: oklch(0.26 0.02 260);
@@ -81,11 +83,14 @@
   --border: oklch(0.28 0.02 260);
   --input: oklch(0.28 0.02 260);
   --ring: oklch(0.62 0.22 27);
+  /* Command Center charts: Getnet red + neon cyan for graph lines */
   --chart-1: oklch(0.62 0.22 27);
   --chart-2: oklch(0.6 0.12 200);
   --chart-3: oklch(0.7 0.1 160);
   --chart-4: oklch(0.6 0.14 190);
   --chart-5: oklch(0.65 0.08 140);
+  --getnet-red: #EC0000;
+  --neon-cyan: #00E5FF;
   --elevation-1: 0 1px 3px oklch(0 0 0 / 0.2);
   --elevation-2: 0 8px 24px oklch(0 0 0 / 0.28);
   --elevation-3: 0 16px 40px oklch(0 0 0 / 0.35);

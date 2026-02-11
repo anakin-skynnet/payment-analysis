@@ -489,6 +489,29 @@ class DatabricksService:
             }
         return MockDataGenerator.last_hour_performance()
 
+    async def get_streaming_tps(self, limit_seconds: int = 300) -> list[dict[str, Any]]:
+        """Fetch real-time TPS (transactions per second) from v_streaming_volume_per_second for live monitor."""
+        limit_seconds = max(60, min(limit_seconds, 3600))
+        query = f"""
+            SELECT hour AS event_second, records_per_second
+            FROM {self.config.full_schema_name}.v_streaming_volume_per_second
+            ORDER BY hour ASC
+            LIMIT {limit_seconds}
+        """
+        try:
+            results = await self.execute_query(query)
+            if results:
+                return [
+                    {
+                        "event_second": str(row.get("event_second", "") or ""),
+                        "records_per_second": int(row.get("records_per_second", 0) or 0),
+                    }
+                    for row in results
+                ]
+        except Exception as e:
+            logger.debug("get_streaming_tps failed: %s", e)
+        return MockDataGenerator.streaming_tps(limit_seconds=limit_seconds)
+
     async def get_data_quality_summary(self) -> dict[str, Any]:
         """Fetch data quality summary (bronze/silver volumes, retention) from Databricks."""
         query = f"""
@@ -1027,6 +1050,8 @@ class DatabricksService:
             return MockDataGenerator.performance_by_geography()
         elif "v_last_hour_performance" in query_lower:
             return [MockDataGenerator.last_hour_performance()]
+        elif "v_streaming_volume_per_second" in query_lower:
+            return MockDataGenerator.streaming_tps(limit_seconds=300)
         elif "v_data_quality_summary" in query_lower:
             return [MockDataGenerator.data_quality_summary()]
         elif ".countries" in query_lower:
@@ -1318,6 +1343,23 @@ class MockDataGenerator:
             "high_risk_transactions": 8,
             "declines_last_hour": 4140,
         }
+
+    @staticmethod
+    def streaming_tps(limit_seconds: int = 300) -> list[dict[str, Any]]:
+        """Mock TPS time series for real-time ingestion monitor (Simulate Transaction Events -> ETL -> Real-Time Stream)."""
+        now = datetime.now()
+        out: list[dict[str, Any]] = []
+        base_tps = 18
+        for i in range(limit_seconds - 1, -1, -1):
+            ts = now - timedelta(seconds=i)
+            # Slight variation for demo
+            variation = (hash(ts.isoformat()) % 7) - 3
+            tps = max(5, base_tps + variation)
+            out.append({
+                "event_second": ts.strftime("%Y-%m-%dT%H:%M:%S"),
+                "records_per_second": tps,
+            })
+        return out
 
     @staticmethod
     def data_quality_summary() -> dict[str, Any]:

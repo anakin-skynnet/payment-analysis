@@ -5,14 +5,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createIncident,
   listIncidents,
+  useGetLastHourPerformance,
+  useGetStreamingTps,
   type Incident,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Code2, AlertTriangle } from "lucide-react";
+import { ExternalLink, Code2, AlertTriangle, Activity } from "lucide-react";
 import { getDashboardUrl, openInDatabricks } from "@/config/workspace";
+
+const REFRESH_MS = 5000;
 
 export const Route = createFileRoute("/_sidebar/incidents")({
   component: () => <Incidents />,
@@ -41,6 +45,8 @@ function Incidents() {
     queryKey: ["incidents"],
     queryFn: () => listIncidents(),
   });
+  const lastHourQ = useGetLastHourPerformance({ query: { refetchInterval: REFRESH_MS } });
+  const tpsQ = useGetStreamingTps({ params: { limit_seconds: 120 }, query: { refetchInterval: REFRESH_MS } });
 
   const create = useMutation({
     mutationFn: () => createIncident({ category, key, severity: "medium", details: {} }),
@@ -48,28 +54,23 @@ function Incidents() {
   });
 
   const items = q.data?.data ?? [];
+  const lastHour = lastHourQ.data?.data;
+  const eventsPerSec = lastHour?.transactions_last_hour != null ? Math.round(lastHour.transactions_last_hour / 3600) : null;
+  const tpsPoints = tpsQ.data?.data ?? [];
+  const latestTps = tpsPoints.length > 0 ? tpsPoints[tpsPoints.length - 1]?.records_per_second : null;
 
   return (
     <div className="space-y-6">
-      {/* Header with Links */}
       <div>
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Incidents</h1>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h1 className="text-2xl font-semibold tracking-tight">Real-Time Monitor</h1>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={openDashboard}
-            >
+            <Button variant="outline" size="sm" onClick={openDashboard}>
               <AlertTriangle className="w-4 h-4 mr-2" />
               Monitoring Dashboard
               <ExternalLink className="w-3 h-3 ml-2" />
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openNotebook("realtime_pipeline")}
-            >
+            <Button variant="outline" size="sm" onClick={() => openNotebook("realtime_pipeline")}>
               <Code2 className="w-4 h-4 mr-2" />
               Alert Pipeline
               <ExternalLink className="w-3 h-3 ml-2" />
@@ -77,8 +78,40 @@ function Incidents() {
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2">
-          Track and manage payment processing incidents and alerts
+          Live view: Simulate Transaction Events → Payment Analysis ETL &amp; Payment Real-Time Stream. Refresh every 5s.
         </p>
+      </div>
+
+      {/* Real-time stats strip */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Card className="border border-[var(--neon-cyan)]/20 bg-[var(--neon-cyan)]/5">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Activity className="h-4 w-4 text-[var(--neon-cyan)]" />
+              TPS (live)
+            </div>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--neon-cyan)]">
+              {tpsQ.isLoading ? "—" : (latestTps ?? eventsPerSec ?? "—")}
+            </p>
+            <p className="text-xs text-muted-foreground">transactions/sec</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="text-sm text-muted-foreground">Last hour volume</div>
+            <p className="mt-1 text-2xl font-bold tabular-nums">
+              {lastHourQ.isLoading ? "—" : (lastHour?.transactions_last_hour?.toLocaleString() ?? "—")}
+            </p>
+            <p className="text-xs text-muted-foreground">approval {lastHour?.approval_rate_pct != null ? `${lastHour.approval_rate_pct.toFixed(1)}%` : "—"}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="text-sm text-muted-foreground">Incidents</div>
+            <p className="mt-1 text-2xl font-bold tabular-nums">{items.length}</p>
+            <p className="text-xs text-muted-foreground">open + resolved</p>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>

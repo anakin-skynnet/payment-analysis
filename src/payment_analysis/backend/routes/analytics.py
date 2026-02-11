@@ -207,6 +207,12 @@ class DataQualitySummaryOut(BaseModel):
     latest_silver_event: str
 
 
+class StreamingTpsPointOut(BaseModel):
+    """Single TPS data point for real-time ingestion monitor (from v_streaming_volume_per_second)."""
+    event_second: str
+    records_per_second: int
+
+
 class DedupCollisionStatsOut(BaseModel):
     colliding_keys: int
     avg_rows_per_key: float
@@ -546,6 +552,20 @@ async def data_quality_summary(service: DatabricksServiceDep) -> DataQualitySumm
     """Data quality summary (bronze/silver volumes, retention). Data from Databricks v_data_quality_summary."""
     data = await service.get_data_quality_summary()
     return DataQualitySummaryOut(**data)
+
+
+@router.get(
+    "/streaming-tps",
+    response_model=list[StreamingTpsPointOut],
+    operation_id="getStreamingTps",
+)
+async def streaming_tps(
+    service: DatabricksServiceDep,
+    limit_seconds: int = Query(300, ge=60, le=3600, description="Time window in seconds"),
+) -> list[StreamingTpsPointOut]:
+    """Real-time TPS from streaming pipeline (v_streaming_volume_per_second). Simulate Transaction Events -> ETL -> Payment Real-Time Stream."""
+    data = await service.get_streaming_tps(limit_seconds=limit_seconds)
+    return [StreamingTpsPointOut(event_second=r["event_second"], records_per_second=r["records_per_second"]) for r in data]
 
 
 @router.get(
