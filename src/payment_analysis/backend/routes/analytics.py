@@ -1,4 +1,10 @@
-"""Analytics API: KPIs, trends, reason codes, smart checkout, 3DS funnel, decline summary."""
+"""Analytics API: KPIs, trends, reason codes, smart checkout, 3DS funnel, decline summary.
+
+All data is fetched from Databricks (Unity Catalog views via SQL Warehouse) when the
+connection is available. When Databricks is unavailable, endpoints return mock data
+or, for GET /kpis only, local DB counts. Validate with GET /api/v1/health/databricks.
+See docs/CODE_GUIDELINES_AND_DATA_SOURCES.md.
+"""
 
 from __future__ import annotations
 

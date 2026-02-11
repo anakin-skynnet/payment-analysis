@@ -282,6 +282,13 @@ export interface HealthDatabaseOut {
   status: string;
 }
 
+export interface HealthDatabricksOut {
+  analytics_source: string;
+  databricks_available: boolean;
+  ml_inference_source: string;
+  timestamp: string;
+}
+
 export interface HealthcheckOut {
   status: string;
   timestamp: string;
@@ -2306,6 +2313,29 @@ export function useHealthDatabase<TData = { data: HealthDatabaseOut }>(options?:
 
 export function useHealthDatabaseSuspense<TData = { data: HealthDatabaseOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: HealthDatabaseOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: healthDatabaseKey(), queryFn: () => healthDatabase(), ...options?.query });
+}
+
+export const healthDatabricks = async (options?: RequestInit): Promise<{ data: HealthDatabricksOut }> => {
+  const res = await fetch("/api/v1/health/databricks", { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const healthDatabricksKey = () => {
+  return ["/api/v1/health/databricks"] as const;
+};
+
+export function useHealthDatabricks<TData = { data: HealthDatabricksOut }>(options?: { query?: Omit<UseQueryOptions<{ data: HealthDatabricksOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: healthDatabricksKey(), queryFn: () => healthDatabricks(), ...options?.query });
+}
+
+export function useHealthDatabricksSuspense<TData = { data: HealthDatabricksOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: HealthDatabricksOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: healthDatabricksKey(), queryFn: () => healthDatabricks(), ...options?.query });
 }
 
 export const healthcheck = async (options?: RequestInit): Promise<{ data: HealthcheckOut }> => {
