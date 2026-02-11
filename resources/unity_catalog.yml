@@ -30,7 +30,7 @@ resources:
         Register with mlflow.register_model(..., name=f"{catalog}.agents.{agent_name}").
       grants:
         - principal: users
-          privileges: [USE_SCHEMA, READ_METADATA, USE_CATALOG]
+          privileges: [USE_SCHEMA]
         - principal: ${workspace.current_user.userName}
           privileges: [ALL_PRIVILEGES]
 
