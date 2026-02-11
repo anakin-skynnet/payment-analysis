@@ -12,6 +12,11 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import SidebarUserFooter from "@/components/apx/sidebar-user-footer";
 import { ModeToggle } from "@/components/apx/mode-toggle";
 import { CountrySelect } from "@/components/apx/country-select";
@@ -68,9 +73,14 @@ function Breadcrumb() {
   const label = embedLabel ? `${baseLabel} / ${embedLabel}` : baseLabel;
   return (
     <nav className={cn("flex items-center gap-1.5 text-sm text-muted-foreground min-w-0 flex-1", path === "/command-center" && "md:opacity-70")} aria-label="Breadcrumb">
-      <Link to="/command-center" className="link-anchor hover:text-foreground transition-colors truncate max-w-[8rem] sm:max-w-none" aria-label="Command Center">
-        Overview
-      </Link>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link to="/command-center" className="link-anchor hover:text-foreground transition-colors truncate max-w-[8rem] sm:max-w-none" aria-label="Command Center">
+            Overview
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent>Main hub: KPIs, dashboards, alerts, and AI chat.</TooltipContent>
+      </Tooltip>
       <span aria-hidden className="shrink-0">/</span>
       {path === "/dashboards" && embedId ? (
         <>
@@ -126,12 +136,17 @@ function SidebarLayout({ children }: SidebarLayoutProps) {
           <div className="flex items-center gap-2 shrink-0" role="group" aria-label="Workspace and profile">
             <CountrySelect className="hidden sm:flex" />
             <ModeToggle />
-            <Link
-              to="/profile"
-              className="rounded-full bg-muted px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
-            >
-              CCO Login
-            </Link>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  to="/profile"
+                  className="rounded-full bg-muted px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+                >
+                  CCO Login
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>User profile and settings.</TooltipContent>
+            </Tooltip>
           </div>
         </header>
         <a

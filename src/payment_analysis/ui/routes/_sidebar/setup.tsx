@@ -19,7 +19,13 @@ import {
   RefreshCw,
   Play,
   Gauge,
+  HelpCircle,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ensureAbsoluteWorkspaceUrl, getWorkspaceUrl } from "@/config/workspace";
 import { DataSourceBadge } from "@/components/apx/data-source-badge";
 import {
@@ -295,34 +301,54 @@ function SetupRun() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <Gauge className="h-4 w-4 text-primary" />
-              Control panel — run jobs &amp; pipelines
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center gap-1 cursor-help">
+                    Control panel — run jobs &amp; pipelines
+                    <HelpCircle className="h-3.5 w-3 opacity-60" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[260px]">
+                  Configure catalog/schema and run setup jobs or pipelines. Used to initialize data and refresh job IDs from the workspace.
+                </TooltipContent>
+              </Tooltip>
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               Open the Databricks workspace to see and run all jobs and pipelines in one place. Use the cards below to run individual steps or open a specific job/pipeline.
             </p>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
-            <Button
-              size="lg"
-              className="gap-2"
-              onClick={openJobsList}
-              disabled={!host}
-            >
-              <Play className="h-4 w-4" />
-              Open Jobs
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="gap-2"
-              onClick={openPipelinesList}
-              disabled={!host}
-            >
-              <GitBranch className="h-4 w-4" />
-              Open Pipelines
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="lg"
+                  className="gap-2"
+                  onClick={openJobsList}
+                  disabled={!host}
+                >
+                  <Play className="h-4 w-4" />
+                  Open Jobs
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Open the Jobs list in Databricks to run or monitor setup and agent jobs.</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={openPipelinesList}
+                  disabled={!host}
+                >
+                  <GitBranch className="h-4 w-4" />
+                  Open Pipelines
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Open Lakeflow pipelines in Databricks (ETL and Real-Time Stream).</TooltipContent>
+            </Tooltip>
           </CardContent>
         </Card>
       )}

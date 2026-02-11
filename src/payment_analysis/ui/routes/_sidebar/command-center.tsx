@@ -33,7 +33,13 @@ import {
   TrendingUp,
   TrendingDown,
   CheckCircle2,
+  HelpCircle,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const REFRESH_MS = 5000; // 5s for real-time feel (Simulate Transaction Events → ETL → Real-Time Stream)
 
@@ -144,11 +150,19 @@ function CommandCenter() {
           </h2>
           <Card className="border-2 border-[var(--getnet-red)]/40 bg-[var(--getnet-red)]/10 dark:bg-[var(--getnet-red)]/15">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Gross Approval Rate (GAR)
-                </span>
-                <Target className="h-4 w-4 text-[var(--getnet-red)]" aria-hidden />
+              <div className="flex items-center justify-between gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-sm font-medium text-muted-foreground flex items-center gap-1 cursor-help">
+                      Gross Approval Rate (GAR)
+                      <HelpCircle className="h-3.5 w-3 opacity-60" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[240px]">
+                    Percentage of transactions approved. Used to track payment success and optimize approval rates.
+                  </TooltipContent>
+                </Tooltip>
+                <Target className="h-4 w-4 text-[var(--getnet-red)] shrink-0" aria-hidden />
               </div>
               <p className="mt-2 text-4xl font-bold text-[var(--getnet-red)] tabular-nums">
                 {approvalPct}%
@@ -163,10 +177,18 @@ function CommandCenter() {
           </Card>
           <Card className="border-2 border-orange-500/50 bg-orange-500/10 dark:bg-orange-500/15">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">
-                  False Decline Rate
-                </span>
+              <div className="flex items-center justify-between gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-sm font-medium text-muted-foreground flex items-center gap-1 cursor-help">
+                      False Decline Rate
+                      <HelpCircle className="h-3.5 w-3 opacity-60" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[240px]">
+                    Share of transactions declined that could have been approved. Lower is better; target is to minimize lost revenue.
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <p className="mt-2 text-4xl font-bold text-orange-500 tabular-nums">
                 {falseDeclinePct}%
@@ -181,11 +203,19 @@ function CommandCenter() {
           </Card>
           <Card className="border-2 border-[var(--neon-cyan)]/40 bg-[var(--neon-cyan)]/5 dark:bg-[var(--neon-cyan)]/10">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Data Quality Health
-                </span>
-                <Gauge className="h-4 w-4 text-[var(--neon-cyan)]" aria-hidden />
+              <div className="flex items-center justify-between gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-sm font-medium text-muted-foreground flex items-center gap-1 cursor-help">
+                      Data Quality Health
+                      <HelpCircle className="h-3.5 w-3 opacity-60" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[240px]">
+                    Overall health of bronze/silver data: freshness, retention, and pipeline flow. Ensures analytics are reliable.
+                  </TooltipContent>
+                </Tooltip>
+                <Gauge className="h-4 w-4 text-[var(--neon-cyan)] shrink-0" aria-hidden />
               </div>
               <p className="mt-2 text-4xl font-bold text-[var(--neon-cyan)] tabular-nums">
                 {dataQualityQ.isLoading ? "—" : `${dqScore}%`}
@@ -204,7 +234,17 @@ function CommandCenter() {
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <Activity className="h-4 w-4 text-[var(--neon-cyan)]" />
-                Real-Time Ingestion — TPS
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex items-center gap-1 cursor-help">
+                      Real-Time Ingestion — TPS
+                      <HelpCircle className="h-3.5 w-3 opacity-60" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[260px]">
+                    Transactions per second flowing through the pipeline. Shows live volume from the stream simulator and ETL.
+                  </TooltipContent>
+                </Tooltip>
               </CardTitle>
               <p className="text-xs text-muted-foreground">
                 Transaction volume (Simulate Transaction Events → Payment Analysis ETL &amp; Payment Real-Time Stream). Refresh every 5s.
@@ -226,7 +266,17 @@ function CommandCenter() {
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <Target className="h-4 w-4 text-primary" />
-                Smart Routing Efficiency
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex items-center gap-1 cursor-help">
+                      Smart Routing Efficiency
+                      <HelpCircle className="h-3.5 w-3 opacity-60" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[240px]">
+                    Weighted approval rate across payment solutions. Measures how well routing choices maximize approvals.
+                  </TooltipContent>
+                </Tooltip>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -250,12 +300,19 @@ function CommandCenter() {
         {/* Control Panel trigger — right-side drawer */}
         <div className="flex justify-end">
           <Sheet open={controlOpen} onOpenChange={setControlOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <SlidersHorizontal className="h-4 w-4" />
-                Control Panel
-              </Button>
-            </SheetTrigger>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Control Panel
+                  </Button>
+                </SheetTrigger>
+              </TooltipTrigger>
+              <TooltipContent>
+                Toggle Smart Routing, Fraud Shadow Mode, and trigger algorithm recalculation.
+              </TooltipContent>
+            </Tooltip>
             <SheetContent side="right" className="w-[320px] sm:max-w-sm">
               <SheetHeader>
                 <SheetTitle>Control Panel</SheetTitle>

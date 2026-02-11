@@ -76,18 +76,18 @@ Validates that the solution is **Databricks-native** and aligned with **current 
 
 ## Part 3 — Agent framework (AgentBricks)
 
-Converts payment analysis Python agents to **Mosaic AI Agent Framework (AgentBricks)**: same five specialists and orchestrator, implemented with **MLflow + LangGraph**, tools as **Unity Catalog functions**, deployable to **Model Serving**. **Multi-Agent Supervisor** replaces the Python `OrchestratorAgent`.
+Converts payment analysis Python agents to **Mosaic AI Agent Framework (AgentBricks)** using **LangGraph** for a production-ready multi-agent system: five specialist (tool-calling) agents plus a **supervisor agent** that orchestrates them. Implemented with **MLflow + LangGraph**, tools as **Unity Catalog functions**, deployable to **Model Serving**. The supervisor is a single LangGraph that routes queries to the right specialists and synthesizes results—aligned with AgentBricks Supervisor Agent patterns.
 
-### Current vs AgentBricks
+### Current vs AgentBricks (LangGraph)
 
-| Python agent | AgentBricks type | UC tools (examples) |
-|--------------|-----------------|---------------------|
-| SmartRoutingAgent | Tool-Calling (LangGraph ReAct) | get_route_performance, get_cascade_recommendations |
+| Python agent | AgentBricks type | Behavior |
+|--------------|------------------|----------|
+| SmartRoutingAgent | Tool-Calling (LangGraph ReAct) | UC tools: get_route_performance, get_cascade_recommendations |
 | SmartRetryAgent | Tool-Calling | get_retry_success_rates, get_recovery_opportunities |
 | DeclineAnalystAgent | Tool-Calling | get_decline_trends, get_decline_by_segment |
 | RiskAssessorAgent | Tool-Calling | get_high_risk_transactions, get_risk_distribution |
 | PerformanceRecommenderAgent | Tool-Calling | get_kpi_summary, get_optimization_opportunities, get_trend_analysis |
-| OrchestratorAgent | Multi-Agent Supervisor | Routes to above specialists |
+| OrchestratorAgent | **Supervisor (LangGraph)** | **Router** → selects which specialists to run from the query; **run_specialists** → invokes only those; **synthesize** → single response. Deployed as one compound agent. |
 
 **Best practice:** This project uses the **same schema as data** (`payment_analysis`) for agent tool functions. Use a dedicated schema (e.g. `agent_tools`) only if you need strict least-privilege.
 
@@ -99,6 +99,15 @@ Converts payment analysis Python agents to **Mosaic AI Agent Framework (AgentBri
 4. **Deploy to Model Serving** — Per-agent endpoint or via Agents API / UI.
 5. **Multi-Agent Supervisor** — Workspace → Agents → Multi-Agent Supervisor; add all five as subagents; use its endpoint in the app.
 
+### Registering and deploying agents
+
+- **Register to UC:** Run the registration notebook so agents are logged to MLflow and registered in Unity Catalog.
+  - **From Job 6:** Use the `register_agentbricks` task in `resources/agents.yml`. It runs `src/payment_analysis/agents/agentbricks_register` with widget/env config: `catalog`, `schema`, `model_registry_schema` (default `agents`), `llm_endpoint`.
+  - **Prerequisites:** UC agent tool functions must exist (Job 3 `create_uc_agent_tools`). The schema used for model registry (e.g. `agents`) must exist in the catalog.
+- **Registered model names:** `{catalog}.agents.decline_analyst`, `smart_routing`, `smart_retry`, `risk_assessor`, `performance_recommender`, `orchestrator`. The **orchestrator** is the **supervisor agent**: a LangGraph with **router** (LLM selects which specialists to run), **run_specialists** (invokes only those), and **synthesize**.
+- **Invoking the supervisor/orchestrator:** Pass state with `messages` (e.g. `[HumanMessage(content="...")]`). Entry sets `query` from the last user message; the router chooses specialists (or all); only selected specialists run; then synthesis is returned.
+- **Deploy to AgentBricks / Model Serving:** After registration, create a **Serving** endpoint from the registered `orchestrator` model to get a single supervisor endpoint. You can also deploy each specialist and use the workspace **Agent Bricks: Supervisor Agent** (Agents → Supervisor Agent → Build) and add UC functions or Knowledge Assistant agents as subagents; for subagent endpoints, only Knowledge Assistant–created endpoints are supported.
+
 ### Hybrid architecture (recommended)
 
 - **App:** UI/UX, orchestration logic (route query → supervisor/agent), business rules, dashboards, jobs.
@@ -106,6 +115,7 @@ Converts payment analysis Python agents to **Mosaic AI Agent Framework (AgentBri
 
 ### References
 
+- [Agent Bricks: Supervisor Agent](https://docs.databricks.com/en/generative-ai/agent-bricks/multi-agent-supervisor) — Workspace multi-agent supervisor (subagents: Genie, Knowledge Assistant endpoints, UC functions, MCP).
 - [Integrate LangChain with Databricks Unity Catalog tools](https://docs.databricks.com/en/generative-ai/agent-framework/langchain-uc-integration)
 - [Create AI agent tools using Unity Catalog functions](https://docs.databricks.com/en/generative-ai/agent-framework/create-custom-tool)
 - [Log and load LangChain models with MLflow](https://mlflow.org/docs/latest/python_api/mlflow.langchain.html)

@@ -78,6 +78,7 @@ deprecated = "ignore"
 [tool.ty.src]
 exclude = [
     "files/**",
+    "src/payment_analysis/agents/agentbricks_register.py",
     "src/payment_analysis/agents/langgraph_agents.py",
     "src/payment_analysis/agents/uc_tools/run_create_uc_agent_tools.py",
     "src/payment_analysis/genie/**",

@@ -42,7 +42,13 @@ import {
   Bot,
   LayoutDashboard,
   Search,
+  HelpCircle,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getDashboardUrl, getGenieUrl, openInDatabricks } from "@/config/workspace";
 import { useEntity } from "@/contexts/entity-context";
 import { DataSourceBadge } from "@/components/apx/data-source-badge";
@@ -209,7 +215,17 @@ function Dashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <GitBranch className="w-4 h-4 text-primary" />
-              One system for decisions and dashboards
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center gap-1 cursor-help">
+                    One system for decisions and dashboards
+                    <HelpCircle className="h-3.5 w-3 opacity-60" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[260px]">
+                  Single platform for routing, reason codes, retry, and BI. All decisions and dashboards use the same data and rules.
+                </TooltipContent>
+              </Tooltip>
             </CardTitle>
             <CardDescription>
               Smart Checkout, Reason Codes, and Smart Retry work together to increase approval rates and control risk. One flow from transactions to insights.
@@ -238,15 +254,28 @@ function Dashboard() {
       <motion.div variants={dashboardItem} className="content-section">
         <p className="section-label text-muted-foreground mb-1">Portfolio metrics</p>
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="page-section-title">
-            Key numbers
-          </h2>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <h2 className="page-section-title flex items-center gap-1 cursor-help">
+                Key numbers
+                <HelpCircle className="h-3.5 w-3 opacity-60" />
+              </h2>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[240px]">
+              Portfolio-level approval rate, volume, and fraud score from your connected catalog.
+            </TooltipContent>
+          </Tooltip>
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={openDashboard}>
-              <TrendingUp className="w-4 h-4 mr-2" />
-              Executive Dashboard
-              <ExternalLink className="w-3 h-3 ml-2" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={openDashboard}>
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  Executive Dashboard
+                  <ExternalLink className="w-3 h-3 ml-2" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Open the Executive Overview dashboard in Databricks.</TooltipContent>
+            </Tooltip>
             <Button
               variant="outline"
               size="sm"
