@@ -18,8 +18,8 @@ from sqlmodel import select
 from ..config import DEFAULT_ENTITY
 from ..db_models import AuthorizationEvent, DecisionLog
 from ..decisioning.schemas import KPIOut
-from ..dependencies import SessionDep, DatabricksServiceDep
-from ..lakebase_config import get_countries_from_lakebase, get_online_features_from_lakebase
+from ..dependencies import RuntimeDep, SessionDep, DatabricksServiceDep
+from ..lakebase_config import get_countries_from_lakebase, get_online_features_from_lakebase, write_app_settings_keys
 
 router = APIRouter(tags=["analytics"])
 
@@ -434,11 +434,18 @@ async def metrics(
 async def control_panel(
     payload: ControlPanelIn,
     service: DatabricksServiceDep,
+    rt: RuntimeDep,
 ) -> ControlPanelOut:
-    """Persist control panel toggles and optionally trigger Databricks jobs (Smart Routing, Fraud Shadow, Recalculate Algorithms)."""
-    # TODO: persist to flag table or trigger jobs when Databricks is available
-    if service.is_available:
-        pass  # e.g. await service.update_control_flags(payload) or trigger job
+    """Persist control panel toggles to app_settings. When Databricks is available, job triggers can be added later via config."""
+    settings: dict[str, str] = {}
+    if payload.activate_smart_routing is not None:
+        settings["control_activate_smart_routing"] = "true" if payload.activate_smart_routing else "false"
+    if payload.deploy_fraud_shadow_model is not None:
+        settings["control_deploy_fraud_shadow_model"] = "true" if payload.deploy_fraud_shadow_model else "false"
+    if payload.recalculate_algorithms is not None:
+        settings["control_recalculate_algorithms"] = "true" if payload.recalculate_algorithms else "false"
+    if settings:
+        write_app_settings_keys(rt, settings)
     return ControlPanelOut(ok=True, message="Control panel state received.")
 
 

@@ -19,7 +19,12 @@ export interface ChatMessage {
 const TITLE = "Getnet AI Assistant";
 const PLACEHOLDER = "Ask about approval rates, declines, trends…";
 
-/** Try Orchestrator (Databricks Job) first; fall back to /chat (Genie link) when job not configured. */
+/**
+ * Getnet AI Assistant backend flow:
+ * 1. Try POST /api/agents/orchestrator/chat (Databricks Job 6 – LangGraph Orchestrator).
+ * 2. If that fails, try POST /api/agents/chat: backend uses Databricks Genie Conversation API
+ *    when GENIE_SPACE_ID is set and app has auth; otherwise returns static reply + Genie link.
+ */
 async function sendMessage(message: string): Promise<{
   reply: string;
   genie_url?: string | null;
@@ -172,7 +177,7 @@ export function GetnetAIAssistant({ open: controlledOpen, onOpenChange }: Getnet
       >
         {messages.length === 0 && (
           <p className="text-muted-foreground text-sm">
-            Uses the Orchestrator agent (Databricks) when deployed; otherwise suggests Genie for approval and decline analytics.
+            Uses the Orchestrator agent (Databricks Job 6) when deployed; otherwise uses Databricks Genie or suggests opening Genie for approval and decline analytics.
           </p>
         )}
         {messages.map((m, i) => (

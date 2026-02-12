@@ -23,8 +23,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from ..config import AppConfig, get_default_schema
-from ..dependencies import get_workspace_client
+from ..dependencies import get_workspace_client, get_workspace_client_optional
 from .setup import resolve_orchestrator_job_id
+
+# Optional Genie space for /chat fallback: when set, POST /chat uses Databricks Genie Conversation API.
+GENIE_SPACE_ID_ENV = "GENIE_SPACE_ID"
 
 router = APIRouter(tags=["agents"])
 
@@ -369,14 +372,48 @@ class ChatOut(BaseModel):
     genie_url: str | None = Field(None, description="Open in Genie for full natural-language analytics")
 
 
+def _extract_genie_reply(message: Any) -> str:
+    """Extract assistant text from GenieMessage.attachments (Databricks SDK GenieMessage)."""
+    attachments = getattr(message, "attachments", None) or []
+    for att in attachments:
+        text_att = getattr(att, "text", None)
+        if text_att is not None:
+            content = getattr(text_att, "content", None)
+            if content and isinstance(content, str):
+                return content.strip()
+    return ""
+
+
 @router.post("/chat", response_model=ChatOut, operation_id="postChat")
-async def chat(request: Request, body: ChatIn) -> ChatOut:
+async def chat(
+    request: Request,
+    body: ChatIn,
+    ws: WorkspaceClient | None = Depends(get_workspace_client_optional),
+) -> ChatOut:
     """
-    Getnet AI Assistant: conversational interface over payment data.
-    Returns a reply and optional Genie URL for natural-language queries in the workspace.
+    Getnet AI Assistant fallback: when Orchestrator (Job 6) is not used, this endpoint
+    is called. If GENIE_SPACE_ID is set and the app has Databricks auth, uses the
+    Databricks Genie Conversation API to answer over payment/approval data; otherwise
+    returns a static reply and a link to open Genie in the workspace.
     """
     workspace_url = get_workspace_url()
     genie_url = f"{workspace_url.rstrip('/')}/genie" if workspace_url else None
+    space_id = (os.environ.get(GENIE_SPACE_ID_ENV) or "").strip()
+
+    if space_id and ws is not None:
+        try:
+            import datetime
+            msg = ws.genie.start_conversation_and_wait(
+                space_id=space_id,
+                content=body.message.strip(),
+                timeout=datetime.timedelta(minutes=2),
+            )
+            reply = _extract_genie_reply(msg)
+            if reply:
+                return ChatOut(reply=reply, genie_url=genie_url)
+        except Exception:
+            pass
+
     reply = (
         "I can help you explore payment and approval data. For natural language questions "
         "(e.g. top merchants by approval rate, decline reasons, trends), open Genie in your "

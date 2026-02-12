@@ -48,6 +48,32 @@ def load_app_config_and_settings(runtime: Runtime) -> tuple[tuple[str, str] | No
     return (uc_config, settings)
 
 
+def write_app_settings_keys(runtime: Runtime, settings: dict[str, str]) -> bool:
+    """Write key-value pairs to Lakebase app_settings (e.g. control panel flags). Returns True on success."""
+    config = runtime.config
+    schema_name = (config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
+    if not runtime._db_configured() or not settings:
+        return bool(settings)
+    try:
+        with runtime.get_session() as session:
+            for key, val in settings.items():
+                if not key or not isinstance(val, str):
+                    continue
+                q = text(
+                    f"""
+                    INSERT INTO "{schema_name}".app_settings (key, value)
+                    VALUES (:key, :value)
+                    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = current_timestamp
+                    """
+                )
+                session.execute(q, {"key": key, "value": val})
+            session.commit()
+        return True
+    except Exception as e:
+        logger.warning("Could not write app_settings keys to Lakebase: %s", e)
+        return False
+
+
 def write_app_config(runtime: Runtime, catalog: str, schema: str) -> bool:
     """Write catalog and schema to Lakebase app_config and app_settings. Call after user saves config."""
     config = runtime.config

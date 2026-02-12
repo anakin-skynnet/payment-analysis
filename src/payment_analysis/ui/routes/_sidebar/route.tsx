@@ -1,6 +1,7 @@
 /** Sidebar navigation — getnet Global Payments Command Center (reference layout). */
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import {
+  Activity,
   BarChart3,
   BadgeX,
   Brain,
@@ -8,7 +9,6 @@ import {
   Code2,
   CreditCard,
   FlaskConical,
-  Gauge,
   LayoutDashboard,
   ListChecks,
   MessageSquareText,
@@ -74,27 +74,35 @@ function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
 function Layout() {
   const location = useLocation();
 
-  // Primary nav (spec): Overview, Real-Time Monitor, Performance Deep-Dive, Data Quality
-  const primaryItems: NavItem[] = [
+  // Command Center: overview, services, monitoring+data-quality (unified), dashboards, recommendations
+  const commandCenterItems: NavItem[] = [
     { to: "/command-center", label: "Overview", icon: <LayoutDashboard size={16} />, tooltip: "Executive overview: KPIs, TPS, dashboards, AI chat.", match: (p) => p === "/command-center" || p === "/dashboard" },
-    { to: "/incidents", label: "Real-Time Monitor", icon: <BarChart3 size={16} />, tooltip: "Live volume and incidents.", match: (p) => p === "/incidents" },
+    { to: "/initiatives", label: "Payment Services & Data", icon: <BarChart3 size={16} />, tooltip: "Services and data sources.", match: (p) => p === "/initiatives" },
+    { to: "/data-quality", label: "Monitoring & Data Quality", icon: <Activity size={16} />, tooltip: "Real-time volume, TPS, data quality health, alerts, and incidents.", match: (p) => p === "/data-quality" || p === "/incidents" || p === "/alerts-data-quality" },
     { to: "/dashboards", label: "Performance Deep-Dive", icon: <LayoutDashboard size={16} />, tooltip: "BI dashboards and performance analytics.", match: (p) => p === "/dashboards" },
-    { to: "/alerts-data-quality", label: "Data Quality", icon: <Gauge size={16} />, tooltip: "Alerts and streaming data quality.", match: (p) => p === "/alerts-data-quality" },
+    { to: "/decisioning", label: "Recommendations & decisions", icon: <MessageSquareText size={16} />, tooltip: "Decisioning API.", match: (p) => p === "/decisioning" },
   ];
 
-  const moreItems: NavItem[] = [
+  // Decline intelligence: declines and reason codes
+  const declineItems: NavItem[] = [
+    { to: "/declines", label: "Declines", icon: <BadgeX size={16} />, tooltip: "Decline analysis.", match: (p) => p === "/declines" },
+    { to: "/reason-codes", label: "Reason Codes", icon: <ListChecks size={16} />, tooltip: "Reason-code taxonomy.", match: (p) => p === "/reason-codes" },
+  ];
+
+  // Initiatives: checkout and retry
+  const initiativeItems: NavItem[] = [
+    { to: "/smart-checkout", label: "Smart Checkout", icon: <CreditCard size={16} />, tooltip: "Checkout performance.", match: (p) => p === "/smart-checkout" },
+    { to: "/smart-retry", label: "Smart Retry", icon: <RotateCcw size={16} />, tooltip: "Retry and recovery.", match: (p) => p === "/smart-retry" },
+  ];
+
+  // Platform: about, AI, rules, dev tools, profile, setup
+  const platformItems: NavItem[] = [
     { to: "/about", label: "About", icon: <ScrollText size={16} />, tooltip: "Platform overview.", match: (p) => p === "/about" },
     { to: "/ai-agents", label: "AI agents", icon: <Bot size={16} />, tooltip: "Agents and Genie.", match: (p) => p === "/ai-agents" },
-    { to: "/decisioning", label: "Recommendations & decisions", icon: <MessageSquareText size={16} />, tooltip: "Decisioning API.", match: (p) => p === "/decisioning" },
     { to: "/rules", label: "Rules", icon: <ScrollText size={16} />, tooltip: "Approval and routing rules.", match: (p) => p === "/rules" },
-    { to: "/initiatives", label: "Payment Services & Data", icon: <LayoutDashboard size={16} />, tooltip: "Services and data sources.", match: (p) => p === "/initiatives" },
     { to: "/notebooks", label: "Notebooks", icon: <Code2 size={16} />, tooltip: "Notebooks and ETL.", match: (p) => p === "/notebooks" },
     { to: "/models", label: "ML models", icon: <Brain size={16} />, tooltip: "Unity Catalog models.", match: (p) => p === "/models" },
     { to: "/experiments", label: "Experiments", icon: <FlaskConical size={16} />, tooltip: "MLflow runs.", match: (p) => p === "/experiments" },
-    { to: "/declines", label: "Declines", icon: <BadgeX size={16} />, tooltip: "Decline analysis.", match: (p) => p === "/declines" },
-    { to: "/reason-codes", label: "Reason Codes", icon: <ListChecks size={16} />, tooltip: "Reason-code taxonomy.", match: (p) => p === "/reason-codes" },
-    { to: "/smart-checkout", label: "Smart Checkout", icon: <CreditCard size={16} />, tooltip: "Checkout performance.", match: (p) => p === "/smart-checkout" },
-    { to: "/smart-retry", label: "Smart Retry", icon: <RotateCcw size={16} />, tooltip: "Retry and recovery.", match: (p) => p === "/smart-retry" },
     { to: "/profile", label: "Profile", icon: <User size={16} />, tooltip: "User settings.", match: (p) => p === "/profile" },
     { to: "/setup", label: "Control panel", icon: <Settings size={16} />, tooltip: "Setup and pipelines.", match: (p) => p === "/setup" },
   ];
@@ -106,7 +114,7 @@ function Layout() {
           <SidebarGroupLabel className="nav-group-label">Command Center</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {primaryItems.map((item) => (
+              {commandCenterItems.map((item) => (
                 <SidebarMenuItem key={item.to}>
                   <NavLink item={item} isActive={item.match(location.pathname)} />
                 </SidebarMenuItem>
@@ -115,11 +123,37 @@ function Layout() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup aria-label="More">
-          <SidebarGroupLabel className="nav-group-label">More</SidebarGroupLabel>
+        <SidebarGroup aria-label="Decline intelligence">
+          <SidebarGroupLabel className="nav-group-label">Decline intelligence</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {moreItems.map((item) => (
+              {declineItems.map((item) => (
+                <SidebarMenuItem key={item.to}>
+                  <NavLink item={item} isActive={item.match(location.pathname)} />
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup aria-label="Initiatives">
+          <SidebarGroupLabel className="nav-group-label">Initiatives</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {initiativeItems.map((item) => (
+                <SidebarMenuItem key={item.to}>
+                  <NavLink item={item} isActive={item.match(location.pathname)} />
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup aria-label="Platform">
+          <SidebarGroupLabel className="nav-group-label">Platform</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {platformItems.map((item) => (
                 <SidebarMenuItem key={item.to}>
                   <NavLink item={item} isActive={item.match(location.pathname)} />
                 </SidebarMenuItem>

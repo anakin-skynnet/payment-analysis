@@ -24,6 +24,7 @@ import { Route as SidebarIncidentsRouteImport } from './../routes/_sidebar/incid
 import { Route as SidebarExperimentsRouteImport } from './../routes/_sidebar/experiments'
 import { Route as SidebarDeclinesRouteImport } from './../routes/_sidebar/declines'
 import { Route as SidebarDecisioningRouteImport } from './../routes/_sidebar/decisioning'
+import { Route as SidebarDataQualityRouteImport } from './../routes/_sidebar/data-quality'
 import { Route as SidebarDashboardsRouteImport } from './../routes/_sidebar/dashboards'
 import { Route as SidebarDashboardRouteImport } from './../routes/_sidebar/dashboard'
 import { Route as SidebarCommandCenterRouteImport } from './../routes/_sidebar/command-center'
@@ -105,6 +106,11 @@ const SidebarDecisioningRoute = SidebarDecisioningRouteImport.update({
   path: '/decisioning',
   getParentRoute: () => SidebarRouteRoute,
 } as any)
+const SidebarDataQualityRoute = SidebarDataQualityRouteImport.update({
+  id: '/data-quality',
+  path: '/data-quality',
+  getParentRoute: () => SidebarRouteRoute,
+} as any)
 const SidebarDashboardsRoute = SidebarDashboardsRouteImport.update({
   id: '/dashboards',
   path: '/dashboards',
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/command-center': typeof SidebarCommandCenterRoute
   '/dashboard': typeof SidebarDashboardRoute
   '/dashboards': typeof SidebarDashboardsRoute
+  '/data-quality': typeof SidebarDataQualityRoute
   '/decisioning': typeof SidebarDecisioningRoute
   '/declines': typeof SidebarDeclinesRoute
   '/experiments': typeof SidebarExperimentsRoute
@@ -167,6 +174,7 @@ export interface FileRoutesByTo {
   '/command-center': typeof SidebarCommandCenterRoute
   '/dashboard': typeof SidebarDashboardRoute
   '/dashboards': typeof SidebarDashboardsRoute
+  '/data-quality': typeof SidebarDataQualityRoute
   '/decisioning': typeof SidebarDecisioningRoute
   '/declines': typeof SidebarDeclinesRoute
   '/experiments': typeof SidebarExperimentsRoute
@@ -191,6 +199,7 @@ export interface FileRoutesById {
   '/_sidebar/command-center': typeof SidebarCommandCenterRoute
   '/_sidebar/dashboard': typeof SidebarDashboardRoute
   '/_sidebar/dashboards': typeof SidebarDashboardsRoute
+  '/_sidebar/data-quality': typeof SidebarDataQualityRoute
   '/_sidebar/decisioning': typeof SidebarDecisioningRoute
   '/_sidebar/declines': typeof SidebarDeclinesRoute
   '/_sidebar/experiments': typeof SidebarExperimentsRoute
@@ -215,6 +224,7 @@ export interface FileRouteTypes {
     | '/command-center'
     | '/dashboard'
     | '/dashboards'
+    | '/data-quality'
     | '/decisioning'
     | '/declines'
     | '/experiments'
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/command-center'
     | '/dashboard'
     | '/dashboards'
+    | '/data-quality'
     | '/decisioning'
     | '/declines'
     | '/experiments'
@@ -260,6 +271,7 @@ export interface FileRouteTypes {
     | '/_sidebar/command-center'
     | '/_sidebar/dashboard'
     | '/_sidebar/dashboards'
+    | '/_sidebar/data-quality'
     | '/_sidebar/decisioning'
     | '/_sidebar/declines'
     | '/_sidebar/experiments'
@@ -387,6 +399,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SidebarDecisioningRouteImport
       parentRoute: typeof SidebarRouteRoute
     }
+    '/_sidebar/data-quality': {
+      id: '/_sidebar/data-quality'
+      path: '/data-quality'
+      fullPath: '/data-quality'
+      preLoaderRoute: typeof SidebarDataQualityRouteImport
+      parentRoute: typeof SidebarRouteRoute
+    }
     '/_sidebar/dashboards': {
       id: '/_sidebar/dashboards'
       path: '/dashboards'
@@ -439,6 +458,7 @@ interface SidebarRouteRouteChildren {
   SidebarCommandCenterRoute: typeof SidebarCommandCenterRoute
   SidebarDashboardRoute: typeof SidebarDashboardRoute
   SidebarDashboardsRoute: typeof SidebarDashboardsRoute
+  SidebarDataQualityRoute: typeof SidebarDataQualityRoute
   SidebarDecisioningRoute: typeof SidebarDecisioningRoute
   SidebarDeclinesRoute: typeof SidebarDeclinesRoute
   SidebarExperimentsRoute: typeof SidebarExperimentsRoute
@@ -461,6 +481,7 @@ const SidebarRouteRouteChildren: SidebarRouteRouteChildren = {
   SidebarCommandCenterRoute: SidebarCommandCenterRoute,
   SidebarDashboardRoute: SidebarDashboardRoute,
   SidebarDashboardsRoute: SidebarDashboardsRoute,
+  SidebarDataQualityRoute: SidebarDataQualityRoute,
   SidebarDecisioningRoute: SidebarDecisioningRoute,
   SidebarDeclinesRoute: SidebarDeclinesRoute,
   SidebarExperimentsRoute: SidebarExperimentsRoute,

@@ -7,7 +7,16 @@ import {
   type ReactNode,
 } from "react";
 
-interface AssistantContextValue {
+export interface AssistantContextValue {
+  /** AI Chatbot (Orchestrator) panel open state */
+  openAIChatbot: boolean;
+  setOpenAIChatbot: (open: boolean) => void;
+  openAIChatbotPanel: () => void;
+  /** Genie Assistant panel open state */
+  openGenieAssistant: boolean;
+  setOpenGenieAssistant: (open: boolean) => void;
+  openGenieAssistantPanel: () => void;
+  /** Legacy: opens AI Chatbot (Orchestrator) for backward compatibility */
   open: boolean;
   setOpen: (open: boolean) => void;
   openAssistant: () => void;
@@ -16,11 +25,28 @@ interface AssistantContextValue {
 const AssistantContext = createContext<AssistantContextValue | null>(null);
 
 export function AssistantProvider({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
-  const openAssistant = useCallback(() => setOpen(true), []);
-  const value = useMemo(
-    () => ({ open, setOpen, openAssistant }),
-    [open, openAssistant]
+  const [openAIChatbot, setOpenAIChatbot] = useState(false);
+  const [openGenieAssistant, setOpenGenieAssistant] = useState(false);
+  const openAIChatbotPanel = useCallback(() => setOpenAIChatbot(true), []);
+  const openGenieAssistantPanel = useCallback(() => setOpenGenieAssistant(true), []);
+  const value = useMemo<AssistantContextValue>(
+    () => ({
+      openAIChatbot,
+      setOpenAIChatbot,
+      openAIChatbotPanel,
+      openGenieAssistant,
+      setOpenGenieAssistant,
+      openGenieAssistantPanel,
+      open: openAIChatbot,
+      setOpen: setOpenAIChatbot,
+      openAssistant: openAIChatbotPanel,
+    }),
+    [
+      openAIChatbot,
+      openGenieAssistant,
+      openAIChatbotPanel,
+      openGenieAssistantPanel,
+    ]
   );
   return (
     <AssistantContext.Provider value={value}>
