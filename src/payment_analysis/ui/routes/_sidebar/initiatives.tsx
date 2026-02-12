@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useGetKpisSuspense,
-  useGetGeography,
   useGetSolutionPerformanceSuspense,
   useGetThreeDsFunnel,
   useGetEntrySystemDistribution,
@@ -69,10 +68,6 @@ const REFRESH_ANALYTICS_MS = 15_000;
 function Initiatives() {
   const { entity } = useEntity();
   const { data: kpis } = useGetKpisSuspense(selector());
-  const geographyQ = useGetGeography({
-    params: { limit: 50 },
-    query: { refetchInterval: REFRESH_ANALYTICS_MS },
-  });
   const { data: solutions } = useGetSolutionPerformanceSuspense(selector());
   const funnelQ = useGetThreeDsFunnel({
     params: { entity, days: 30 },
@@ -82,11 +77,6 @@ function Initiatives() {
     params: { entity },
     query: { refetchInterval: REFRESH_ANALYTICS_MS },
   });
-
-  const geography = geographyQ.data?.data ?? [];
-  const totalGeo = geography.reduce((s, r) => s + r.transaction_count, 0);
-  const brazilRow = geography.find((r) => r.country === "BR" || r.country === "Brazil");
-  const brazilPct = totalGeo > 0 && brazilRow ? Math.round((brazilRow.transaction_count / totalGeo) * 100) : null;
 
   const funnel = funnelQ.data?.data ?? [];
   const latestFunnel = funnel[0];
@@ -128,30 +118,6 @@ function Initiatives() {
                   </div>
                 );
               })}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Geographic Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {geographyQ.isLoading ? (
-                <Skeleton className="mx-auto h-32 w-32 rounded-full" />
-              ) : geography.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No geography data yet. Run gold views.</p>
-              ) : (
-                <div className="flex flex-col items-center gap-3">
-                  <div
-                    className="gauge-conic-primary h-32 w-32 rounded-full border-4 border-muted bg-muted"
-                    style={{ ["--gauge-pct"]: `${brazilPct ?? 0}%` } as CSSProperties}
-                    aria-hidden
-                  />
-                  <p className="text-center text-lg font-semibold tabular-nums">
-                    Brazil {brazilPct != null ? `${brazilPct}%` : "—"}
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
