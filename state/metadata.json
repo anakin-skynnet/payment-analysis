@@ -5,12 +5,12 @@
       "git": {
         "branch": "main",
         "origin_url": "https://github.com/anakin-skynnet/payment-analysis.git",
-        "commit": "1e5960b6ad54588ae22c277de6c3839e83850cf9",
+        "commit": "e76fb7649354bbb607fd95500b20c7e8a4e00e28",
         "bundle_root_path": "."
       }
     },
     "workspace": {
-      "file_path": "/Workspace/Users/ariel.hdez@databricks.com/payment-analysis/files"
+      "file_path": "/Workspace/Users/ariel.hdez@databricks.com/payment-analysis"
     },
     "resources": {
       "jobs": {
