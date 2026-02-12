@@ -94,12 +94,9 @@ def register_agents():
     registered = []
 
     set_registry_uri("databricks-uc")
-    _user = os.environ.get('USER', 'unknown').strip()
-
-    # Experiment local path: /Workspace/Users/<user>/payment-analysis-experiments
-    _exp_path = f"/Users/{_user}/payment-analysis-experiments"
-
-    mlflow.set_experiment(_exp_path)
+    
+    # FIX: Remove mlflow.set_experiment() - use default notebook experiment
+    # MLflow automatically creates an experiment for notebooks in Git folders
 
     # 1. Register each specialist (Tool-Calling Agent)
     for create_fn, suffix in get_all_agent_builders():
@@ -127,6 +124,8 @@ def register_agents():
         print(f"Registered: {model_name}")
 
     return registered
+
+    
 
 # COMMAND ----------
 
