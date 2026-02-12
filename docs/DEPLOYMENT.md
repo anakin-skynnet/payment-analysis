@@ -63,9 +63,11 @@ After deploy, set the app **Environment** variables (see table below). If you us
 
 | Variable | Purpose |
 |----------|---------|
-| **LAKEBASE_PROJECT_ID** | Required. Lakebase Autoscaling project ID (same as Job 1 create_lakebase_autoscaling; e.g. `payment-analysis-db`). |
-| **LAKEBASE_BRANCH_ID** | Required. Lakebase Autoscaling branch (e.g. `production`). |
-| **LAKEBASE_ENDPOINT_ID** | Required. Lakebase Autoscaling endpoint (e.g. `primary`). |
+| **LAKEBASE_PROJECT_ID** | Lakebase Autoscaling project ID (same as Job 1; e.g. `payment-analysis-db`). Not needed if using **LAKEBASE_CONNECTION_STRING**. |
+| **LAKEBASE_BRANCH_ID** | Lakebase Autoscaling branch (e.g. `production`). Not needed if using LAKEBASE_CONNECTION_STRING. |
+| **LAKEBASE_ENDPOINT_ID** | Lakebase Autoscaling endpoint (e.g. `primary`). Not needed if using LAKEBASE_CONNECTION_STRING. |
+| **LAKEBASE_CONNECTION_STRING** | Optional. Direct Postgres URL (e.g. `postgresql://user%40domain@ep-xxx.database.region.azuredatabricks.net/databricks_postgres?sslmode=require`). When set, app uses this instead of project/branch/endpoint discovery. |
+| **LAKEBASE_OAUTH_TOKEN** | Required when **LAKEBASE_CONNECTION_STRING** is set. OAuth token used as Postgres password. **Never commit this value**; set only in the app Environment (Compute → Apps → Edit → Environment). Token expires (e.g. ~1h); refresh or use project/branch/endpoint + SDK credential for long-lived runs. |
 | **DATABRICKS_WAREHOUSE_ID** | Required for SQL/analytics. SQL Warehouse ID (from bundle or sql-warehouse binding). |
 | **DATABRICKS_HOST** | Optional when opened from **Compute → Apps** (workspace URL derived from request). Set when not using OBO. |
 | **DATABRICKS_TOKEN** | Optional when using OBO. Open from **Compute → Apps** so your token is forwarded; do not set in env. Set only for app-only use; then do **not** set DATABRICKS_CLIENT_ID/SECRET. |
@@ -114,6 +116,17 @@ Following the [dbdemos](https://github.com/databricks-demos/dbdemos) pattern, da
    so each dashboard is published with **embed credentials**. Without this, iframes in the app may load but show no visuals. The deploy script runs publish automatically; if it was skipped, run it manually.
 
 4. **Data**: Gold views and Lakeflow tables must exist and have data. Run **Job 3** (Initialize Ingestion / Create Gold Views) and the **Lakeflow ETL pipeline** so `v_executive_kpis`, `payments_enriched_silver`, etc. exist in the catalog/schema used by the dashboards. Empty or missing tables produce empty charts.
+
+### Why tables and views may be empty
+
+Tables and views in `ahs_demos_catalog.payment_analysis` (or your catalog/schema) are populated by **jobs** and **Lakeflow pipelines**. If dashboards or the app show no data:
+
+- **Silver tables** (e.g. `payments_enriched_silver`, `merchant_visible_attempts_silver`): Created by the **Payment Analysis ETL** Lakeflow pipeline. They stay empty until the pipeline runs and source bronze data exists. Run the pipeline from **Setup & Run** (step 8) or `uv run python scripts/run_and_validate_jobs.py --run-pipelines`.
+- **Gold views** (e.g. `v_executive_kpis`, `v_top_decline_reasons`): Created by **Job 3** (Initialize Ingestion). They read from `payments_enriched_silver`; if silver is empty, views return no rows. Run Job 3 **after** the ETL pipeline has produced silver.
+- **Streaming views** (e.g. `v_streaming_ingestion_by_second`, `v_silver_processed_by_second`): Depend on `payments_raw_bronze`. Job 3 creates a stub bronze table if missing, but rows appear only when the **Real-Time** pipeline and ingestion (e.g. transaction simulator) run.
+- **Bootstrap views** (e.g. `v_recommendations_from_lakehouse`, `v_approval_rules_active`): Created by **Job 1** (Create Data Repositories, task `lakehouse_bootstrap`). Base tables are seeded (e.g. approval_rules, countries) when empty.
+
+For a full list of tables/views, whether each is required, where it is used, and schema cleansing options, see **[Schema: Tables and Views Reference](SCHEMA_TABLES_VIEWS.md)**.
 
 ### Workspace layout: root vs files/
 
@@ -266,6 +279,28 @@ This creates the project, branch, and endpoint with IDs matching the bundle defa
 **Option B — Create in the UI:** (1) In the workspace go to **Compute → Lakebase** and create a Lakebase (Postgres) project, branch, and endpoint. (2) Note the **project ID**, **branch ID**, and **endpoint ID**. (3) Redeploy with those IDs:  
 `./scripts/bundle.sh deploy dev --var lakebase_project_id=YOUR_PROJECT_ID --var lakebase_branch_id=YOUR_BRANCH_ID --var lakebase_endpoint_id=YOUR_ENDPOINT_ID`  
 Or set them in **databricks.yml** under `targets.dev.variables`. Then run Job 1 again from **Setup & Run**. See [Lakebase projects](https://docs.databricks.com/oltp/projects/).
+
+### Lakebase tables and Unity Catalog registration
+
+**Tables in the Lakebase project (Postgres):** Job 1 task **lakebase_data_init** creates and seeds these in your Lakebase database (schema from `lakebase_schema`, default `payment_analysis`):
+
+| Table | Purpose |
+|-------|---------|
+| **app_config** | Catalog and schema used by the app (single row). |
+| **approval_rules** | Business rules for approval/retry/routing; app and agents read/write here when Lakebase is configured. |
+| **online_features** | ML/AI feature output for the app. |
+| **app_settings** | Key-value config (warehouse_id, default_events_per_second, etc.). |
+| **countries** | Entities for the UI filter dropdown (same seed as Lakehouse). |
+
+The app uses these when **LAKEBASE_PROJECT_ID**, **LAKEBASE_BRANCH_ID**, and **LAKEBASE_ENDPOINT_ID** are set in the app Environment. Rules and countries are read from Lakebase first, then fall back to the Lakehouse (Unity Catalog) tables if Lakebase is unavailable.
+
+**Register the Lakebase database in Unity Catalog (optional):** To expose this Lakebase database in Catalog Explorer and query it from SQL warehouses (unified governance, dashboards, cross-source analytics), register it as a UC catalog:
+
+1. In the workspace open **Lakehouse** → **Catalog Explorer** → **Create** → **Create catalog**.
+2. Choose **Lakebase Postgres** → **Autoscaling**, then select your **project**, **branch**, and **Postgres database**.
+3. Enter a catalog name (e.g. `payment_analysis_lakebase`) and create.
+
+After registration, the catalog is read-only in UC; data is still managed in Lakebase. See [Register a Lakebase database in Unity Catalog](https://docs.databricks.com/en/oltp/projects/register-uc).
 
 ### Fix: Catalog or schema not found
 

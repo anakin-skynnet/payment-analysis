@@ -184,6 +184,11 @@ class DatabaseConfig(BaseSettings):
         description="Postgres schema for app tables (avoid 'public' if app has no CREATE there). Set LAKEBASE_SCHEMA.",
         validation_alias="LAKEBASE_SCHEMA",
     )
+    connection_string: str = Field(
+        default="",
+        description="Optional direct Postgres URL for Lakebase (e.g. postgresql://user@host/databricks_postgres?sslmode=require). When set, app uses this instead of project/branch/endpoint discovery. Set LAKEBASE_OAUTH_TOKEN in Environment as the password (never commit the token).",
+        validation_alias="LAKEBASE_CONNECTION_STRING",
+    )
 
 
 class AppConfig(BaseSettings):

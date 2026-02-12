@@ -117,7 +117,7 @@ class SetupDefaultsOut(BaseModel):
     token_received: bool = Field(False, description="True when OBO token was present (X-Forwarded-Access-Token or Authorization Bearer when on Apps host).")
     workspace_url_derived: bool = Field(False, description="True when workspace URL was set (env or derived from request host); used to show why Execute is disabled.")
     lakebase_autoscaling: bool = Field(False, description="True when app is connected to Lakebase Autoscaling (LAKEBASE_PROJECT_ID, LAKEBASE_BRANCH_ID, LAKEBASE_ENDPOINT_ID set).")
-    lakebase_connection_mode: str = Field("", description="'autoscaling' when Lakebase Autoscaling is configured, '' otherwise.")
+    lakebase_connection_mode: str = Field("", description="'autoscaling' or 'direct' when Lakebase is configured, '' otherwise.")
 
     model_config = {"populate_by_name": True}
 
@@ -309,10 +309,15 @@ def get_setup_defaults(
             resolved_jobs, resolved_pipelines, DEFAULT_IDS["jobs"], DEFAULT_IDS["pipelines"]
         )
     runtime = getattr(request.app.state, "runtime", None)
-    lakebase_autoscaling = bool(runtime and runtime._use_lakebase_autoscaling())
+    lakebase_autoscaling = bool(
+        runtime and (runtime._use_lakebase_autoscaling() or runtime._use_lakebase_direct_connection())
+    )
     lakebase_connection_mode = ""
     if runtime and runtime._db_configured():
-        lakebase_connection_mode = "autoscaling" if runtime._use_lakebase_autoscaling() else ""
+        if runtime._use_lakebase_direct_connection():
+            lakebase_connection_mode = "direct"
+        elif runtime._use_lakebase_autoscaling():
+            lakebase_connection_mode = "autoscaling"
     return SetupDefaultsOut(
         warehouse_id=_effective_warehouse_id(request),
         catalog=catalog,

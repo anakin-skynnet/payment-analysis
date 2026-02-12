@@ -131,6 +131,37 @@ def get_approval_rules_from_lakebase(
         return None
 
 
+def get_countries_from_lakebase(runtime: Runtime, *, limit: int = 200) -> list[dict[str, Any]] | None:
+    """Read countries/entities from Lakebase for the UI filter dropdown. Returns list of {code, name} or None on error/unconfigured."""
+    config = runtime.config
+    schema_name = (config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
+    if not runtime._db_configured():
+        return None
+    limit = max(1, min(limit, 500))
+    try:
+        with runtime.get_session() as session:
+            q = text(
+                f"""
+                SELECT code, name
+                FROM "{schema_name}".countries
+                WHERE is_active = true
+                ORDER BY display_order ASC, name ASC
+                LIMIT :limit
+                """
+            )
+            result = session.execute(q, {"limit": limit})
+            rows = result.fetchall()
+            if not rows:
+                return None
+            return [
+                {"code": str(r[0] or "").strip() or "", "name": str(r[1] or "").strip() or ""}
+                for r in rows
+            ]
+    except Exception as e:
+        logger.debug("Could not read countries from Lakebase: %s", e)
+        return None
+
+
 def get_approval_rule_by_id(runtime: Runtime, rule_id: str) -> dict[str, Any] | None:
     """Return one approval rule from Lakebase by id, or None if not found / unconfigured."""
     config = runtime.config

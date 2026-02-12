@@ -17,13 +17,14 @@ Single entry point for all documentation. Use this page to find where each topic
 
 ---
 
-## Document map (5 docs)
+## Document map (6 docs)
 
 | Document | Purpose | When to use |
 |----------|---------|-------------|
 | **[README.md](../README.md)** | Project intro, quick start, doc links. | First open; share with others. |
 | **[GUIDE.md](GUIDE.md)** | **What** the platform does, **how** it's built. Business overview, use cases, technology map, architecture, project structure, workspace ↔ UI mapping, **data sources & code guidelines** (§10), control panel, best practices, verification. | Understand scope, architecture, data sources, and where things live. |
 | **[DEPLOYMENT.md](DEPLOYMENT.md)** | **Deploy & operate.** Prerequisites, quick start, 7 steps, app config and paths, version alignment, schema consistency, troubleshooting, scripts, job inventory, fixes. | Deploy, configure env, fix errors. |
+| **[SCHEMA_TABLES_VIEWS.md](SCHEMA_TABLES_VIEWS.md)** | **Catalog/schema reference.** Tables and views in `payment_analysis`: required vs optional, where used, why empty, schema cleansing. | Audit schema; fix empty dashboards; remove unused objects. |
 | **[BUSINESS_AND_SOLUTION.md](BUSINESS_AND_SOLUTION.md)** | **Payment services context and requirement map.** Getnet services, data foundation, Smart Checkout / Reason Codes / Smart Retry context, Brazil focus, entry systems. **Map: Business requirement → Solution → Description.** | Business context and how each requirement is met. |
 | **[DATABRICKS.md](DATABRICKS.md)** | **Databricks alignment & agents.** Part 1: Feature validation (bundle, UC, Lakeflow, jobs, app, Lakebase, Genie, Model Serving, dashboards). Part 2: Implementation review (custom vs AgentBricks, recommendations). Part 3: Agent framework (AgentBricks conversion, UC tools, LangGraph, Model Serving, Multi-Agent Supervisor). | Validate Databricks-native design; upgrade reviews; agent migration. |
 | **[AGENTS.md](../AGENTS.md)** | **AI agent (Cursor) rules.** Solution scope, do's and don'ts, package management, project structure, models & API, frontend rules, dev commands, MCP reference. For the AI working on the repo. | When editing code; align with project rules. |
@@ -79,6 +80,7 @@ Single entry point for all documentation. Use this page to find where each topic
 - **Lakebase not found:** Create Lakebase project (Compute → Lakebase) or run `create_lakebase_autoscaling.py`. See [DEPLOYMENT.md](DEPLOYMENT.md).
 - **Web UI not found:** Ensure `uv run apx build` then deploy; `source_code_path` = `${workspace.root_path}`. See [DEPLOYMENT.md](DEPLOYMENT.md).
 - **Gold views / TABLE_OR_VIEW_NOT_FOUND:** Run ETL pipeline first so `payments_enriched_silver` exists, then Job 3 (Gold Views). From repo: `uv run python scripts/run_and_validate_jobs.py --run-pipelines --job job_3_initialize_ingestion`. See [DEPLOYMENT.md](DEPLOYMENT.md).
+- **Empty tables/views:** See [SCHEMA_TABLES_VIEWS.md](SCHEMA_TABLES_VIEWS.md) for why each object may be empty and [DEPLOYMENT.md](DEPLOYMENT.md) § Why tables and views may be empty.
 
 ---
 

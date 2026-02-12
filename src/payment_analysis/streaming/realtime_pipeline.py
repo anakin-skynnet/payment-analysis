@@ -165,7 +165,7 @@ def payments_stream_metrics_1min():
 
 @dlt.table(
     name="payments_stream_alerts",
-    comment="Real-time alerts for anomaly detection",
+    comment="Real-time alerts for anomaly detection (not read by any view or API; optional for monitoring)",
     table_properties={
         "quality": "gold"
     }
@@ -173,6 +173,7 @@ def payments_stream_metrics_1min():
 def payments_stream_alerts():
     """
     Real-time alert generation for anomalies.
+    Note: No backend or dashboard reads this table. Safe to drop from pipeline if streaming alerts are not needed (see docs/SCHEMA_TABLES_VIEWS.md).
     """
     metrics = dlt.read("payments_stream_metrics_1min")
     

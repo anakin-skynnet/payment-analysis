@@ -19,7 +19,7 @@ from ..config import DEFAULT_ENTITY
 from ..db_models import AuthorizationEvent, DecisionLog
 from ..decisioning.schemas import KPIOut
 from ..dependencies import SessionDep, DatabricksServiceDep
-from ..lakebase_config import get_online_features_from_lakebase
+from ..lakebase_config import get_countries_from_lakebase, get_online_features_from_lakebase
 
 router = APIRouter(tags=["analytics"])
 
@@ -343,10 +343,16 @@ async def get_recommendations(
 
 @router.get("/countries", response_model=list[CountryOut], operation_id="getCountries")
 async def list_countries(
+    request: Request,
     service: DatabricksServiceDep,
     limit: int = Query(200, ge=1, le=500, description="Max number of countries to return"),
 ) -> list[CountryOut]:
-    """List countries/entities from the Lakehouse table for the filter dropdown. Users can add/remove rows in the table to change options."""
+    """List countries/entities from Lakebase (when configured) or Lakehouse for the filter dropdown. Users can add/remove rows to change options."""
+    runtime = getattr(request.app.state, "runtime", None)
+    if runtime and runtime._db_configured():
+        rows = get_countries_from_lakebase(runtime, limit=limit)
+        if rows is not None:
+            return [CountryOut(code=r["code"], name=r["name"]) for r in rows]
     data = await service.get_countries(limit=limit)
     return [CountryOut(code=r["code"], name=r["name"]) for r in data]
 

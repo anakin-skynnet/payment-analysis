@@ -38,7 +38,7 @@ import { useEntity } from "@/contexts/entity-context";
 import { useAssistant } from "@/contexts/assistant-context";
 import { PageHeader } from "@/components/apx/page-header";
 import { getDashboardUrl, getGenieUrl, openInDatabricks } from "@/config/workspace";
-import type { EntrySystemPoint, FrictionFunnelStep, RetryRecurrenceRow } from "@/lib/command-center-mock";
+import type { EntrySystemPoint, FrictionFunnelStep, RetryRecurrenceRow } from "@/lib/command-center-types";
 import {
   Activity,
   Target,
@@ -623,8 +623,8 @@ function CommandCenter() {
               Data: Databricks
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2 py-0.5">
-              Data: Sample (mock)
+            <span className="data-source-backend">
+              Data: Backend
             </span>
           )}
         </footer>

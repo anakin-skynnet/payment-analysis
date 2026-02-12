@@ -1,5 +1,6 @@
 import os
 from functools import cached_property
+from urllib.parse import urlparse, urlunparse
 
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
@@ -11,6 +12,18 @@ from .lakebase_helpers import discover_endpoint_name, resolve_endpoint_host, _ge
 from .logger import logger
 
 
+def _normalize_lakebase_url(raw: str) -> str:
+    """Ensure URL uses postgresql+psycopg for SQLAlchemy; leave password empty for injection via do_connect."""
+    raw = (raw or "").strip()
+    if not raw:
+        return ""
+    parsed = urlparse(raw)
+    if parsed.scheme == "postgresql" and "psycopg" not in raw:
+        # Replace postgresql:// with postgresql+psycopg://
+        parsed = parsed._replace(scheme="postgresql+psycopg")
+    return urlunparse(parsed)
+
+
 class Runtime:
     def __init__(self, config: AppConfig) -> None:
         self.config = config
@@ -20,6 +33,10 @@ class Runtime:
         """Check for APX_DEV_DB_PORT environment variable for local development."""
         port = os.environ.get("APX_DEV_DB_PORT")
         return int(port) if port else None
+
+    def _use_lakebase_direct_connection(self) -> bool:
+        """True if LAKEBASE_CONNECTION_STRING is set (direct Postgres URL + LAKEBASE_OAUTH_TOKEN as password)."""
+        return bool((self.config.db.connection_string or "").strip())
 
     @cached_property
     def ws(self) -> WorkspaceClient:
@@ -42,8 +59,10 @@ class Runtime:
         )
 
     def _db_configured(self) -> bool:
-        """True if a database is configured (local dev or Lakebase Autoscaling)."""
+        """True if a database is configured (local dev, direct connection string, or Lakebase Autoscaling)."""
         if self._dev_db_port:
+            return True
+        if self._use_lakebase_direct_connection():
             return True
         return self._use_lakebase_autoscaling()
 
@@ -71,11 +90,22 @@ class Runtime:
                 )
             return f"postgresql+psycopg://{username}:{password}@localhost:{self._dev_db_port}/postgres?sslmode=disable"
 
-        # Production: Lakebase Autoscaling only (created by Job 1 create_lakebase_autoscaling)
+        # Direct Lakebase connection via LAKEBASE_CONNECTION_STRING (password injected from LAKEBASE_OAUTH_TOKEN)
+        if self._use_lakebase_direct_connection():
+            url = _normalize_lakebase_url(self.config.db.connection_string)
+            if not url:
+                raise ValueError("LAKEBASE_CONNECTION_STRING is set but empty or invalid.")
+            # Ensure sslmode=require for Lakebase; do not embed password in URL (injected in _before_connect)
+            if "sslmode=" not in url:
+                url = f"{url}&sslmode=require" if "?" in url else f"{url}?sslmode=require"
+            logger.info("Using Lakebase direct connection (LAKEBASE_CONNECTION_STRING).")
+            return url
+
+        # Production: Lakebase Autoscaling via project/branch/endpoint (created by Job 1 create_lakebase_autoscaling)
         if not self._db_configured():
             raise ValueError(
                 "Database not configured. Set LAKEBASE_PROJECT_ID, LAKEBASE_BRANCH_ID, LAKEBASE_ENDPOINT_ID "
-                "in the app Environment (same values as Job 1 create_lakebase_autoscaling)."
+                "or LAKEBASE_CONNECTION_STRING (and LAKEBASE_OAUTH_TOKEN) in the app Environment."
             )
         prefix = "postgresql+psycopg"
         port = self.config.db.port
@@ -93,7 +123,12 @@ class Runtime:
         return f"{prefix}://{username}:@{host}:{port}/{database}"
 
     def _before_connect(self, dialect, conn_rec, cargs, cparams):
-        """SQLAlchemy ``do_connect`` hook — inject a fresh OAuth token per connection."""
+        """SQLAlchemy ``do_connect`` hook — inject OAuth token per connection (from env for direct URL, or from SDK for Autoscaling)."""
+        if self._use_lakebase_direct_connection():
+            token = os.environ.get("LAKEBASE_OAUTH_TOKEN", "").strip()
+            if token:
+                cparams["password"] = token
+            return
         postgres_api = _get_postgres_api(self.ws)
         cred = postgres_api.generate_database_credential(endpoint=self._endpoint_name)
         cparams["password"] = cred.token
@@ -102,7 +137,8 @@ class Runtime:
     def engine(self) -> Engine:
         if not self._db_configured():
             raise ValueError(
-                "Database not configured. Set LAKEBASE_PROJECT_ID, LAKEBASE_BRANCH_ID, LAKEBASE_ENDPOINT_ID in the app Environment."
+                "Database not configured. Set LAKEBASE_PROJECT_ID, LAKEBASE_BRANCH_ID, LAKEBASE_ENDPOINT_ID "
+                "or LAKEBASE_CONNECTION_STRING (and LAKEBASE_OAUTH_TOKEN) in the app Environment."
             )
         # In dev mode: no SSL, no password callback, single connection (PGlite limit)
         # In production: require SSL and use Databricks credential callback
@@ -140,6 +176,8 @@ class Runtime:
             logger.info(
                 f"Validating local dev database connection at localhost:{self._dev_db_port}"
             )
+        elif self._use_lakebase_direct_connection():
+            logger.info("Validating Lakebase direct connection (LAKEBASE_CONNECTION_STRING).")
         else:
             # _endpoint_name uses discover_endpoint_name() which already
             # validates the endpoint exists (tries configured name, then

@@ -278,7 +278,7 @@ export function Component() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Failed to load dashboards</AlertTitle>
           <AlertDescription>
-            Check that the backend is running and can reach Databricks for dashboard metadata. Table view below may show sample data when backend is unavailable.
+            Check that the backend is running and can reach Databricks for dashboard metadata. Table view below may show fallback data when backend is unavailable.
           </AlertDescription>
         </Alert>
       )}

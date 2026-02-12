@@ -7,7 +7,9 @@
 # MAGIC - **approval_rules** (default rules: 3DS for high value, retry soft decline, primary acquirer routing)
 # MAGIC - **online_features** (table created; ML/AI features populated by pipelines and app)
 # MAGIC - **app_settings** (warehouse_id, default_events_per_second, default_duration_minutes, etc.)
+# MAGIC - **countries** (entities for UI filter dropdown; same seed as Lakehouse)
 # MAGIC Backend reads these tables at startup. Ensures defaults exist before Lakehouse bootstrap and app use.
+# MAGIC To expose this Lakebase database in Unity Catalog (governance, SQL, dashboards), register it: Catalog Explorer → Create catalog → Lakebase Postgres (Autoscaling) → select project/branch/database.
 # MAGIC
 # MAGIC **Widgets:** `catalog`, `schema`; **Lakebase Autoscaling** (`lakebase_project_id`, `lakebase_branch_id`, `lakebase_endpoint_id`). Also `lakebase_database_name`, `lakebase_schema`; optional `warehouse_id`, `default_events_per_second`, `default_duration_minutes` for app_settings.
 # MAGIC See: https://docs.databricks.com/oltp/projects/
@@ -293,6 +295,47 @@ with psycopg.connect(conn_str, row_factory=dict_row) as conn:
             )
         conn.commit()
         print(f"app_settings seeded: {[k for k, _ in settings_defaults]}.")
+
+        # Countries/entities: for UI filter dropdown (same as Lakehouse; editable by users)
+        cur.execute(f"""
+            CREATE TABLE IF NOT EXISTS "{lakebase_schema}".countries (
+                code VARCHAR(10) PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                display_order INT NOT NULL DEFAULT 0,
+                is_active BOOLEAN NOT NULL DEFAULT true,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp
+            )
+        """)
+        conn.commit()
+        cur.execute(f'SELECT COUNT(*) AS n FROM "{lakebase_schema}".countries')
+        row = cur.fetchone()
+        n = row["n"] if row and isinstance(row, dict) else (row[0] if row else 0)
+        if n == 0:
+            defaults = [
+                ("BR", "Brazil", 1),
+                ("MX", "Mexico", 2),
+                ("AR", "Argentina", 3),
+                ("CL", "Chile", 4),
+                ("CO", "Colombia", 5),
+                ("PE", "Peru", 6),
+                ("EC", "Ecuador", 7),
+                ("UY", "Uruguay", 8),
+                ("PY", "Paraguay", 9),
+                ("BO", "Bolivia", 10),
+            ]
+            for code, name, display_order in defaults:
+                cur.execute(
+                    f"""
+                    INSERT INTO "{lakebase_schema}".countries (code, name, display_order)
+                    VALUES (%s, %s, %s)
+                    """,
+                    (code, name, display_order),
+                )
+            conn.commit()
+            print(f"Inserted {len(defaults)} default countries.")
+        else:
+            print("countries already has rows; skipping seed.")
 
 # ---------------------------------------------------------------------------
 # Grant Postgres access to the Databricks App service principal
