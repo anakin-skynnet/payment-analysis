@@ -197,7 +197,7 @@ def create_decline_analyst_agent(
     agent = create_react_agent(
         llm,
         tools,
-        prompt=DECLINE_ANALYST_SYSTEM_PROMPT),
+        prompt=DECLINE_ANALYST_SYSTEM_PROMPT,
     )
     return agent
 
@@ -217,7 +217,7 @@ def create_smart_routing_agent(
     return create_react_agent(
         llm,
         tools,
-        prompt=SMART_ROUTING_SYSTEM_PROMPT),
+        prompt=SMART_ROUTING_SYSTEM_PROMPT,
     )
 
 
@@ -236,7 +236,7 @@ def create_smart_retry_agent(
     return create_react_agent(
         llm,
         tools,
-        prompt=SMART_RETRY_SYSTEM_PROMPT),
+        prompt=SMART_RETRY_SYSTEM_PROMPT,
     )
 
 
@@ -255,7 +255,7 @@ def create_risk_assessor_agent(
     return create_react_agent(
         llm,
         tools,
-        prompt=RISK_ASSESSOR_SYSTEM_PROMPT),
+        prompt=RISK_ASSESSOR_SYSTEM_PROMPT,
     )
 
 
@@ -278,7 +278,7 @@ def create_performance_recommender_agent(
     return create_react_agent(
         llm,
         tools,
-        prompt=PERFORMANCE_RECOMMENDER_SYSTEM_PROMPT),
+        prompt=PERFORMANCE_RECOMMENDER_SYSTEM_PROMPT,
     )
 
 
@@ -418,7 +418,7 @@ def create_orchestrator_agent(
         router_agent = create_react_agent(
             llm,
             [],
-            prompt=SUPERVISOR_ROUTER_PROMPT),
+            prompt=SUPERVISOR_ROUTER_PROMPT,
         )
         result = router_agent.invoke({
             "messages": [HumanMessage(content=f"User query: {state['query']}\n\nWhich specialists should run? Reply with JSON array only.")],
@@ -448,7 +448,7 @@ def create_orchestrator_agent(
         synthesizer = create_react_agent(
             llm,
             [],
-            prompt=ORCHESTRATOR_SYSTEM_PROMPT),
+            prompt=ORCHESTRATOR_SYSTEM_PROMPT,
         )
         result = synthesizer.invoke({
             "messages": [
