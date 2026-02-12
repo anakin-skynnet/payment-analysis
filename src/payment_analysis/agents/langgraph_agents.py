@@ -286,11 +286,9 @@ def get_all_agent_builders() -> List[Tuple["Callable[..., Any]", str]]:
     """
     Return (create_fn, model_suffix) for all five specialists for one-loop register/deploy.
 
-    Example:
-      for create_fn, suffix in get_all_agent_builders():
-          agent = create_fn(catalog, llm_endpoint=ep)
-          mlflow.langchain.log_model(lc_model=agent, ...)
-          mlflow.register_model(..., name=f"{model_catalog}.agents.{suffix}")
+    Example (models-from-code; LangChain v1+ requires lc_model=path to script with set_model()):
+      See agentbricks_register.register_agents(): write agent script, then
+      mlflow.langchain.log_model(lc_model=script_path, code_paths=[src_root], ...)
     """
     return [
         (create_decline_analyst_agent, "decline_analyst"),

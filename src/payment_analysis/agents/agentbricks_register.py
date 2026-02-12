@@ -76,15 +76,34 @@ def _get_config():
 
 # COMMAND ----------
 
+def _agent_script_content(suffix: str, is_orchestrator: bool) -> str:
+    """Generate model-from-code script content. LangChain v1+ requires lc_model to be a path to script with set_model()."""
+    import_name = "create_orchestrator_agent" if is_orchestrator else f"create_{suffix}_agent"
+    return f'''"""
+MLflow model-from-code script for {suffix}. Built at registration time; uses env CATALOG, SCHEMA, LLM_ENDPOINT.
+See https://mlflow.org/docs/latest/model/models-from-code.html
+"""
+import os
+from mlflow.models import set_model
+from payment_analysis.agents.langgraph_agents import {import_name}
+
+def _build():
+    catalog = os.environ.get("CATALOG", "ahs_demos_catalog")
+    schema = os.environ.get("SCHEMA", "payment_analysis")
+    llm_endpoint = os.environ.get("LLM_ENDPOINT", "databricks-meta-llama-3-3-70b-instruct")
+    return {import_name}(catalog, schema=schema, llm_endpoint=llm_endpoint)
+
+set_model(_build())
+'''
+
+
 def register_agents():
-    """Log each agent to MLflow and register to UC. Returns list of registered model names."""
+    """Log each agent to MLflow (models-from-code) and register to UC. Returns list of registered model names."""
+    import tempfile
     import mlflow
     from mlflow import set_registry_uri
 
-    from payment_analysis.agents.langgraph_agents import (
-        get_all_agent_builders,
-        create_orchestrator_agent,
-    )
+    from payment_analysis.agents.langgraph_agents import get_all_agent_builders
 
     config = _get_config()
     catalog = config["catalog"]
@@ -93,35 +112,50 @@ def register_agents():
     llm_endpoint = config["llm_endpoint"]
     registered = []
 
-    set_registry_uri("databricks-uc")
-    
-    # FIX: Remove mlflow.set_experiment() - use default notebook experiment
-    # MLflow automatically creates an experiment for notebooks in Git folders
+    # LangChain v1+ only supports models-from-code: lc_model must be a path to a script that calls set_model().
+    os.environ["CATALOG"] = catalog
+    os.environ["SCHEMA"] = schema
+    os.environ["LLM_ENDPOINT"] = llm_endpoint
 
-    # 1. Register each specialist (Tool-Calling Agent)
-    for create_fn, suffix in get_all_agent_builders():
-        model_name = f"{catalog}.{model_schema}.{suffix}"
-        with mlflow.start_run(run_name=f"register_{suffix}"):
-            agent = create_fn(catalog, schema=schema, llm_endpoint=llm_endpoint)
-            mlflow.langchain.log_model(
-                lc_model=agent,
-                artifact_path="model",
-                registered_model_name=model_name,
-            )
+    _src_root = _resolve_src_root()
+    if not _src_root or not os.path.isdir(_src_root):
+        raise RuntimeError("Could not resolve repo src root for code_paths; required for models-from-code.")
+
+    set_registry_uri("databricks-uc")
+
+    with tempfile.TemporaryDirectory(prefix="agentbricks_mfc_") as tmpdir:
+        code_paths = [_src_root]
+
+        # 1. Register each specialist (Tool-Calling Agent)
+        for create_fn, suffix in get_all_agent_builders():
+            model_name = f"{catalog}.{model_schema}.{suffix}"
+            script_path = os.path.join(tmpdir, f"agent_{suffix}.py")
+            with open(script_path, "w") as f:
+                f.write(_agent_script_content(suffix, is_orchestrator=False))
+            with mlflow.start_run(run_name=f"register_{suffix}"):
+                mlflow.langchain.log_model(
+                    lc_model=script_path,
+                    artifact_path="model",
+                    registered_model_name=model_name,
+                    code_paths=code_paths,
+                )
             registered.append(model_name)
             print(f"Registered: {model_name}")
 
-    # 2. Register Orchestrator (Multi-Agent System)
-    with mlflow.start_run(run_name="register_orchestrator"):
-        orchestrator = create_orchestrator_agent(catalog, schema=schema, llm_endpoint=llm_endpoint)
-        model_name = f"{catalog}.{model_schema}.orchestrator"
-        mlflow.langchain.log_model(
-            lc_model=orchestrator,
-            artifact_path="model",
-            registered_model_name=model_name,
-        )
-        registered.append(model_name)
-        print(f"Registered: {model_name}")
+        # 2. Register Orchestrator (Multi-Agent System)
+        script_path = os.path.join(tmpdir, "agent_orchestrator.py")
+        with open(script_path, "w") as f:
+            f.write(_agent_script_content("orchestrator", is_orchestrator=True))
+        with mlflow.start_run(run_name="register_orchestrator"):
+            model_name = f"{catalog}.{model_schema}.orchestrator"
+            mlflow.langchain.log_model(
+                lc_model=script_path,
+                artifact_path="model",
+                registered_model_name=model_name,
+                code_paths=code_paths,
+            )
+            registered.append(model_name)
+            print(f"Registered: {model_name}")
 
     return registered
 
