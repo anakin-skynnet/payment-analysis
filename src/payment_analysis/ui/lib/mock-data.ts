@@ -6,6 +6,13 @@
 
 import type { DashboardInfo, DashboardCategory } from "@/lib/api";
 
+/** Mock category counts (mirrors DashboardList.categories from backend). Used with MOCK_DASHBOARDS when API fails. */
+export const MOCK_DASHBOARD_CATEGORIES: Record<string, number> = {
+  executive: 1,
+  analytics: 1,
+  technical: 1,
+};
+
 /** Mock dashboards list (mirrors DashboardList.dashboards from backend). */
 export const MOCK_DASHBOARDS: DashboardInfo[] = [
   {

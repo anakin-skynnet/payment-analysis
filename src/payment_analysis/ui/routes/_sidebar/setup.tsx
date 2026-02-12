@@ -399,7 +399,7 @@ function SetupRun() {
             <strong>2. Personal Access Token (PAT):</strong> In the workspace go to <strong>Settings → Developer → Access tokens</strong>, create a token, then set <code className="rounded bg-muted px-1">DATABRICKS_TOKEN</code> in <strong>Compute → Apps → payment-analysis → Edit → Environment</strong>. Also set <code className="rounded bg-muted px-1">DATABRICKS_HOST</code> and <code className="rounded bg-muted px-1">DATABRICKS_WAREHOUSE_ID</code>.
           </p>
           <p className="text-muted-foreground">
-            If you open the app from Compute → Apps (option 1), do <strong>not</strong> set <code className="rounded bg-muted px-1">DATABRICKS_CLIENT_ID</code> or <code className="rounded bg-muted px-1">DATABRICKS_CLIENT_SECRET</code> in the app environment.
+            The platform may set <code className="rounded bg-muted px-1">DATABRICKS_CLIENT_ID</code> and <code className="rounded bg-muted px-1">DATABRICKS_CLIENT_SECRET</code> for the app&apos;s service principal; the app uses them when no user token is present (e.g. background or server-side actions).
           </p>
           {host && (
             <Button

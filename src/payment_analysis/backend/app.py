@@ -120,8 +120,9 @@ async def lifespan(app: FastAPI):
         app.state.uc_config = uc_from_lakebase
         app.state.uc_config_from_lakebase = True
         logger.info("Using catalog/schema from Lakebase app_config: %s.%s", uc_from_lakebase[0], uc_from_lakebase[1])
-    elif bootstrap.host and bootstrap.token and bootstrap.warehouse_id:
+    elif bootstrap.host and bootstrap.warehouse_id and (bootstrap.token or (bootstrap.client_id and bootstrap.client_secret)):
         try:
+            # Use SP for app_config when available (app-level data); else PAT/token
             svc = DatabricksService(config=bootstrap)
             row = await svc.read_app_config()
             if row and row[0] and row[1]:

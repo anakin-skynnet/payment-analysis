@@ -40,14 +40,18 @@ class Runtime:
 
     @cached_property
     def ws(self) -> WorkspaceClient:
-        # When PAT is set, use explicit host+token+auth_type=pat so the SDK does not
-        # read DATABRICKS_CLIENT_ID/SECRET from env and trigger OAuth scope errors.
+        # Prefer PAT, then service principal (DATABRICKS_CLIENT_ID/SECRET from Apps).
         host = (self.config.databricks.workspace_url or "").strip().rstrip("/")
         token = os.environ.get("DATABRICKS_TOKEN")
-        if host and token and "example.databricks.com" not in host:
-            from .databricks_client_helpers import workspace_client_pat_only
+        if host and "example.databricks.com" not in host:
+            from .databricks_client_helpers import workspace_client_pat_only, workspace_client_service_principal
 
-            return workspace_client_pat_only(host=host, token=token)
+            if token:
+                return workspace_client_pat_only(host=host, token=token)
+            client_id = os.environ.get("DATABRICKS_CLIENT_ID")
+            client_secret = os.environ.get("DATABRICKS_CLIENT_SECRET")
+            if client_id and client_secret:
+                return workspace_client_service_principal(host=host, client_id=client_id, client_secret=client_secret)
         # Otherwise use default (e.g. DATABRICKS_CONFIG_PROFILE or OAuth in dev)
         return WorkspaceClient()
 

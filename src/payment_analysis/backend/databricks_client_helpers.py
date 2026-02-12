@@ -1,12 +1,12 @@
 """
-Helpers to create Databricks WorkspaceClient with PAT/OBO token only.
+Helpers to create Databricks WorkspaceClient with PAT/OBO token or service principal.
 
 When DATABRICKS_CLIENT_ID and DATABRICKS_CLIENT_SECRET are set in the environment
 (e.g. by Databricks Apps for app authorization), the SDK still loads them into
 Config. Passing client_id=None/client_secret=None does not prevent that (the SDK
 skips setting attributes when value is None, then loads from env). Passing empty
 string can still be overridden in some SDK code paths. The only reliable fix is
-to temporarily unset the env vars while constructing the client.
+to temporarily unset the env vars while constructing the PAT client.
 """
 
 import os
@@ -17,6 +17,23 @@ if TYPE_CHECKING:
     from databricks.sdk import WorkspaceClient
 
 _PAT_CLIENT_LOCK = threading.Lock()
+
+
+def workspace_client_service_principal(host: str, client_id: str, client_secret: str) -> "WorkspaceClient":
+    """
+    Create a WorkspaceClient using OAuth client credentials (service principal).
+
+    Use when the app runs as a service principal (e.g. DATABRICKS_CLIENT_ID and
+    DATABRICKS_CLIENT_SECRET set by Databricks Apps) to execute actions on behalf
+    of the app without a user token.
+    """
+    from databricks.sdk import WorkspaceClient
+
+    return WorkspaceClient(
+        host=host,
+        client_id=client_id,
+        client_secret=client_secret,
+    )
 
 
 def workspace_client_pat_only(host: str, token: str) -> "WorkspaceClient":

@@ -11,6 +11,7 @@
 # Environment (Workspace → Apps → payment-analysis → Edit → Environment):
 #   LAKEBASE_* — Required (match Job 1 create_lakebase_autoscaling). DATABRICKS_WAREHOUSE_ID — Required (from sql-warehouse binding).
 #   DATABRICKS_HOST — Optional when opened from Compute → Apps. DATABRICKS_TOKEN — Optional when using OBO (token forwarded).
+#   DATABRICKS_CLIENT_ID, DATABRICKS_CLIENT_SECRET — Injected by the platform for the app's service principal; used to run actions on behalf of the app when no user token is present.
 
 resources:
   apps:

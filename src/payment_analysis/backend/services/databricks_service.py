@@ -58,13 +58,17 @@ class DatabricksConfig:
     
     Attributes:
         host: Databricks workspace URL
-        token: Personal access token or OAuth token
+        token: Personal access token or OAuth token (OBO)
+        client_id: OAuth client ID (service principal); used when token is not set
+        client_secret: OAuth client secret (service principal)
         warehouse_id: SQL Warehouse ID for query execution
         catalog: Unity Catalog name
         schema: Schema name within the catalog
     """
     host: str | None = None
     token: str | None = None
+    client_id: str | None = None
+    client_secret: str | None = None
     warehouse_id: str | None = None
     catalog: str = "ahs_demos_catalog"
     schema: str = "payment_analysis"
@@ -75,6 +79,8 @@ class DatabricksConfig:
         return cls(
             host=os.getenv("DATABRICKS_HOST"),
             token=os.getenv("DATABRICKS_TOKEN"),
+            client_id=os.getenv("DATABRICKS_CLIENT_ID"),
+            client_secret=os.getenv("DATABRICKS_CLIENT_SECRET"),
             warehouse_id=os.getenv("DATABRICKS_WAREHOUSE_ID", "148ccb90800933a1"),
             catalog=os.getenv("DATABRICKS_CATALOG", "ahs_demos_catalog"),
             schema=os.getenv("DATABRICKS_SCHEMA") or get_default_schema(),
@@ -121,15 +127,24 @@ class DatabricksService:
         return self._client
     
     def _initialize_client(self) -> "WorkspaceClient | None":
-        """Initialize the Databricks SDK client with error handling."""
+        """Initialize the Databricks SDK client with error handling (PAT/OBO or service principal)."""
         host = self.config.host
-        token = self.config.token
-        if not host or not token:
+        if not host:
             return None
         try:
-            from ..databricks_client_helpers import workspace_client_pat_only
+            from ..databricks_client_helpers import workspace_client_pat_only, workspace_client_service_principal
 
-            client = workspace_client_pat_only(host=host, token=token)
+            token = self.config.token
+            if token:
+                client = workspace_client_pat_only(host=host, token=token)
+            elif self.config.client_id and self.config.client_secret:
+                client = workspace_client_service_principal(
+                    host=host,
+                    client_id=self.config.client_id,
+                    client_secret=self.config.client_secret,
+                )
+            else:
+                return None
             logger.info("Databricks client initialized successfully")
             return client
         except ImportError:

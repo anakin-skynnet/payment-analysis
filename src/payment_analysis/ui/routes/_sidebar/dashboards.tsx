@@ -12,7 +12,7 @@ import { DataSourceBadge } from "@/components/apx/data-source-badge";
 import { PageHeader } from "@/components/layout";
 import { DashboardTable } from "@/components/dashboards";
 import { friendlyReason } from "@/lib/reasoning";
-import { MOCK_DASHBOARDS } from "@/lib/mock-data";
+import { MOCK_DASHBOARDS, MOCK_DASHBOARD_CATEGORIES } from "@/lib/mock-data";
 import { useListDashboards, useRecentDecisions, getNotebookUrl, useGetDashboardUrl, type DashboardCategory, type DashboardInfo } from "@/lib/api";
 
 export const Route = createFileRoute("/_sidebar/dashboards")({
@@ -61,8 +61,8 @@ export function Component() {
     query: { enabled: !!embedId },
   });
 
-  const dashboards = dashboardList?.data.dashboards ?? [];
-  const categories = dashboardList?.data.categories ?? {};
+  const dashboards = (isError ? MOCK_DASHBOARDS : dashboardList?.data.dashboards) ?? [];
+  const categories = (isError ? MOCK_DASHBOARD_CATEGORIES : dashboardList?.data.categories) ?? {};
   const { data: decisionsData } = useRecentDecisions({
     params: { limit: 5 },
     query: { refetchInterval: 15_000 },
@@ -297,7 +297,7 @@ export function Component() {
         </TabsList>
         <TabsContent value="table" className="space-y-4">
           <DashboardTable
-            dashboards={isError ? MOCK_DASHBOARDS : dashboards}
+            dashboards={dashboards}
             isLoading={loading}
             onViewInApp={openEmbed}
             onOpenInTab={(d) => d.url_path && handleDashboardClick(d)}

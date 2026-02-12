@@ -335,7 +335,7 @@ def get_setup_defaults(
 
 @router.patch("/config", response_model=SetupConfigOut, operation_id="updateSetupConfig")
 async def update_setup_config(request: Request, body: SetupConfigIn) -> SetupConfigOut:
-    """Update effective catalog and schema in app_config table and app state. Uses your token when opened from Compute → Apps (OBO) or DATABRICKS_TOKEN when set."""
+    """Update effective catalog and schema in app_config table and app state. Uses user token (OBO), PAT, or service principal for app-level write."""
     catalog = (body.catalog or "").strip()
     schema = (body.schema_name or "").strip()
     if not catalog or not schema:
@@ -345,7 +345,9 @@ async def update_setup_config(request: Request, body: SetupConfigIn) -> SetupCon
         )
     bootstrap = DatabricksConfig.from_environment()
     obo_token = _get_obo_token(request)
-    if not obo_token and not bootstrap.token:
+    token = obo_token or bootstrap.token
+    use_sp = not token and bootstrap.client_id and bootstrap.client_secret
+    if not token and not use_sp:
         raise HTTPException(status_code=401, detail=AUTH_REQUIRED_DETAIL)
     effective_host = _effective_databricks_host(request, bootstrap.host)
     missing = []
@@ -357,7 +359,9 @@ async def update_setup_config(request: Request, body: SetupConfigIn) -> SetupCon
         raise HTTPException(status_code=503, detail=f"Set in the app environment: {', '.join(missing)}.")
     config = DatabricksConfig(
         host=effective_host,
-        token=obo_token or bootstrap.token,
+        token=token,
+        client_id=bootstrap.client_id if use_sp else None,
+        client_secret=bootstrap.client_secret if use_sp else None,
         warehouse_id=bootstrap.warehouse_id,
         catalog=bootstrap.catalog,
         schema=bootstrap.schema,

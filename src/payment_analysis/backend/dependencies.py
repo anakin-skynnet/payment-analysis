@@ -3,6 +3,10 @@
 This module implements patterns for Databricks Apps:
 - User authorization (on-behalf-of): token from x-forwarded-access-token header.
 - Workspace URL derivation from X-Forwarded-Host / Host when app is served from Apps.
+- Service principal + user token pattern: use SP for app-level operations (app_config,
+  session, stats); use user token (X-Forwarded-Access-Token) for user-scoped operations
+  (warehouse queries, run job on behalf of user). Example: query_warehouse(user_token)
+  vs get_user_session(sp_cfg, email) / save_user_session(sp_cfg, email).
 See: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/configuration
      https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth
      https://docs.databricks.com/aws/en/dev-tools/databricks-apps/http-headers
@@ -23,14 +27,14 @@ from .config import (
     ensure_absolute_workspace_url,
     workspace_url_from_apps_host,
 )
-from .databricks_client_helpers import workspace_client_pat_only
+from .databricks_client_helpers import workspace_client_pat_only, workspace_client_service_principal
 from .runtime import Runtime
 from .services.databricks_service import DatabricksConfig, DatabricksService
 
-# Shared message when neither OBO token nor DATABRICKS_TOKEN is available (exported for use in routes)
+# Shared message when no credentials are available (exported for use in routes)
 AUTH_REQUIRED_DETAIL = (
     "Open this app from Workspace → Compute → Apps → payment-analysis so the platform forwards your token (recommended), "
-    "or set DATABRICKS_TOKEN in the app environment (Compute → Apps → Edit → Environment)."
+    "or set DATABRICKS_TOKEN, or ensure the app's service principal credentials (DATABRICKS_CLIENT_ID and DATABRICKS_CLIENT_SECRET) are set in the app environment."
 )
 
 
@@ -143,36 +147,44 @@ def _get_obo_token(request: Request) -> str | None:
 
 def get_workspace_client(request: Request) -> WorkspaceClient:
     """
-    Returns a Databricks Workspace client using your credentials when logged in (OBO)
-    or DATABRICKS_TOKEN when set. Used by setup defaults and optional run-job/run-pipeline API.
+    Returns a Databricks Workspace client. Credentials, in order of precedence:
+    1. User token (OBO) when opened from Compute → Apps (X-Forwarded-Access-Token).
+    2. DATABRICKS_TOKEN (PAT).
+    3. Service principal: DATABRICKS_CLIENT_ID and DATABRICKS_CLIENT_SECRET (injected by
+       Databricks Apps so the app can execute actions on behalf of the app).
     Host is always absolute (https://...). When DATABRICKS_HOST is unset, derives host
     from the request when the app is served from a Databricks Apps URL.
-    When using OBO (open app from Compute → Apps), do not set DATABRICKS_CLIENT_ID/SECRET
-    in the app environment or the SDK may trigger OAuth scope errors.
     """
     obo_token = _get_obo_token(request)
     config = get_config(request)
     raw = (config.databricks.workspace_url or "").strip().rstrip("/")
     if not raw or raw == WORKSPACE_URL_PLACEHOLDER.rstrip("/"):
         raw = workspace_url_from_apps_host(_request_host_for_derivation(request), app_name).strip().rstrip("/")
-    token = obo_token or os.environ.get("DATABRICKS_TOKEN")
-    if not token:
-        raise HTTPException(status_code=401, detail=AUTH_REQUIRED_DETAIL)
     if not raw:
         raise HTTPException(
             status_code=503,
             detail="DATABRICKS_HOST is not set. Set it in the app environment or open the app from Compute → Apps so the workspace URL can be derived.",
         )
     host = ensure_absolute_workspace_url(raw)
-    return workspace_client_pat_only(host=host, token=token)
+
+    token = obo_token or os.environ.get("DATABRICKS_TOKEN")
+    if token:
+        return workspace_client_pat_only(host=host, token=token)
+
+    client_id = os.environ.get("DATABRICKS_CLIENT_ID")
+    client_secret = os.environ.get("DATABRICKS_CLIENT_SECRET")
+    if client_id and client_secret:
+        return workspace_client_service_principal(host=host, client_id=client_id, client_secret=client_secret)
+
+    raise HTTPException(status_code=401, detail=AUTH_REQUIRED_DETAIL)
 
 
 def get_workspace_client_optional(request: Request) -> WorkspaceClient | None:
     """
     Returns a Workspace client when credentials are available; otherwise None.
     Used by GET /setup/defaults to resolve job/pipeline IDs from the workspace when possible.
-    Derives host from request when DATABRICKS_HOST is unset and app is served from Apps URL.
-    Token is read from X-Forwarded-Access-Token (set when app is opened from Compute → Apps).
+    Credentials: OBO token (X-Forwarded-Access-Token), then DATABRICKS_TOKEN, then
+    service principal (DATABRICKS_CLIENT_ID + DATABRICKS_CLIENT_SECRET).
     """
     obo_token = _get_obo_token(request)
     config = get_config(request)
@@ -180,11 +192,18 @@ def get_workspace_client_optional(request: Request) -> WorkspaceClient | None:
     if not raw or raw == WORKSPACE_URL_PLACEHOLDER.rstrip("/"):
         host_header = _request_host_for_derivation(request)
         raw = workspace_url_from_apps_host(host_header, app_name).strip().rstrip("/")
-    token = obo_token or os.environ.get("DATABRICKS_TOKEN")
-    if not token or not raw:
+    if not raw:
         return None
+
     host = ensure_absolute_workspace_url(raw)
-    return workspace_client_pat_only(host=host, token=token)
+    token = obo_token or os.environ.get("DATABRICKS_TOKEN")
+    if token:
+        return workspace_client_pat_only(host=host, token=token)
+    client_id = os.environ.get("DATABRICKS_CLIENT_ID")
+    client_secret = os.environ.get("DATABRICKS_CLIENT_SECRET")
+    if client_id and client_secret:
+        return workspace_client_service_principal(host=host, client_id=client_id, client_secret=client_secret)
+    return None
 
 
 def get_session(rt: RuntimeDep) -> Generator[Session, None, None]:
@@ -215,6 +234,51 @@ def _effective_databricks_host(request: Request, bootstrap_host: str | None) -> 
     return derived if derived else None
 
 
+def get_workspace_client_app_identity(request: Request) -> WorkspaceClient | None:
+    """
+    Returns a Workspace client using only the service principal (DATABRICKS_CLIENT_ID/SECRET).
+
+    Use for app-level operations (e.g. app_config, session DB, stats). For user-scoped
+    operations (warehouse queries, run job on behalf of user) use get_workspace_client
+    so the user token (X-Forwarded-Access-Token) is used when present.
+    """
+    config = get_config(request)
+    raw = (config.databricks.workspace_url or "").strip().rstrip("/")
+    if not raw or raw == WORKSPACE_URL_PLACEHOLDER.rstrip("/"):
+        raw = workspace_url_from_apps_host(_request_host_for_derivation(request), app_name).strip().rstrip("/")
+    if not raw:
+        return None
+    client_id = os.environ.get("DATABRICKS_CLIENT_ID")
+    client_secret = os.environ.get("DATABRICKS_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        return None
+    host = ensure_absolute_workspace_url(raw)
+    return workspace_client_service_principal(host=host, client_id=client_id, client_secret=client_secret)
+
+
+async def get_databricks_service_app_identity(request: Request) -> DatabricksService | None:
+    """
+    Returns a DatabricksService using only the service principal (for app-level operations).
+
+    Use for reading/writing app_config, session, or other app-managed data. For
+    user-scoped warehouse queries use get_databricks_service (user token when present).
+    """
+    bootstrap = DatabricksConfig.from_environment()
+    effective_host = _effective_databricks_host(request, bootstrap.host)
+    if not effective_host or not bootstrap.client_id or not bootstrap.client_secret:
+        return None
+    config = DatabricksConfig(
+        host=effective_host,
+        token=None,
+        client_id=bootstrap.client_id,
+        client_secret=bootstrap.client_secret,
+        warehouse_id=bootstrap.warehouse_id,
+        catalog=bootstrap.catalog,
+        schema=bootstrap.schema,
+    )
+    return DatabricksService(config=config)
+
+
 async def get_databricks_service(request: Request) -> DatabricksService:
     """
     Returns a DatabricksService using the forwarded user token when the app is opened
@@ -229,31 +293,43 @@ async def get_databricks_service(request: Request) -> DatabricksService:
     catalog, schema = getattr(request.app.state, "uc_config", (None, None))
     if not catalog or not schema:
         catalog, schema = bootstrap.catalog, bootstrap.schema
-    # Lazy-load catalog/schema from app_config in Lakehouse once when we have OBO token but didn't load at startup (skip if already from Lakebase)
+    # Lazy-load catalog/schema from app_config in Lakehouse once (skip if already from Lakebase).
+    # Prefer service principal for app_config (app-level data); fall back to user token if no SP.
     lazy_tried = getattr(request.app.state, "uc_config_lazy_tried", False)
     from_lakebase = getattr(request.app.state, "uc_config_from_lakebase", False)
-    if obo_token and not from_lakebase and not getattr(request.app.state, "uc_config_from_lakehouse", False) and not lazy_tried:
+    if not from_lakebase and not getattr(request.app.state, "uc_config_from_lakehouse", False) and not lazy_tried:
         if effective_host and bootstrap.warehouse_id:
             request.app.state.uc_config_lazy_tried = True
+            row = None
             try:
-                lazy_config = DatabricksConfig(
-                    host=effective_host,
-                    token=obo_token,
-                    warehouse_id=bootstrap.warehouse_id,
-                    catalog=bootstrap.catalog,
-                    schema=bootstrap.schema,
-                )
-                lazy_svc = DatabricksService(config=lazy_config)
-                row = await lazy_svc.read_app_config()
+                # Use SP for app_config when available (app-level data)
+                if bootstrap.client_id and bootstrap.client_secret:
+                    sp_svc = await get_databricks_service_app_identity(request)
+                    if sp_svc:
+                        row = await sp_svc.read_app_config()
+                # Fall back to user token (OBO) for read_app_config
+                if (not row or not row[0] or not row[1]) and obo_token:
+                    lazy_config = DatabricksConfig(
+                        host=effective_host,
+                        token=obo_token,
+                        warehouse_id=bootstrap.warehouse_id,
+                        catalog=bootstrap.catalog,
+                        schema=bootstrap.schema,
+                    )
+                    lazy_svc = DatabricksService(config=lazy_config)
+                    row = await lazy_svc.read_app_config()
                 if row and row[0] and row[1]:
                     request.app.state.uc_config = row
                     request.app.state.uc_config_from_lakehouse = True
                     catalog, schema = row
             except Exception:
                 pass
+    # When no user token, use service principal (DATABRICKS_CLIENT_ID/SECRET from Apps) if set
     config = DatabricksConfig(
         host=effective_host,
         token=token,
+        client_id=bootstrap.client_id if not token else None,
+        client_secret=bootstrap.client_secret if not token else None,
         warehouse_id=bootstrap.warehouse_id,
         catalog=catalog,
         schema=schema,
