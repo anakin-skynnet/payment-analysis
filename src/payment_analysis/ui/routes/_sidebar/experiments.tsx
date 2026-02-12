@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
   createExperiment,
-  listExperiments,
+  listExperimentsKey,
+  useListExperiments,
   startExperiment,
   stopExperiment,
   type Experiment,
@@ -34,22 +35,19 @@ function Experiments() {
   const qc = useQueryClient();
   const [name, setName] = useState("Routing bandit v0");
 
-  const q = useQuery({
-    queryKey: ["experiments"],
-    queryFn: () => listExperiments(),
-  });
+  const q = useListExperiments({});
 
   const create = useMutation({
     mutationFn: () => createExperiment({ name }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["experiments"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: listExperimentsKey() }),
   });
   const start = useMutation({
     mutationFn: (experiment_id: string) => startExperiment({ experiment_id }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["experiments"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: listExperimentsKey() }),
   });
   const stop = useMutation({
     mutationFn: (experiment_id: string) => stopExperiment({ experiment_id }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["experiments"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: listExperimentsKey() }),
   });
 
   const items = q.data?.data ?? [];

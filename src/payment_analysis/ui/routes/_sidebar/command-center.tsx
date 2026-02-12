@@ -32,6 +32,8 @@ import {
   useGetFalseInsightsMetric,
   useGetRetryPerformance,
   useGetEntrySystemDistribution,
+  postControlPanel,
+  usePostControlPanel,
 } from "@/lib/api";
 import selector from "@/lib/selector";
 import { useEntity } from "@/contexts/entity-context";
@@ -220,19 +222,14 @@ function CommandCenter() {
   const [fraudShadowMode, setFraudShadowMode] = useState(false);
   const [recalculateAlgorithms, setRecalculateAlgorithms] = useState(false);
 
+  const postControlPanelMut = usePostControlPanel({
+    mutation: { mutationFn: (data) => postControlPanel(data, { credentials: "include" }) },
+  });
   const syncControlPanel = useCallback(
-    async (payload: { activate_smart_routing?: boolean; deploy_fraud_shadow_model?: boolean; recalculate_algorithms?: boolean }) => {
-      try {
-        await fetch("/api/analytics/control-panel", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      } catch {
-        // non-blocking
-      }
+    (payload: { activate_smart_routing?: boolean; deploy_fraud_shadow_model?: boolean; recalculate_algorithms?: boolean }) => {
+      postControlPanelMut.mutate(payload);
     },
-    [],
+    [postControlPanelMut],
   );
 
   const { data: execUrlData } = useGetDashboardUrl({ params: { dashboard_id: "executive_trends_unified" } });

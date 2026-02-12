@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,9 @@ import { DataSourceBadge } from "@/components/apx/data-source-badge";
 import {
   runSetupJob,
   runSetupPipeline,
+  getSetupDefaultsKey,
+  useGetSetupDefaults,
+  useGetSetupSettings,
   useGetCountries,
   useGetOnlineFeatures,
   type RunJobOut,
@@ -42,34 +45,6 @@ export const Route = createFileRoute("/_sidebar/setup")({
 });
 
 const API_BASE = "/api/setup";
-
-type SetupSettings = { settings: Record<string, string> };
-
-async function fetchSettings(): Promise<SetupSettings> {
-  const res = await fetch(`${API_BASE}/settings`, { credentials: "include" });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-type SetupDefaults = {
-  warehouse_id: string;
-  catalog: string;
-  schema: string;
-  jobs: Record<string, string>;
-  pipelines: Record<string, string>;
-  workspace_host: string;
-  workspace_id?: string;
-  token_received?: boolean;
-  workspace_url_derived?: boolean;
-  lakebase_autoscaling?: boolean;
-  lakebase_connection_mode?: string;
-};
-
-async function fetchDefaults(): Promise<SetupDefaults> {
-  const res = await fetch(`${API_BASE}/defaults`, { credentials: "include" });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
 
 type SetupConfigResult = { catalog: string; schema: string };
 
@@ -88,18 +63,13 @@ async function updateConfig(body: { catalog: string; schema: string }): Promise<
 
 function SetupRun() {
   const qc = useQueryClient();
-  const { data: defaults, isLoading: loadingDefaults, refetch: refetchDefaults, isRefetching: refetchingDefaults } = useQuery({
-    queryKey: ["setup", "defaults"],
-    queryFn: fetchDefaults,
-    staleTime: 15_000,
-    refetchOnWindowFocus: true,
+  const { data: defaultsResponse, isLoading: loadingDefaults, refetch: refetchDefaults, isRefetching: refetchingDefaults } = useGetSetupDefaults({
+    query: { staleTime: 15_000, refetchOnWindowFocus: true },
   });
+  const defaults = defaultsResponse?.data;
 
-  const { data: settingsData } = useQuery({
-    queryKey: ["setup", "settings"],
-    queryFn: fetchSettings,
-    staleTime: 30_000,
-  });
+  const { data: settingsResponse } = useGetSetupSettings({ query: { staleTime: 30_000 } });
+  const settingsData = settingsResponse?.data;
   const { data: countriesData } = useGetCountries({ params: {} });
   const { data: onlineFeaturesData } = useGetOnlineFeatures({ params: { limit: 100 } });
 
@@ -130,7 +100,7 @@ function SetupRun() {
         message: "Catalog and schema saved. They will be used for all Lakehouse operations.",
       });
       setError(null);
-      qc.invalidateQueries({ queryKey: ["setup", "defaults"] });
+      qc.invalidateQueries({ queryKey: getSetupDefaultsKey() });
     },
     onError: (e: Error) => {
       setError(e.message);

@@ -1,87 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Database, Plus, Pencil, Trash2 } from "lucide-react";
 
+import {
+  type ApprovalRuleIn,
+  type ApprovalRuleUpdate,
+  listApprovalRulesKey,
+  useListApprovalRules,
+  useCreateApprovalRule,
+  useUpdateApprovalRule,
+  useDeleteApprovalRule,
+} from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-
-export type ApprovalRule = {
-  id: string;
-  name: string;
-  rule_type: string;
-  condition_expression?: string | null;
-  action_summary: string;
-  priority: number;
-  is_active: boolean;
-  created_at?: string | null;
-  updated_at?: string | null;
-};
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_sidebar/rules")({
   component: () => <Rules />,
 });
-
-async function listRules(params?: { rule_type?: string; active_only?: boolean }): Promise<ApprovalRule[]> {
-  const sp = new URLSearchParams();
-  if (params?.rule_type) sp.set("rule_type", params.rule_type);
-  if (params?.active_only) sp.set("active_only", "true");
-  const url = `/api/rules${sp.toString() ? `?${sp}` : ""}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(res.statusText);
-  return res.json();
-}
-
-async function createRule(payload: {
-  name: string;
-  rule_type: string;
-  action_summary: string;
-  condition_expression?: string;
-  priority: number;
-  is_active: boolean;
-}): Promise<ApprovalRule> {
-  const res = await fetch("/api/rules", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(t || res.statusText);
-  }
-  return res.json();
-}
-
-async function updateRule(
-  ruleId: string,
-  payload: Partial<{
-    name: string;
-    rule_type: string;
-    action_summary: string;
-    condition_expression: string;
-    priority: number;
-    is_active: boolean;
-  }>
-): Promise<ApprovalRule> {
-  const res = await fetch(`/api/rules/${ruleId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(t || res.statusText);
-  }
-  return res.json();
-}
-
-async function deleteRule(ruleId: string): Promise<void> {
-  const res = await fetch(`/api/rules/${ruleId}`, { method: "DELETE" });
-  if (!res.ok) throw new Error(res.statusText);
-}
 
 const RULE_TYPES = [
   { value: "authentication", label: "Authentication" },
@@ -103,38 +44,33 @@ function Rules() {
     is_active: true,
   });
 
-  const rulesQuery = useQuery({
-    queryKey: ["/api/rules", filterType],
-    queryFn: () =>
-      listRules(
-        filterType ? { rule_type: filterType } : undefined
-      ),
+  const rulesQuery = useListApprovalRules({
+    params: filterType ? { rule_type: filterType } : undefined,
   });
-
-  const createMut = useMutation({
-    mutationFn: createRule,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["/api/rules"] });
-      setShowForm(false);
-      setForm({ name: "", rule_type: "authentication", action_summary: "", condition_expression: "", priority: 100, is_active: true });
+  const createMut = useCreateApprovalRule({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: listApprovalRulesKey() });
+        setShowForm(false);
+        setForm({ name: "", rule_type: "authentication", action_summary: "", condition_expression: "", priority: 100, is_active: true });
+      },
+    },
+  });
+  const updateMut = useUpdateApprovalRule({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: listApprovalRulesKey() });
+        setEditingId(null);
+      },
+    },
+  });
+  const deleteMut = useDeleteApprovalRule({
+    mutation: {
+      onSuccess: () => qc.invalidateQueries({ queryKey: listApprovalRulesKey() }),
     },
   });
 
-  const updateMut = useMutation({
-    mutationFn: ({ ruleId, payload }: { ruleId: string; payload: Parameters<typeof updateRule>[1] }) =>
-      updateRule(ruleId, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["/api/rules"] });
-      setEditingId(null);
-    },
-  });
-
-  const deleteMut = useMutation({
-    mutationFn: deleteRule,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/rules"] }),
-  });
-
-  const rules = rulesQuery.data ?? [];
+  const rules = rulesQuery.data?.data ?? [];
   const isPending = rulesQuery.isLoading;
 
   return (
@@ -177,9 +113,13 @@ function Rules() {
         </CardHeader>
         <CardContent>
           {rulesQuery.isError && (
-            <p className="text-sm text-destructive">
-              Failed to load rules. Run Job 1 (Create Data Repositories) to seed Lakebase and ensure Databricks connection is configured in Setup & Run.
-            </p>
+            <Alert variant="destructive" className="rounded-lg">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Failed to load rules</AlertTitle>
+              <AlertDescription>
+                Run Job 1 (Create Data Repositories) to seed Lakebase and ensure Databricks connection is configured in Setup & Run.
+              </AlertDescription>
+            </Alert>
           )}
           {isPending && (
             <div className="space-y-2">
@@ -237,7 +177,7 @@ function Rules() {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          if (confirm("Delete this rule?")) deleteMut.mutate(r.id);
+                          if (confirm("Delete this rule?")) deleteMut.mutate({ params: { rule_id: r.id } });
                         }}
                         disabled={deleteMut.isPending}
                       >
@@ -329,7 +269,7 @@ function Rules() {
                     condition_expression: form.condition_expression || undefined,
                     priority: form.priority,
                     is_active: form.is_active,
-                  })
+                  } as ApprovalRuleIn)
                 }
                 disabled={!form.name.trim() || !form.action_summary.trim() || createMut.isPending}
               >
@@ -408,15 +348,15 @@ function Rules() {
               <Button
                 onClick={() =>
                   updateMut.mutate({
-                    ruleId: editingId,
-                    payload: {
+                    params: { rule_id: editingId! },
+                    data: {
                       name: form.name,
                       rule_type: form.rule_type,
                       action_summary: form.action_summary,
                       condition_expression: form.condition_expression || undefined,
                       priority: form.priority,
                       is_active: form.is_active,
-                    },
+                    } as ApprovalRuleUpdate,
                   })
                 }
                 disabled={!form.name.trim() || !form.action_summary.trim() || updateMut.isPending}

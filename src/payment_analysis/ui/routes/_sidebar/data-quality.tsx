@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import type { CSSProperties } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/tooltip";
 import {
   createIncident,
-  listIncidents,
+  listIncidentsKey,
+  useListIncidents,
   useGetDataQualitySummary,
   useGetLastHourPerformance,
   useGetStreamingTps,
@@ -117,15 +118,12 @@ function DataQualityPage() {
   const retentionPct = dataQuality?.retention_pct_24h;
   const dqScore = retentionPct != null ? Math.min(100, Math.round(retentionPct)) : null;
 
-  const incidentsQ = useQuery({
-    queryKey: ["incidents"],
-    queryFn: () => listIncidents(),
-  });
+  const incidentsQ = useListIncidents({});
   const lastHourQ = useGetLastHourPerformance({ query: { refetchInterval: REFRESH_MS } });
   const tpsQ = useGetStreamingTps({ params: { limit_seconds: 120 }, query: { refetchInterval: REFRESH_MS } });
   const create = useMutation({
     mutationFn: () => createIncident({ category, key, severity: "medium", details: {} }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["incidents"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: listIncidentsKey() }),
   });
 
   const items = incidentsQ.data?.data ?? [];
