@@ -46,7 +46,7 @@ This document is a checklist to verify that the UI is properly designed and conn
   - **DATABRICKS_WAREHOUSE_ID** — required for SQL/analytics (or use sql-warehouse binding).
   - **DATABRICKS_HOST** — optional when opened from Compute → Apps (URL derived from request).
   - **DATABRICKS_TOKEN** — optional when using user authorization (OBO); open app from Compute → Apps so token is forwarded.
-- **User authorization (OBO):** Bundle sets **user_api_scopes**: `sql` (in `resources/fastapi_app.yml`). Ensures the app can run SQL on behalf of the user when opened from Compute → Apps.
+- **User authorization (OBO):** Bundle sets **user_api_scopes** in `resources/fastapi_app.yml` (sql, dashboards.genie, files.files, serving.serving-endpoints, vectorsearch.vector-search-indexes, catalog.connections, catalog.catalogs:read, catalog.schemas:read, catalog.tables:read). Ensures the app can run SQL, Genie, files, model serving, vector search, and Unity Catalog on behalf of the user when opened from Compute → Apps.
 - **App resources (bundle):** sql-warehouse (CAN_USE), jobs 1–7 (CAN_MANAGE_RUN). Permissions for these resources are applied on deploy.
 
 ---

@@ -34,9 +34,8 @@ workspace:
 # Vector Search: create manually from resources/vector_search.yml.
 # Execution order for jobs (Setup & Run): see docs/DEPLOYMENT.md and Setup & Run in the app.
 #
-# Dashboards: Uncomment resources/dashboards.yml only for a clean workspace (first deploy).
-# If deploy fails with "Node named '...' already exists", dashboards already exist — leave
-# dashboards.yml commented so deploy can succeed; existing dashboards are unchanged.
+# Dashboards: resources/dashboards.yml is included so deploy updates existing dashboards in place
+# (same display_name + parent_path). Run prepare before deploy so .build/dashboards/*.lvdash.json exist.
 include:
   - resources/unity_catalog.yml
   - resources/lakebase.yml
@@ -94,7 +93,7 @@ variables:
     default: payment-analysis
   # Genie space ID for app resource binding. Default empty; do not add genie-space to app resources in resources/fastapi_app.yml unless this is set (empty space_id causes deploy to fail).
   genie_space_id:
-    description: "Genie space ID (e.g. UUID of 'Approvals domain expert' from Genie UI). Set when uncommenting genie-space in resources/fastapi_app.yml."
+    description: "Genie space ID (e.g. UUID of 'Approvals domain expert' from Genie UI). Set for genie-space app resource (empty may cause deploy to fail)."
     default: ""
   pipelines_development:
     description: "If true, pipelines use development mode (e.g. lower cost). Set false for prod."
