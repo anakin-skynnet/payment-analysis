@@ -6,12 +6,13 @@
 # Full configuration (when deployed + UI steps):
 #   User authorization scopes (below): sql, dashboards.genie, files.files, serving.serving-endpoints,
 #     vectorsearch.vector-search-indexes, catalog.connections, catalog.catalogs:read, catalog.schemas:read, catalog.tables:read.
-#   App resources from bundle: SQL warehouse, Secret, UC volume, Jobs 1–7, Serving endpoints (4).
+#   App resources from bundle: SQL warehouse, UC volume, Jobs 1–7, Serving endpoints (4). Secret and Genie commented out until scope/key and space_id exist.
+#   Secret: create scope "payment-analysis" and key "api-key" in Workspace → Secrets, then uncomment app-secrets block and redeploy.
 #   Genie: uncomment genie-space block and set --var genie_space_id=<uuid> then redeploy.
 #   Add in Apps UI (Configure → App resources → + Add resource) after deploy: Database (Lakebase),
 #     MLflow experiment, Vector search index, UC function, UC connection.
 #
-# Prerequisites: Secret scope "payment-analysis" with key "api-key" in workspace; volume and warehouse from bundle.
+# Prerequisites: Volume and warehouse from bundle. For Secret/Genie: create scope+key or set genie_space_id, then uncomment and redeploy.
 # Environment (Workspace → Apps → payment-analysis → Edit → Environment):
 #   LAKEBASE_* — Required. DATABRICKS_WAREHOUSE_ID — Required (from sql-warehouse binding).
 #   DATABRICKS_CLIENT_ID, DATABRICKS_CLIENT_SECRET — Injected for the app's service principal.
@@ -40,13 +41,13 @@ resources:
           sql_warehouse:
             id: ${resources.sql_warehouses.payment_analysis_warehouse.id}
             permission: CAN_USE
-        # Secret — API keys or sensitive config (create scope "payment-analysis" and key in workspace)
-        - name: app-secrets
-          description: Secret scope for API keys or other sensitive config
-          secret:
-            scope: "payment-analysis"
-            key: "api-key"
-            permission: READ
+        # Secret — uncomment after creating scope "payment-analysis" and key "api-key" in Workspace → Secrets (else app update fails)
+        # - name: app-secrets
+        #   description: Secret scope for API keys or other sensitive config
+        #   secret:
+        #     scope: "payment-analysis"
+        #     key: "api-key"
+        #     permission: READ
         # Genie space — uncomment and set --var genie_space_id=<uuid> when you have a Genie space (empty space_id causes app update to fail)
         # - name: genie-space
         #   description: Genie space for natural language analytics (Ask Data)
