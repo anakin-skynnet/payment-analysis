@@ -3,16 +3,8 @@
 # Authorization: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth
 # Runtime: app.yml at project root (command, env). source_code_path = workspace root (sync destination).
 #
-# Full configuration (when deployed + UI steps):
-#   User authorization scopes (below): sql, dashboards.genie, files.files, serving.serving-endpoints,
-#     vectorsearch.vector-search-indexes, catalog.connections, catalog.catalogs:read, catalog.schemas:read, catalog.tables:read.
-#   App resources from bundle: SQL warehouse, UC volume, Jobs 1–7. Secret, Genie, Serving endpoints commented out until scope/key, space_id, and endpoints exist.
-#   Secret: create scope "payment-analysis" and key "api-key" in Workspace → Secrets, then uncomment app-secrets block and redeploy.
-#   Genie: uncomment genie-space block and set --var genie_space_id=<uuid> then redeploy.
-#   Add in Apps UI (Configure → App resources → + Add resource) after deploy: Database (Lakebase),
-#     MLflow experiment, Vector search index, UC function, UC connection.
-#
-# Prerequisites: Volume and warehouse from bundle. For Secret/Genie: create scope+key or set genie_space_id, then uncomment and redeploy.
+# Full configuration: User authorization scopes (below) + App resources listed. Set --var genie_space_id=<uuid> for Genie when deploying.
+# Note: Bundle validate may warn on experiment, vector_search_index, function (schema not yet in CLI). If app update fails, add those in Apps UI → Configure → App resources.
 # Environment (Workspace → Apps → payment-analysis → Edit → Environment):
 #   LAKEBASE_* — Required. DATABRICKS_WAREHOUSE_ID — Required (from sql-warehouse binding).
 #   DATABRICKS_CLIENT_ID, DATABRICKS_CLIENT_SECRET — Injected for the app's service principal.
@@ -35,97 +27,102 @@ resources:
         - catalog.schemas:read
         - catalog.tables:read
       resources:
-        # SQL warehouse — analytics, app_config, gold views
+        # SQL warehouse — [dev] Payment Analysis Warehouse
         - name: sql-warehouse
           description: SQL warehouse for analytics, app_config, gold views
           sql_warehouse:
             id: ${resources.sql_warehouses.payment_analysis_warehouse.id}
             permission: CAN_USE
-        # Secret — uncomment after creating scope "payment-analysis" and key "api-key" in Workspace → Secrets (else app update fails)
-        # - name: app-secrets
-        #   description: Secret scope for API keys or other sensitive config
-        #   secret:
-        #     scope: "payment-analysis"
-        #     key: "api-key"
-        #     permission: READ
-        # Genie space — uncomment and set --var genie_space_id=<uuid> when you have a Genie space (empty space_id causes app update to fail)
-        # - name: genie-space
-        #   description: Genie space for natural language analytics (Ask Data)
-        #   genie_space:
-        #     name: "Approvals domain expert"
-        #     space_id: ${var.genie_space_id}
-        #     permission: CAN_RUN
-        # UC volume — reports and exports (volume created in unity_catalog.yml)
+        # UC volume — /Volumes/ahs_demos_catalog/payment_analysis/reports
         - name: volume-reports
           description: UC volume for reports and Genie config
           uc_securable:
             securable_type: VOLUME
             securable_full_name: "${var.catalog}.${var.schema}.reports"
             permission: READ_VOLUME
-        # Jobs used by UI (Setup & Run). Order: 1 Data Repos → 2 Simulator → 3 Ingestion → 4 Dashboards → 5 ML → 6 Agents → 7 Genie.
-        - name: job-1-data-repositories
-          description: "1. Create Data Repositories (Lakehouse, Vector Search, Lakebase)"
-          job:
-            id: ${resources.jobs.job_1_create_data_repositories.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-2-simulator
-          description: "2. Simulate Transaction Events"
-          job:
-            id: ${resources.jobs.job_2_simulate_transaction_events.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-3-ingestion
-          description: "3. Initialize Ingestion (Gold Views)"
-          job:
-            id: ${resources.jobs.job_3_initialize_ingestion.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-4-dashboards
-          description: "4. Deploy Dashboards (Prepare & Publish)"
-          job:
-            id: ${resources.jobs.job_4_deploy_dashboards.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-5-train-ml
-          description: "5. Train Models and Serving"
-          job:
-            id: ${resources.jobs.job_5_train_models_and_serving.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-6-agents
-          description: "6. Deploy Agents (AgentBricks)"
-          job:
-            id: ${resources.jobs.job_6_deploy_agents.id}
-            permission: CAN_MANAGE_RUN
-        - name: job-7-genie
-          description: "7. Genie Space Sync"
-          job:
-            id: ${resources.jobs.job_7_genie_sync.id}
-            permission: CAN_MANAGE_RUN
-        # Model serving — uncomment after Step 5 (Train ML) and endpoints exist (or include resources/model_serving.yml)
-        # - name: serving-approval-prop
-        #   description: Approval propensity model endpoint
-        #   serving_endpoint:
-        #     name: "approval-propensity-${var.environment}"
-        #     permission: CAN_QUERY
-        # - name: serving-risk-scoring
-        #   description: Risk scoring model endpoint
-        #   serving_endpoint:
-        #     name: "risk-scoring-${var.environment}"
-        #     permission: CAN_QUERY
-        # - name: serving-smart-routing
-        #   description: Smart routing model endpoint
-        #   serving_endpoint:
-        #     name: "smart-routing-${var.environment}"
-        #     permission: CAN_QUERY
-        # - name: serving-smart-retry
-        #   description: Smart retry model endpoint
-        #   serving_endpoint:
-        #     name: "smart-retry-${var.environment}"
-        #     permission: CAN_QUERY
-        # -------------------------------------------------------------------------
-        # Full config: add these in Apps UI (Compute → Apps → payment-analysis → Edit → Configure → App resources → + Add resource).
-        # Bundle YAML does not support these resource types yet; add after deploy to see them in the portal.
-        # -------------------------------------------------------------------------
-        # • Database (Lakebase): select instance + database → Can connect and create
-        # • MLflow experiment: select experiment → Can read
-        # • Vector search index: select index (e.g. <catalog>.<schema>.similar_transactions_index) → Can select
-        # • UC function: select function (e.g. catalog.schema.get_decline_trends) → Can execute
-        # • UC connection: select connection → Use connection
-      # Lakebase: app also uses LAKEBASE_PROJECT_ID, LAKEBASE_BRANCH_ID, LAKEBASE_ENDPOINT_ID (set in app Environment).
+        # Genie space — Payment Analytics (set --var genie_space_id=<uuid>)
+        - name: genie-space
+          description: Genie space Payment Analytics
+          genie_space:
+            name: "Payment Analytics"
+            space_id: ${var.genie_space_id}
+            permission: CAN_EDIT
+        # MLflow experiments
+        - name: experiment
+          description: MLflow experiment
+          experiment:
+            experiment_id: "276177355410657"
+            permission: CAN_EDIT
+        - name: experiment-2
+          description: MLflow experiment 2
+          experiment:
+            experiment_id: "276177355500503"
+            permission: CAN_EDIT
+        # Serving endpoint
+        - name: serving-endpoint
+          description: Model serving endpoint
+          serving_endpoint:
+            name: "mas-b6e74e87-endpoint"
+            permission: CAN_QUERY
+        # Vector search index
+        - name: vector-search-index
+          description: Similar transactions vector search index
+          vector_search_index:
+            index_name: "ahs_demos_catalog.payment_analysis.similar_transactions_index"
+            permission: CAN_SELECT
+        # UC functions (agent tools)
+        - name: function
+          description: get_cascade_recommendations
+          function:
+            function_name: "ahs_demos_catalog.payment_analysis.get_cascade_recommendations"
+            permission: CAN_EXECUTE
+        - name: function-2
+          description: get_decline_by_segment
+          function:
+            function_name: "ahs_demos_catalog.payment_analysis.get_decline_by_segment"
+            permission: CAN_EXECUTE
+        - name: function-3
+          description: get_decline_trends
+          function:
+            function_name: "ahs_demos_catalog.payment_analysis.get_decline_trends"
+            permission: CAN_EXECUTE
+        - name: function-4
+          description: get_high_risk_transactions
+          function:
+            function_name: "ahs_demos_catalog.payment_analysis.get_high_risk_transactions"
+            permission: CAN_EXECUTE
+        - name: function-5
+          description: get_kpi_summary
+          function:
+            function_name: "ahs_demos_catalog.payment_analysis.get_kpi_summary"
+            permission: CAN_EXECUTE
+        - name: function-6
+          description: get_optimization_opportunities
+          function:
+            function_name: "ahs_demos_catalog.payment_analysis.get_optimization_opportunities"
+            permission: CAN_EXECUTE
+        - name: function-7
+          description: get_recovery_opportunities
+          function:
+            function_name: "ahs_demos_catalog.payment_analysis.get_recovery_opportunities"
+            permission: CAN_EXECUTE
+        - name: function-8
+          description: get_retry_success_rates
+          function:
+            function_name: "ahs_demos_catalog.payment_analysis.get_retry_success_rates"
+            permission: CAN_EXECUTE
+        - name: function-9
+          description: get_risk_distribution
+          function:
+            function_name: "ahs_demos_catalog.payment_analysis.get_risk_distribution"
+            permission: CAN_EXECUTE
+        - name: function-10
+          description: get_route_performance
+          function:
+            function_name: "ahs_demos_catalog.payment_analysis.get_route_performance"
+            permission: CAN_EXECUTE
+        - name: function-11
+          description: get_trend_analysis
+          function:
+            function_name: "ahs_demos_catalog.payment_analysis.get_trend_analysis"
+            permission: CAN_EXECUTE
