@@ -489,9 +489,28 @@ class DatabricksService:
             }
         return MockDataGenerator.last_hour_performance()
 
+    async def get_last_60_seconds_performance(self) -> dict[str, Any]:
+        """Fetch last-60-seconds performance for real-time live metrics (v_last_60_seconds_performance)."""
+        query = f"""
+            SELECT transactions_last_60s, approval_rate_pct, avg_fraud_score, total_value, declines_last_60s
+            FROM {self.config.full_schema_name}.v_last_60_seconds_performance
+            LIMIT 1
+        """
+        results = await self.execute_query(query)
+        if results:
+            row = results[0]
+            return {
+                "transactions_last_60s": int(row.get("transactions_last_60s", 0) or 0),
+                "approval_rate_pct": float(row.get("approval_rate_pct", 0) or 0),
+                "avg_fraud_score": float(row.get("avg_fraud_score", 0) or 0),
+                "total_value": float(row.get("total_value", 0) or 0),
+                "declines_last_60s": int(row.get("declines_last_60s", 0) or 0),
+            }
+        return MockDataGenerator.last_60_seconds_performance()
+
     async def get_streaming_tps(self, limit_seconds: int = 300) -> list[dict[str, Any]]:
         """Fetch real-time TPS (transactions per second) from v_streaming_volume_per_second for live monitor."""
-        limit_seconds = max(60, min(limit_seconds, 3600))
+        limit_seconds = max(10, min(limit_seconds, 3600))
         query = f"""
             SELECT event_second, records_per_second
             FROM {self.config.full_schema_name}.v_streaming_volume_per_second
@@ -591,10 +610,10 @@ class DatabricksService:
         return MockDataGenerator.active_alerts()
 
     async def get_performance_by_geography(self, limit: int = 50) -> list[dict[str, Any]]:
-        """Fetch transaction counts by country for geographic distribution (e.g. Brazil %)."""
+        """Fetch transaction counts and approval rate by country for geographic distribution and world map."""
         limit = max(1, min(limit, 200))
         query = f"""
-            SELECT country, transaction_count
+            SELECT country, transaction_count, approval_rate_pct, total_transaction_value
             FROM {self.config.full_schema_name}.v_performance_by_geography
             ORDER BY transaction_count DESC
             LIMIT {limit}
@@ -1076,6 +1095,8 @@ class DatabricksService:
             return MockDataGenerator.performance_by_geography()
         elif "v_last_hour_performance" in query_lower:
             return [MockDataGenerator.last_hour_performance()]
+        elif "v_last_60_seconds_performance" in query_lower:
+            return [MockDataGenerator.last_60_seconds_performance()]
         elif "v_streaming_volume_per_second" in query_lower:
             return MockDataGenerator.streaming_tps(limit_seconds=300)
         elif "v_data_quality_summary" in query_lower:
@@ -1349,13 +1370,16 @@ class MockDataGenerator:
 
     @staticmethod
     def performance_by_geography() -> list[dict[str, Any]]:
-        """Mock performance by country for geographic distribution."""
+        """Mock performance by country for geographic distribution and world map."""
         return [
-            {"country": "BR", "transaction_count": 350000},
-            {"country": "MX", "transaction_count": 80000},
-            {"country": "AR", "transaction_count": 25000},
-            {"country": "CO", "transaction_count": 20000},
-            {"country": "CL", "transaction_count": 15000},
+            {"country": "BR", "transaction_count": 350000, "approval_rate_pct": 73.2, "total_transaction_value": 1250000.0},
+            {"country": "US", "transaction_count": 120000, "approval_rate_pct": 91.5, "total_transaction_value": 480000.0},
+            {"country": "MX", "transaction_count": 80000, "approval_rate_pct": 78.1, "total_transaction_value": 320000.0},
+            {"country": "AR", "transaction_count": 25000, "approval_rate_pct": 69.4, "total_transaction_value": 95000.0},
+            {"country": "CO", "transaction_count": 20000, "approval_rate_pct": 75.0, "total_transaction_value": 82000.0},
+            {"country": "CL", "transaction_count": 15000, "approval_rate_pct": 82.3, "total_transaction_value": 61000.0},
+            {"country": "GB", "transaction_count": 18000, "approval_rate_pct": 89.0, "total_transaction_value": 72000.0},
+            {"country": "DE", "transaction_count": 14000, "approval_rate_pct": 88.5, "total_transaction_value": 56000.0},
         ]
 
     @staticmethod
@@ -1369,6 +1393,17 @@ class MockDataGenerator:
             "active_segments": 4,
             "high_risk_transactions": 8,
             "declines_last_hour": 4140,
+        }
+
+    @staticmethod
+    def last_60_seconds_performance() -> dict[str, Any]:
+        """Mock last-60-seconds performance for real-time live metrics."""
+        return {
+            "transactions_last_60s": 920,
+            "approval_rate_pct": 92.5,
+            "avg_fraud_score": 0.12,
+            "total_value": 2083.0,
+            "declines_last_60s": 69,
         }
 
     @staticmethod

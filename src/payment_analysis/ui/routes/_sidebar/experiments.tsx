@@ -26,7 +26,7 @@ function Experiments() {
   const qc = useQueryClient();
   const [name, setName] = useState("Routing bandit v0");
 
-  const q = useListExperiments({});
+  const q = useListExperiments({ query: { refetchInterval: 30_000 } });
 
   const create = useMutation({
     mutationFn: () => createExperiment({ name }),

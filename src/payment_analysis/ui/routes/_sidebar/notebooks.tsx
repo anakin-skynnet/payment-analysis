@@ -44,6 +44,7 @@ export function Component() {
 
   const { data: notebookList, isLoading: loading, isError } = useListNotebooks({
     params: selectedCategory ? { category: selectedCategory } : undefined,
+    query: { refetchInterval: 60_000 },
   });
 
   const notebooks = notebookList?.data.notebooks ?? [];

@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { postOrchestratorChat } from "@/lib/api";
 import { Bot, X } from "lucide-react";
 
 export interface AIChatbotMessage {
@@ -17,23 +18,12 @@ export interface AIChatbotMessage {
 const TITLE = "AI Chat";
 const PLACEHOLDER = "Ask orchestrator agents: recommendations, semantic search, approval analysis…";
 
-/** Connected to POST /api/agents/orchestrator/chat (orchestrator agents – recommendations, semantic search). */
-async function sendToOrchestrator(message: string): Promise<{
-  reply: string;
-  run_page_url?: string | null;
-  agents_used?: string[];
-}> {
-  const res = await fetch("/api/agents/orchestrator/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ message: message.trim() }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Orchestrator unavailable");
-  }
-  const data = await res.json();
+/** Uses backend POST /api/agents/orchestrator/chat (orchestrator agents – recommendations, semantic search). */
+async function sendToOrchestrator(message: string) {
+  const { data } = await postOrchestratorChat(
+    { message: message.trim() },
+    { credentials: "include" }
+  );
   return {
     reply: data.reply ?? "",
     run_page_url: data.run_page_url ?? null,

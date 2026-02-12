@@ -21,7 +21,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { KPICard } from "@/components/executive";
 import {
-  useGetKpisSuspense,
+  useGetKpis,
   useGetDataQualitySummary,
   useGetCommandCenterEntryThroughput,
   useGetActiveAlerts,
@@ -35,10 +35,10 @@ import {
   postControlPanel,
   usePostControlPanel,
 } from "@/lib/api";
-import selector from "@/lib/selector";
 import { useEntity } from "@/contexts/entity-context";
 import { useAssistant } from "@/contexts/assistant-context";
 import { PageHeader } from "@/components/apx/page-header";
+import { GeographyWorldMap } from "@/components/geography/geography-world-map";
 import { getDashboardUrl, getGenieUrl, openInDatabricks } from "@/config/workspace";
 import type { EntrySystemPoint, FrictionFunnelStep, RetryRecurrenceRow } from "@/lib/command-center-types";
 import {
@@ -238,9 +238,10 @@ function CommandCenter() {
     openInDatabricks(url);
   };
 
-  const { data: kpis } = useGetKpisSuspense(selector());
+  const kpisQ = useGetKpis({ query: { refetchInterval: REFRESH_MS } });
+  const kpis = kpisQ.data?.data;
   const dataQualityQ = useGetDataQualitySummary({ query: { refetchInterval: REFRESH_MS } });
-  const { data: healthData } = useHealthDatabricks();
+  const { data: healthData } = useHealthDatabricks({ query: { refetchInterval: REFRESH_MS } });
 
   const entryThroughputQ = useGetCommandCenterEntryThroughput({
     params: { entity: countryCode, limit_minutes: 30 },
@@ -250,11 +251,26 @@ function CommandCenter() {
     params: { limit: 20 },
     query: { refetchInterval: REFRESH_CHART_MS },
   });
-  const threeDsQ = useGetThreeDsFunnel({ params: { entity: countryCode, days: 30 } });
-  const reasonCodesQ = useGetReasonCodeInsights({ params: { entity: countryCode, limit: 50 } });
-  const falseInsightsQ = useGetFalseInsightsMetric({ params: { days: 30 } });
-  const retryPerfQ = useGetRetryPerformance({ params: { limit: 50 } });
-  const entryDistQ = useGetEntrySystemDistribution({ params: { entity: countryCode } });
+  const threeDsQ = useGetThreeDsFunnel({
+    params: { entity: countryCode, days: 30 },
+    query: { refetchInterval: REFRESH_MS },
+  });
+  const reasonCodesQ = useGetReasonCodeInsights({
+    params: { entity: countryCode, limit: 50 },
+    query: { refetchInterval: REFRESH_MS },
+  });
+  const falseInsightsQ = useGetFalseInsightsMetric({
+    params: { days: 30 },
+    query: { refetchInterval: REFRESH_MS },
+  });
+  const retryPerfQ = useGetRetryPerformance({
+    params: { limit: 50 },
+    query: { refetchInterval: REFRESH_MS },
+  });
+  const entryDistQ = useGetEntrySystemDistribution({
+    params: { entity: countryCode },
+    query: { refetchInterval: REFRESH_MS },
+  });
 
   const entryPoints: EntrySystemPoint[] = useMemo(() => {
     const raw = entryThroughputQ.data?.data;
@@ -333,6 +349,8 @@ function CommandCenter() {
     }));
   }, [entryDistQ.data?.data]);
 
+  if (kpisQ.isLoading && kpis == null) return <CommandCenterSkeleton />;
+
   const fromDatabricks = healthData?.data?.analytics_source === "Unity Catalog";
 
   return (
@@ -394,6 +412,8 @@ function CommandCenter() {
             accent="muted"
           />
         </section>
+
+        <GeographyWorldMap />
 
         <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
           <Card className="glass-card overflow-hidden border border-border/80">

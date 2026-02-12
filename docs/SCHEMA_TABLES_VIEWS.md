@@ -30,7 +30,7 @@ Created by **Lakeflow pipelines** (Payment Analysis ETL, Real-Time, etc.). Empty
 | **insight_feedback_silver** | **Yes** | databricks_service.py (INSERT), gold_views.py (v_false_insights_metric) | Pipeline not run, or no app feedback. Has **seed rows** in silver_transform. |
 | **smart_checkout_decisions_silver** | **Yes** | gold_views.py (v_smart_checkout_path_performance_br, v_smart_checkout_service_path_br) | Pipeline not run or no decision events. |
 | **decision_log_silver** | **No** (not read by any view or API) | Defined in silver_transform.py only | Audit/decision log for future use. Pipeline run populates from payments_enriched_silver. Safe to drop if you do not need decision audit. |
-| **payments_stream_alerts** | **No** (not read by any view or API) | Defined in realtime_pipeline.py only | Real-time alert table; no reader in app. Depends on payments_stream_metrics_1min (Real-Time pipeline). Safe to drop if you do not use streaming alerts. |
+| **payments_stream_alerts** | **No** (not read by any view or API) | Defined in realtime_pipeline.py only | Real-time alert table; no reader in app. Depends on payments_stream_metrics_10s (10-second windows, Real-Time pipeline). Safe to drop if you do not use streaming alerts. |
 
 ---
 
@@ -47,6 +47,7 @@ Created by **Job 3 (Initialize Ingestion)** from `gold_views.sql`. All depend on
 | **v_top_decline_reasons** | Yes | databricks_service.py, dashboards, Genie, agent_framework, uc_agent_tools | Silver empty or Job 3 not run. |
 | **v_decline_recovery_opportunities** | Yes | Dashboards (ml_optimization) | Silver empty or Job 3 not run. |
 | **v_last_hour_performance** | Yes | databricks_service.py, dashboards | Silver empty or Job 3 not run. |
+| **v_last_60_seconds_performance** | Yes | databricks_service.py (last-60-seconds API), data-quality UI | Real-time live metrics; last 60 seconds. Silver empty or Job 3 not run. |
 | **v_active_alerts** | Yes | databricks_service.py, dashboards | Silver empty or Job 3 not run. |
 | **v_solution_performance** | Yes | databricks_service.py, dashboards, Genie, agent_framework, uc_agent_tools | Silver empty or Job 3 not run. |
 | **v_card_network_performance** | Yes | databricks_service.py, dashboards | Silver empty or Job 3 not run. |
@@ -135,7 +136,7 @@ Created by **Job 1 (Create Data Repositories)**, task `lakehouse_bootstrap`. Bas
 | Source | Mechanism | Tables / views affected |
 |--------|-----------|--------------------------|
 | **Lakeflow pipeline (ETL)** | Pipeline reads upstream DLT tables (or streams) and writes to the next table. | **Bronze:** payments_raw_bronze (readStream from payments_stream_input), merchants_dim_bronze (synthetic `spark.range(50)` in bronze_ingest.py). **Silver:** payments_enriched_silver, merchant_visible_attempts_silver, reason_code_taxonomy_silver (static seed), insight_feedback_silver (seed + app INSERT), decision_log_silver, smart_checkout_decisions_silver. **Gold (Lakeflow):** v_retry_performance, v_3ds_funnel_br, v_reason_codes_br, v_reason_code_insights_br, v_entry_system_distribution_br, v_dedup_collision_stats, v_false_insights_metric, v_smart_checkout_*. |
-| **Lakeflow pipeline (Real-Time)** | readStream from payments_stream_input → payments_stream_bronze → payments_stream_silver → windowed metrics → payments_stream_alerts. | payments_stream_bronze, payments_stream_silver, payments_stream_metrics_1min, payments_stream_alerts. |
+| **Lakeflow pipeline (Real-Time)** | readStream from payments_stream_input → payments_stream_bronze → payments_stream_silver → 10s windowed metrics → payments_stream_alerts. | payments_stream_bronze, payments_stream_silver, payments_stream_metrics_10s, payments_stream_alerts. |
 | **Job 1 – lakehouse_bootstrap.sql** | `INSERT INTO ... WHERE (SELECT COUNT(*) FROM ...) = 0` (seed when empty). | app_config, approval_rules, countries. |
 | **Job 2 – transaction_simulator** | `df.write.mode("append").saveAsTable(target_table)` into `payments_stream_input`. | payments_stream_input (and CDF feeds bronze pipelines). |
 | **Job 1 – vector_search create_index** | MERGE from payments_enriched_silver into transaction_summaries_for_search. | transaction_summaries_for_search. |

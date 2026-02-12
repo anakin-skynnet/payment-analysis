@@ -19,10 +19,18 @@ const openDashboard = () => {
   openInDatabricks(getDashboardUrl("/sql/dashboards/decline_analysis"));
 };
 
+/** Refresh analytics from backend/Databricks every 15s for real-time feel. */
+const REFRESH_ANALYTICS_MS = 15_000;
+
 function Declines() {
   const { entity } = useEntity();
-  const { data: summaryData, isLoading: summaryLoading, isError: summaryError } = useDeclineSummary();
-  const { data: reasonCodeData, isLoading: reasonCodeLoading, isError: reasonCodeError } = useGetReasonCodeInsights({ params: { entity, limit: 5 } });
+  const { data: summaryData, isLoading: summaryLoading, isError: summaryError } = useDeclineSummary({
+    query: { refetchInterval: REFRESH_ANALYTICS_MS },
+  });
+  const { data: reasonCodeData, isLoading: reasonCodeLoading, isError: reasonCodeError } = useGetReasonCodeInsights({
+    params: { entity, limit: 5 },
+    query: { refetchInterval: REFRESH_ANALYTICS_MS },
+  });
   const buckets = summaryData?.data ?? [];
   const recommendedActions = reasonCodeData?.data ?? [];
 

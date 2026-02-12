@@ -35,11 +35,23 @@ const INTELLIGENCE_OUTCOMES = [
   "Feedback loop: capture expert reviews and results to improve model accuracy",
 ];
 
+/** Refresh analytics from backend/Databricks every 15s for real-time data. */
+const REFRESH_ANALYTICS_MS = 15_000;
+
 function ReasonCodes() {
   const { entity } = useEntity();
-  const entryQ = useGetEntrySystemDistribution({ params: { entity } });
-  const q = useGetReasonCodeInsights({ params: { entity, limit: 30 } });
-  const falseQ = useGetFalseInsightsMetric({ params: { days: 30 } });
+  const entryQ = useGetEntrySystemDistribution({
+    params: { entity },
+    query: { refetchInterval: REFRESH_ANALYTICS_MS },
+  });
+  const q = useGetReasonCodeInsights({
+    params: { entity, limit: 30 },
+    query: { refetchInterval: REFRESH_ANALYTICS_MS },
+  });
+  const falseQ = useGetFalseInsightsMetric({
+    params: { days: 30 },
+    query: { refetchInterval: REFRESH_ANALYTICS_MS },
+  });
   const submitFeedback = useSubmitInsightFeedback();
 
   const [insightId, setInsightId] = useState("");

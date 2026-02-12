@@ -318,7 +318,9 @@ export interface FolderUrlOut {
 }
 
 export interface GeographyOut {
+  approval_rate_pct?: number | null;
   country: string;
+  total_transaction_value?: number | null;
   transaction_count: number;
 }
 
@@ -380,6 +382,14 @@ export interface KPIOut {
   approval_rate: number;
   approved: number;
   total: number;
+}
+
+export interface Last60SecondsPerformanceOut {
+  approval_rate_pct: number;
+  avg_fraud_score: number;
+  declines_last_60s: number;
+  total_value: number;
+  transactions_last_60s: number;
 }
 
 export interface LastHourPerformanceOut {
@@ -1407,6 +1417,29 @@ export function useGetDatabricksKpis<TData = { data: DatabricksKPIOut }>(options
 
 export function useGetDatabricksKpisSuspense<TData = { data: DatabricksKPIOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: DatabricksKPIOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getDatabricksKpisKey(), queryFn: () => getDatabricksKpis(), ...options?.query });
+}
+
+export const getLast60SecondsPerformance = async (options?: RequestInit): Promise<{ data: Last60SecondsPerformanceOut }> => {
+  const res = await fetch("/api/analytics/last-60-seconds", { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getLast60SecondsPerformanceKey = () => {
+  return ["/api/analytics/last-60-seconds"] as const;
+};
+
+export function useGetLast60SecondsPerformance<TData = { data: Last60SecondsPerformanceOut }>(options?: { query?: Omit<UseQueryOptions<{ data: Last60SecondsPerformanceOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getLast60SecondsPerformanceKey(), queryFn: () => getLast60SecondsPerformance(), ...options?.query });
+}
+
+export function useGetLast60SecondsPerformanceSuspense<TData = { data: Last60SecondsPerformanceOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: Last60SecondsPerformanceOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getLast60SecondsPerformanceKey(), queryFn: () => getLast60SecondsPerformance(), ...options?.query });
 }
 
 export const getLastHourPerformance = async (options?: RequestInit): Promise<{ data: LastHourPerformanceOut }> => {

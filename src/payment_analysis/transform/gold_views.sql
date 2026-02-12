@@ -143,6 +143,17 @@ SELECT
 FROM payments_enriched_silver
 WHERE event_time >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR;
 
+-- View 6b: Last 60 Seconds Performance (real-time live metrics)
+CREATE OR REPLACE VIEW v_last_60_seconds_performance AS
+SELECT 
+    COUNT(*) as transactions_last_60s,
+    ROUND(SUM(CASE WHEN is_approved THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 2) as approval_rate_pct,
+    ROUND(AVG(fraud_score), 3) as avg_fraud_score,
+    ROUND(SUM(amount), 2) as total_value,
+    SUM(CASE WHEN NOT is_approved THEN 1 ELSE 0 END) as declines_last_60s
+FROM payments_enriched_silver
+WHERE event_time >= CURRENT_TIMESTAMP() - INTERVAL '60' SECOND;
+
 -- View 7: Active Alerts
 CREATE OR REPLACE VIEW v_active_alerts AS
 SELECT 

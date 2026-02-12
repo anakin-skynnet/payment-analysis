@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { getGenieUrl, openInDatabricks } from "@/config/workspace";
+import { postChat, postOrchestratorChat } from "@/lib/api";
 import { Bot, Mic, X } from "lucide-react";
 
 export interface ChatMessage {
@@ -32,33 +33,21 @@ async function sendMessage(message: string): Promise<{
   agents_used?: string[];
 }> {
   const body = { message: message.trim() };
-  const orchestratorRes = await fetch("/api/agents/orchestrator/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (orchestratorRes.ok) {
-    const data = await orchestratorRes.json();
+  const opts = { credentials: "include" as RequestCredentials };
+  try {
+    const { data } = await postOrchestratorChat(body, opts);
     return {
       reply: data.reply ?? "",
       run_page_url: data.run_page_url ?? null,
       agents_used: data.agents_used ?? [],
     };
+  } catch {
+    const { data } = await postChat(body, opts);
+    return {
+      reply: data.reply ?? "",
+      genie_url: data.genie_url ?? null,
+    };
   }
-  const fallbackRes = await fetch("/api/agents/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!fallbackRes.ok) {
-    const text = await fallbackRes.text();
-    throw new Error(text || "Failed to get response");
-  }
-  const fallback = await fallbackRes.json();
-  return {
-    reply: fallback.reply ?? "",
-    genie_url: fallback.genie_url ?? null,
-  };
 }
 
 export interface GetnetAIAssistantProps {

@@ -88,7 +88,7 @@ def payments_stream_silver():
         # NOTE: Rich enrichment (canonical_transaction_key, retry_scenario,
         # decline taxonomy, service_path) lives in the ETL pipeline's
         # payments_enriched_silver table.  This real-time pipeline keeps only
-        # the lightweight features needed by the 1-minute windowed aggregations
+        # the lightweight features needed by the 10-second windowed aggregations
         # and alert generation downstream.
         
         # Risk categorization
@@ -118,27 +118,27 @@ def payments_stream_silver():
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Gold: Real-Time Aggregations (1-minute windows)
+# MAGIC ## Gold: Real-Time Aggregations (10-second windows for real-time insights)
 
 # COMMAND ----------
 
 @dlt.table(
-    name="payments_stream_metrics_1min",
-    comment="Real-time payment metrics aggregated per minute",
+    name="payments_stream_metrics_10s",
+    comment="Real-time payment metrics aggregated per 10 seconds",
     table_properties={
         "quality": "gold",
         "pipelines.autoOptimize.managed": "true"
     }
 )
-def payments_stream_metrics_1min():
+def payments_stream_metrics_10s():
     """
-    1-minute windowed aggregations for real-time dashboards.
+    10-second windowed aggregations for real-time dashboards and alerts.
     """
     return (
         dlt.readStream("payments_stream_silver")
-        .withWatermark("event_timestamp", "2 minutes")
+        .withWatermark("event_timestamp", "1 minute")
         .groupBy(
-            window(col("event_timestamp"), "1 minute"),
+            window(col("event_timestamp"), "10 seconds"),
             col("merchant_segment"),
             col("payment_solution"),
             col("card_network")
@@ -172,10 +172,10 @@ def payments_stream_metrics_1min():
 )
 def payments_stream_alerts():
     """
-    Real-time alert generation for anomalies.
+    Real-time alert generation for anomalies (10-second windows).
     Note: No backend or dashboard reads this table. Safe to drop from pipeline if streaming alerts are not needed (see docs/SCHEMA_TABLES_VIEWS.md).
     """
-    metrics = dlt.read("payments_stream_metrics_1min")
+    metrics = dlt.read("payments_stream_metrics_10s")
     
     return (
         metrics

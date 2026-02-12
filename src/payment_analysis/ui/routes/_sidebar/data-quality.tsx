@@ -19,6 +19,7 @@ import {
   useListIncidents,
   useGetDataQualitySummary,
   useGetLastHourPerformance,
+  useGetLast60SecondsPerformance,
   useGetStreamingTps,
   type Incident,
 } from "@/lib/api";
@@ -111,6 +112,7 @@ function DataQualityPage() {
 
   const incidentsQ = useListIncidents({});
   const lastHourQ = useGetLastHourPerformance({ query: { refetchInterval: REFRESH_MS } });
+  const last60sQ = useGetLast60SecondsPerformance({ query: { refetchInterval: REFRESH_MS } });
   const tpsQ = useGetStreamingTps({ params: { limit_seconds: 120 }, query: { refetchInterval: REFRESH_MS } });
   const create = useMutation({
     mutationFn: () => createIncident({ category, key, severity: "medium", details: {} }),
@@ -119,10 +121,12 @@ function DataQualityPage() {
 
   const items = incidentsQ.data?.data ?? [];
   const lastHour = lastHourQ.data?.data;
+  const last60s = last60sQ.data?.data;
   const eventsPerSec =
     lastHour?.transactions_last_hour != null ? Math.round(lastHour.transactions_last_hour / 3600) : null;
   const tpsPoints = tpsQ.data?.data ?? [];
   const latestTps = tpsPoints.length > 0 ? tpsPoints[tpsPoints.length - 1]?.records_per_second : null;
+  const liveTps = latestTps ?? (last60s?.transactions_last_60s != null ? Math.round(last60s.transactions_last_60s / 60) : null) ?? eventsPerSec;
 
   return (
     <div className="space-y-8">
@@ -158,13 +162,32 @@ function DataQualityPage() {
                     TPS (live)
                   </div>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--neon-cyan)]">
-                    {tpsQ.isLoading ? "—" : (latestTps ?? eventsPerSec ?? "—")}
+                    {tpsQ.isLoading && !last60sQ.data ? "—" : (liveTps ?? "—")}
                   </p>
-                  <p className="text-xs text-muted-foreground">transactions/sec</p>
+                  <p className="text-xs text-muted-foreground">transactions/sec (real-time)</p>
                 </CardContent>
               </Card>
             </TooltipTrigger>
             <TooltipContent>Live transactions per second from the streaming pipeline.</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-help border border-[var(--neon-cyan)]/20 bg-[var(--neon-cyan)]/5">
+                <CardContent className="pt-4">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Activity className="h-4 w-4 text-[var(--neon-cyan)]" />
+                    Last 60s (live)
+                  </div>
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--neon-cyan)]">
+                    {last60sQ.isLoading ? "—" : (last60s?.transactions_last_60s?.toLocaleString() ?? "—")}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    approval {last60s?.approval_rate_pct != null ? `${last60s.approval_rate_pct.toFixed(1)}%` : "—"}
+                  </p>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>Real-time volume and approval rate from the last 60 seconds (v_last_60_seconds_performance).</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>

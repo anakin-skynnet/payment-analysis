@@ -183,9 +183,11 @@ class CountryOut(BaseModel):
 
 
 class GeographyOut(BaseModel):
-    """Transaction count by country for geographic distribution (e.g. Brazil %)."""
+    """Transaction count and approval rate by country for geographic distribution and world map."""
     country: str
     transaction_count: int
+    approval_rate_pct: Optional[float] = None
+    total_transaction_value: Optional[float] = None
 
 
 class ActiveAlertOut(BaseModel):
@@ -208,6 +210,15 @@ class LastHourPerformanceOut(BaseModel):
     active_segments: int
     high_risk_transactions: int
     declines_last_hour: int
+
+
+class Last60SecondsPerformanceOut(BaseModel):
+    """Last-60-seconds performance for real-time live metrics (from v_last_60_seconds_performance)."""
+    transactions_last_60s: int
+    approval_rate_pct: float
+    avg_fraud_score: float
+    total_value: float
+    declines_last_60s: int
 
 
 class DataQualitySummaryOut(BaseModel):
@@ -592,9 +603,17 @@ async def geography(
     service: DatabricksServiceDep,
     limit: int = Query(50, ge=1, le=200, description="Max countries to return"),
 ) -> list[GeographyOut]:
-    """Transaction count by country for geographic distribution (e.g. Brazil %). Data from Databricks v_performance_by_geography."""
+    """Transaction count and approval rate by country for geographic distribution (e.g. world map). Data from Databricks v_performance_by_geography."""
     data = await service.get_performance_by_geography(limit=limit)
-    return [GeographyOut(country=str(r.get("country", "")), transaction_count=int(r.get("transaction_count", 0))) for r in data]
+    return [
+        GeographyOut(
+            country=str(r.get("country", "")),
+            transaction_count=int(r.get("transaction_count", 0)),
+            approval_rate_pct=float(r["approval_rate_pct"]) if r.get("approval_rate_pct") is not None else None,
+            total_transaction_value=float(r["total_transaction_value"]) if r.get("total_transaction_value") is not None else None,
+        )
+        for r in data
+    ]
 
 
 @router.get(
@@ -606,6 +625,17 @@ async def last_hour_performance(service: DatabricksServiceDep) -> LastHourPerfor
     """Last-hour performance for real-time monitor. Data from Databricks v_last_hour_performance."""
     data = await service.get_last_hour_performance()
     return LastHourPerformanceOut(**data)
+
+
+@router.get(
+    "/last-60-seconds",
+    response_model=Last60SecondsPerformanceOut,
+    operation_id="getLast60SecondsPerformance",
+)
+async def last_60_seconds_performance(service: DatabricksServiceDep) -> Last60SecondsPerformanceOut:
+    """Last-60-seconds performance for real-time live metrics. Data from Databricks v_last_60_seconds_performance."""
+    data = await service.get_last_60_seconds_performance()
+    return Last60SecondsPerformanceOut(**data)
 
 
 @router.get(
@@ -626,7 +656,7 @@ async def data_quality_summary(service: DatabricksServiceDep) -> DataQualitySumm
 )
 async def streaming_tps(
     service: DatabricksServiceDep,
-    limit_seconds: int = Query(300, ge=60, le=3600, description="Time window in seconds"),
+    limit_seconds: int = Query(300, ge=10, le=3600, description="Time window in seconds (min 10 for real-time)"),
 ) -> list[StreamingTpsPointOut]:
     """Real-time TPS from streaming pipeline (v_streaming_volume_per_second). Simulate Transaction Events -> ETL -> Payment Real-Time Stream."""
     data = await service.get_streaming_tps(limit_seconds=limit_seconds)

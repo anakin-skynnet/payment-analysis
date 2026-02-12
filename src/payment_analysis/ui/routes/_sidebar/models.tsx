@@ -34,9 +34,15 @@ const modelIdColor: Record<string, string> = {
   smart_retry: "text-purple-500",
 };
 
+/** Refresh model list from backend/Databricks every 30s for real-time visibility. */
+const REFRESH_MODELS_MS = 30_000;
+
 function Models() {
   const { entity } = useEntity();
-  const { data, isLoading, isError, error } = useGetModels({ params: { entity } });
+  const { data, isLoading, isError, error } = useGetModels({
+    params: { entity },
+    query: { refetchInterval: REFRESH_MODELS_MS },
+  });
   const modelList = data?.data ?? [];
 
   return (

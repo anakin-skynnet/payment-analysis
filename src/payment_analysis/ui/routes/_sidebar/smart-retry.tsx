@@ -25,8 +25,13 @@ const SCENARIOS = [
   },
 ] as const;
 
+const REFRESH_ANALYTICS_MS = 15_000;
+
 function SmartRetry() {
-  const q = useGetRetryPerformance({ params: { limit: 50 } });
+  const q = useGetRetryPerformance({
+    params: { limit: 50 },
+    query: { refetchInterval: REFRESH_ANALYTICS_MS },
+  });
   const rows = q.data?.data ?? [];
 
   return (

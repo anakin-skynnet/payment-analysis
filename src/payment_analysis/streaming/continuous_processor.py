@@ -119,16 +119,16 @@ print(f"Stream query ID: {query.id}")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Real-time Aggregations (1-minute windows)
+# MAGIC ## Real-time Aggregations (10-second windows for real-time insights)
 
 # COMMAND ----------
 
 # Aggregated metrics stream
 agg_stream = (
     enriched_stream
-    .withWatermark("event_timestamp", "2 minutes")
+    .withWatermark("event_timestamp", "1 minute")
     .groupBy(
-        window(col("event_timestamp"), "1 minute"),
+        window(col("event_timestamp"), "10 seconds"),
         col("merchant_segment"),
         col("payment_solution")
     )

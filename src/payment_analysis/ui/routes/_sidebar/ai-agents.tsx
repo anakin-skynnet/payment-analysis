@@ -74,6 +74,9 @@ const agentIcons: Record<
 const getTypeLabel = (type: string): string =>
   type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
+/** Refresh agent list from backend every 30s for real-time visibility. */
+const REFRESH_AGENTS_MS = 30_000;
+
 function AIAgents() {
   const { entity } = useEntity();
   const [selectedType, setSelectedType] = useState<AgentType | undefined>(
@@ -86,6 +89,7 @@ function AIAgents() {
     isError,
   } = useListAgents({
     params: { entity, ...(selectedType ? { agent_type: selectedType } : {}) },
+    query: { refetchInterval: REFRESH_AGENTS_MS },
   });
 
   const agents = agentList?.data.agents ?? [];

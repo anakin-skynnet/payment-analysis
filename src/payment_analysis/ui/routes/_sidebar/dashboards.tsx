@@ -53,6 +53,7 @@ export function Component() {
 
   const { data: dashboardList, isLoading: loading, isError } = useListDashboards({
     params: selectedCategory ? { category: selectedCategory } : undefined,
+    query: { refetchInterval: 30_000 },
   });
 
   const { data: embedUrlData, isLoading: embedLoading, isError: embedError } = useGetDashboardUrl({
@@ -62,7 +63,10 @@ export function Component() {
 
   const dashboards = dashboardList?.data.dashboards ?? [];
   const categories = dashboardList?.data.categories ?? {};
-  const { data: decisionsData } = useRecentDecisions({ params: { limit: 5 } });
+  const { data: decisionsData } = useRecentDecisions({
+    params: { limit: 5 },
+    query: { refetchInterval: 15_000 },
+  });
   const recentDecisions = decisionsData?.data ?? [];
 
   const handleDashboardClick = (dashboard: Dashboard) => {

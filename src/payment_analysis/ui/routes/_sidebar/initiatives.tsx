@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import selector from "@/lib/selector";
 import { useEntity } from "@/contexts/entity-context";
+import { GeographyWorldMap } from "@/components/geography/geography-world-map";
 import {
   Shield,
   CreditCard,
@@ -63,13 +64,24 @@ function InitiativesSkeleton() {
   );
 }
 
+const REFRESH_ANALYTICS_MS = 15_000;
+
 function Initiatives() {
   const { entity } = useEntity();
   const { data: kpis } = useGetKpisSuspense(selector());
-  const geographyQ = useGetGeography({ params: { limit: 50 } });
+  const geographyQ = useGetGeography({
+    params: { limit: 50 },
+    query: { refetchInterval: REFRESH_ANALYTICS_MS },
+  });
   const { data: solutions } = useGetSolutionPerformanceSuspense(selector());
-  const funnelQ = useGetThreeDsFunnel({ params: { entity, days: 30 } });
-  const entryQ = useGetEntrySystemDistribution({ params: { entity } });
+  const funnelQ = useGetThreeDsFunnel({
+    params: { entity, days: 30 },
+    query: { refetchInterval: REFRESH_ANALYTICS_MS },
+  });
+  const entryQ = useGetEntrySystemDistribution({
+    params: { entity },
+    query: { refetchInterval: REFRESH_ANALYTICS_MS },
+  });
 
   const geography = geographyQ.data?.data ?? [];
   const totalGeo = geography.reduce((s, r) => s + r.transaction_count, 0);
@@ -142,6 +154,8 @@ function Initiatives() {
               )}
             </CardContent>
           </Card>
+
+          <GeographyWorldMap />
 
           <Card>
             <CardHeader>

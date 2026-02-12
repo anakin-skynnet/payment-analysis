@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { getGenieUrl, openInDatabricks } from "@/config/workspace";
+import { postChat } from "@/lib/api";
 import { Sparkles, X } from "lucide-react";
 
 export interface GenieAssistantMessage {
@@ -17,22 +18,12 @@ export interface GenieAssistantMessage {
 const TITLE = "Genie Assistant";
 const PLACEHOLDER = "Ask about your data: approval rates, declines, trends…";
 
-/** Connected to POST /api/agents/chat (Databricks Genie – lakehouse data and insights). */
-async function sendToGenie(message: string): Promise<{
-  reply: string;
-  genie_url?: string | null;
-}> {
-  const res = await fetch("/api/agents/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ message: message.trim() }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Genie unavailable");
-  }
-  const data = await res.json();
+/** Uses backend POST /api/agents/chat (Databricks Genie – lakehouse data and insights). */
+async function sendToGenie(message: string) {
+  const { data } = await postChat(
+    { message: message.trim() },
+    { credentials: "include" }
+  );
   return {
     reply: data.reply ?? "",
     genie_url: data.genie_url ?? null,

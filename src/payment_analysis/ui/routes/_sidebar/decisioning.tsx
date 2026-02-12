@@ -44,6 +44,7 @@ function Decisioning() {
   const routing = useDecideRouting();
   const { data: recommendationsData, isLoading: recommendationsLoading, isError: recommendationsError } = useGetRecommendations({
     params: { limit: 20 },
+    query: { refetchInterval: 30_000 },
   });
   const recommendations = recommendationsData?.data ?? [];
 

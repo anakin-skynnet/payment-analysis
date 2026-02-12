@@ -46,6 +46,7 @@ function Rules() {
 
   const rulesQuery = useListApprovalRules({
     params: filterType ? { rule_type: filterType } : undefined,
+    query: { refetchInterval: 30_000 },
   });
   const createMut = useCreateApprovalRule({
     mutation: {

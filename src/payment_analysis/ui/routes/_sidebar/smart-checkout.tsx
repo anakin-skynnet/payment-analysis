@@ -25,11 +25,23 @@ const PAYMENT_SERVICES = [
   { id: "data_only", name: "Data Only", note: "Approval uplift data not yet available", icon: Database },
 ] as const;
 
+/** Refresh analytics from backend/Databricks every 15s for real-time data. */
+const REFRESH_ANALYTICS_MS = 15_000;
+
 function SmartCheckout() {
   const { entity } = useEntity();
-  const servicePathsQ = useGetSmartCheckoutServicePaths({ params: { entity, limit: 25 } });
-  const funnelQ = useGetThreeDsFunnel({ params: { entity, days: 30 } });
-  const pathPerfQ = useGetSmartCheckoutPathPerformance({ params: { entity, limit: 20 } });
+  const servicePathsQ = useGetSmartCheckoutServicePaths({
+    params: { entity, limit: 25 },
+    query: { refetchInterval: REFRESH_ANALYTICS_MS },
+  });
+  const funnelQ = useGetThreeDsFunnel({
+    params: { entity, days: 30 },
+    query: { refetchInterval: REFRESH_ANALYTICS_MS },
+  });
+  const pathPerfQ = useGetSmartCheckoutPathPerformance({
+    params: { entity, limit: 20 },
+    query: { refetchInterval: REFRESH_ANALYTICS_MS },
+  });
 
   const servicePaths = servicePathsQ.data?.data ?? [];
   const funnel = funnelQ.data?.data ?? [];
