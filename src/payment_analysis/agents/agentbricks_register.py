@@ -97,6 +97,27 @@ set_model(_build())
 '''
 
 
+def _make_agent_signature():
+    """Build ModelSignature for LangChain/LangGraph chat agents. UC requires both input and output specs."""
+    from mlflow.models.signature import ModelSignature, infer_signature
+
+    # UC requires explicit input and output types. Try infer from dict; else use explicit Schema.
+    input_example = {"messages": [{"type": "human", "content": "What are the top decline reasons?"}]}
+    output_example = {"messages": [{"type": "ai", "content": "Summary of decline reasons and recommendations."}]}
+    try:
+        sig = infer_signature(input_example, output_example)
+        if sig.inputs is not None and sig.outputs is not None:
+            return sig
+    except Exception:
+        pass
+    # Fallback: explicit schema (Unity Catalog accepts string columns for chat payloads)
+    from mlflow.types.schema import ColSpec, Schema
+
+    inputs = Schema([ColSpec("string", "messages")])
+    outputs = Schema([ColSpec("string", "messages")])
+    return ModelSignature(inputs=inputs, outputs=outputs)
+
+
 def register_agents():
     """Log each agent to MLflow (models-from-code) and register to UC. Returns list of registered model names."""
     import tempfile
@@ -123,8 +144,9 @@ def register_agents():
 
     set_registry_uri("databricks-uc")
 
-    # Unity Catalog requires models to have a signature; input_example lets MLflow infer it.
-    input_example = {"messages": [{"role": "user", "content": "example query"}]}
+    # Unity Catalog requires an explicit model signature (input + output). Infer from examples.
+    input_example = {"messages": [{"type": "human", "content": "What are the top decline reasons?"}]}
+    signature = _make_agent_signature()
 
     with tempfile.TemporaryDirectory(prefix="agentbricks_mfc_") as tmpdir:
         code_paths = [_src_root]
@@ -141,6 +163,7 @@ def register_agents():
                     artifact_path="model",
                     registered_model_name=model_name,
                     code_paths=code_paths,
+                    signature=signature,
                     input_example=input_example,
                 )
             registered.append(model_name)
@@ -157,6 +180,7 @@ def register_agents():
                 artifact_path="model",
                 registered_model_name=model_name,
                 code_paths=code_paths,
+                signature=signature,
                 input_example=input_example,
             )
             registered.append(model_name)

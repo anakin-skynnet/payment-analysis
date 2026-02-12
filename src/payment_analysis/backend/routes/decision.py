@@ -8,7 +8,7 @@ Validate with GET /api/v1/health/databricks. See docs/GUIDE.md §10 (Data source
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -34,9 +34,9 @@ router = APIRouter(tags=["decisioning"])
 
 def _get_or_assign_variant(
     session: SessionDep,
-    experiment_id: Optional[str],
+    experiment_id: str | None,
     subject_key: str,
-) -> Optional[str]:
+) -> str | None:
     """Resolve A/B variant for this subject. If no assignment exists and experiment is assignable, auto-enroll with 50/50 control/treatment (deterministic by subject_key). Returns None if no experiment or experiment not assignable."""
     if not experiment_id or not subject_key:
         return None
@@ -62,7 +62,7 @@ def _get_or_assign_variant(
     return variant
 
 
-def _with_ab(decision: Any, experiment_id: Optional[str], variant: Optional[str]) -> dict[str, Any]:
+def _with_ab(decision: Any, experiment_id: str | None, variant: str | None) -> dict[str, Any]:
     """Merge experiment_id and variant into decision response for logging and response."""
     out = decision.model_dump()
     if experiment_id is not None:
@@ -103,6 +103,13 @@ class RoutingPredictionOut(BaseModel):
     recommended_solution: str
     confidence: float
     alternatives: list[str]
+
+
+class RetryPredictionOut(BaseModel):
+    """Output from smart retry model."""
+    should_retry: bool
+    retry_success_probability: float
+    model_version: str
 
 
 @router.post(
@@ -207,4 +214,18 @@ async def predict_routing(
     """Get optimal routing recommendation from ML model."""
     result = await service.call_routing_model(features.model_dump())
     return RoutingPredictionOut(**result)
+
+
+@router.post(
+    "/ml/retry",
+    response_model=RetryPredictionOut,
+    operation_id="predictRetry",
+)
+async def predict_retry(
+    service: DatabricksServiceDep,
+    features: MLPredictionInput,
+) -> RetryPredictionOut:
+    """Get retry success likelihood from smart retry model (recovery optimization)."""
+    result = await service.call_retry_model(features.model_dump())
+    return RetryPredictionOut(**result)
 

@@ -12,9 +12,9 @@ NOTE: Workspace URLs are constructed dynamically based on environment variables.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
-import time
 from enum import Enum
 from typing import Any
 
@@ -24,10 +24,17 @@ from pydantic import BaseModel, Field
 
 from ..config import AppConfig, get_default_schema
 from ..dependencies import get_workspace_client, get_workspace_client_optional
+from ..logger import logger
 from .setup import resolve_orchestrator_job_id
 
 # Optional Genie space for /chat fallback: when set, POST /chat uses Databricks Genie Conversation API.
 GENIE_SPACE_ID_ENV = "GENIE_SPACE_ID"
+# When set, POST /api/agents/orchestrator/chat calls this Model Serving endpoint (AgentBricks/Supervisor) instead of Job 6.
+ORCHESTRATOR_SERVING_ENDPOINT_ENV = "ORCHESTRATOR_SERVING_ENDPOINT"
+
+# Job 6 poll settings (orchestrator chat fallback)
+ORCHESTRATOR_JOB_POLL_TIMEOUT_S = 120
+ORCHESTRATOR_JOB_POLL_INTERVAL_S = 4
 
 router = APIRouter(tags=["agents"])
 
@@ -439,7 +446,35 @@ class OrchestratorChatOut(BaseModel):
 
 
 def _orchestrator_job_id() -> str:
-    return os.getenv("DATABRICKS_JOB_ID_ORCHESTRATOR_AGENT", "582671124403091") or "582671124403091"
+    return (os.getenv("DATABRICKS_JOB_ID_ORCHESTRATOR_AGENT") or "").strip() or "582671124403091"
+
+
+def _query_orchestrator_endpoint(ws: WorkspaceClient, endpoint_name: str, user_message: str) -> tuple[str, list[str]]:
+    """Call the orchestrator Model Serving endpoint (AgentBricks/Supervisor). Returns (reply, agents_used)."""
+    # LangChain/LangGraph chat format: messages list
+    payload = {"messages": [{"type": "human", "content": user_message}]}
+    response = ws.serving_endpoints.query(
+        name=endpoint_name,
+        dataframe_records=[payload],
+    )
+    reply = ""
+    agents_used: list[str] = []
+    if response.predictions:
+        pred = response.predictions[0]
+        if isinstance(pred, dict):
+            # Optional: messages list with last message content
+            msgs = pred.get("messages") or pred.get("output") or pred.get("outputs")
+            if isinstance(msgs, list) and msgs:
+                last = msgs[-1]
+                if isinstance(last, dict):
+                    reply = (last.get("content") or last.get("text") or "").strip()
+            if not reply:
+                reply = (pred.get("content") or pred.get("text") or pred.get("synthesis") or "").strip()
+            raw_agents = pred.get("agents_used")
+            agents_used = list(raw_agents) if isinstance(raw_agents, (list, tuple)) else []
+        elif isinstance(pred, str):
+            reply = pred.strip()
+    return reply or "No response from orchestrator endpoint.", agents_used
 
 
 @router.post("/orchestrator/chat", response_model=OrchestratorChatOut, operation_id="postOrchestratorChat")
@@ -449,11 +484,23 @@ async def orchestrator_chat(
     ws: WorkspaceClient = Depends(get_workspace_client),
 ) -> OrchestratorChatOut:
     """
-    Run the Agent Framework orchestrator (Job 6 – Deploy Agents): routes the query to
-    Smart Routing, Smart Retry, Decline Analyst, Risk Assessor, and Performance Recommender,
-    then returns the synthesized recommendation and payment analysis.
-    Requires Databricks token (open app from Compute → Apps).
+    Run the orchestrator: when ORCHESTRATOR_SERVING_ENDPOINT is set, calls that AgentBricks/Supervisor
+    Model Serving endpoint; otherwise runs Job 6 (custom Python framework). Returns synthesized
+    recommendation and payment analysis. Requires Databricks token (open app from Compute → Apps).
     """
+    endpoint_name = (os.getenv(ORCHESTRATOR_SERVING_ENDPOINT_ENV) or "").strip()
+    if endpoint_name:
+        try:
+            reply, agents_used = _query_orchestrator_endpoint(ws, endpoint_name, body.message.strip())
+            return OrchestratorChatOut(reply=reply, run_page_url=None, agents_used=agents_used)
+        except Exception as e:
+            logger.warning(
+                "Orchestrator serving endpoint %s failed, falling back to Job 6: %s",
+                endpoint_name,
+                e,
+                exc_info=False,
+            )
+
     job_id_str = _orchestrator_job_id().strip()
     if not job_id_str or job_id_str == "0":
         job_id_str = resolve_orchestrator_job_id(ws).strip()
@@ -495,13 +542,13 @@ async def orchestrator_chat(
     host = get_workspace_url().rstrip("/")
     run_page_url = f"{host}/#job/{job_id}/run/{run_id}" if host else None
 
-    # Poll until run completes (timeout 120s)
-    timeout_s = 120
-    poll_interval_s = 4
+    # Poll until run completes; use asyncio.sleep to avoid blocking the event loop
     elapsed = 0
-    while elapsed < timeout_s:
-        time.sleep(min(poll_interval_s, timeout_s - elapsed))
-        elapsed += poll_interval_s
+    while elapsed < ORCHESTRATOR_JOB_POLL_TIMEOUT_S:
+        await asyncio.sleep(
+            min(ORCHESTRATOR_JOB_POLL_INTERVAL_S, ORCHESTRATOR_JOB_POLL_TIMEOUT_S - elapsed)
+        )
+        elapsed += ORCHESTRATOR_JOB_POLL_INTERVAL_S
         run_info = ws.jobs.get_run(run_id)
         state_obj = getattr(run_info, "state", None)
         state = getattr(state_obj, "life_cycle_state", None) or ""
@@ -526,8 +573,8 @@ async def orchestrator_chat(
                         run_page_url=run_page_url,
                         agents_used=agents_used,
                     )
-            except Exception:
-                pass
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.warning("Could not parse orchestrator job output: %s", e)
             return OrchestratorChatOut(
                 reply="The run completed successfully. View the full output in the run page.",
                 run_page_url=run_page_url,

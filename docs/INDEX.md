@@ -17,7 +17,7 @@ Single entry point for all documentation. Use this page to find where each topic
 
 ---
 
-## Document map (6 docs)
+## Document map
 
 | Document | Purpose | When to use |
 |----------|---------|-------------|
@@ -27,11 +27,19 @@ Single entry point for all documentation. Use this page to find where each topic
 | **[SCHEMA_TABLES_VIEWS.md](SCHEMA_TABLES_VIEWS.md)** | **Catalog/schema reference.** Tables and views in `payment_analysis`: required vs optional, where used, why empty, schema cleansing. | Audit schema; fix empty dashboards; remove unused objects. |
 | **[BUSINESS_AND_SOLUTION.md](BUSINESS_AND_SOLUTION.md)** | **Payment services context and requirement map.** Getnet services, data foundation, Smart Checkout / Reason Codes / Smart Retry context, Brazil focus, entry systems. **Map: Business requirement → Solution → Description.** | Business context and how each requirement is met. |
 | **[DATABRICKS.md](DATABRICKS.md)** | **Databricks alignment & agents.** Part 1: Feature validation (bundle, UC, Lakeflow, jobs, app, Lakebase, Genie, Model Serving, dashboards). Part 2: Implementation review (custom vs AgentBricks, recommendations). Part 3: Agent framework (AgentBricks conversion, UC tools, LangGraph, Model Serving, Multi-Agent Supervisor). | Validate Databricks-native design; upgrade reviews; agent migration. |
+| **[APPROVAL_OPTIMIZATION_PROPOSAL.md](APPROVAL_OPTIMIZATION_PROPOSAL.md)** | **Leverage models & UC functions to optimize approval rates.** Maps registered models and 11 UC functions to insights/actions; Supervisor AgentBricks vs Mosaic Agent; how to bring all model + agent insights into the app; concrete recommendations (serve supervisor, wire smart_retry into Decisioning, approval-optimization API). | Design orchestration; surface ML + UC insights in app; accelerate approval rates. |
+| **[AGENT_STACK_CLARIFICATION.md](AGENT_STACK_CLARIFICATION.md)** | **Which agent stack runs at runtime.** Clarifies: app Orchestrator chat uses **custom Python** (agent_framework.py) via Job 6 task 1; **AgentBricks (LangGraph)** is used only for **registration** to UC (Job 6 task 2); no “AI Framework PySpark” for agents. | Understand runtime vs registration; switch to AgentBricks at runtime. |
+| **[ARTIFACT_APP_MAPPING.md](ARTIFACT_APP_MAPPING.md)** | **Where every artifact is used in the app.** Maps streaming, models, real-time inference, dashboards, agents, Vector Search, Lakebase, and jobs/pipelines to specific UI pages and APIs so everything built delivers approval-rate value. | Verify full coverage; onboard; ensure no orphaned resources. |
 | **[AGENTS.md](../AGENTS.md)** | **AI agent (Cursor) rules.** Solution scope, do's and don'ts, package management, project structure, models & API, frontend rules, dev commands, MCP reference. For the AI working on the repo. | When editing code; align with project rules. |
 
 ---
 
 ## Consolidated summary by topic
+
+### Approval optimization (models, agents, UC functions)
+
+- **Artifacts:** 5 registered models (approval_propensity, risk_scoring, smart_routing, smart_retry, decline_analyst); 11 UC functions (get_kpi_summary, get_decline_trends, get_route_performance, get_recovery_opportunities, etc.).
+- **Proposal:** Serve a **Supervisor AgentBricks** (orchestrator) as one endpoint; wire **smart_retry_policy** into Decisioning; add **approval-optimization API** that calls UC functions for structured cards; use supervisor for conversational “one place” insights. See [APPROVAL_OPTIMIZATION_PROPOSAL.md](APPROVAL_OPTIMIZATION_PROPOSAL.md).
 
 ### Business & architecture
 

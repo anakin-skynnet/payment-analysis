@@ -560,6 +560,12 @@ export interface RetryPerformanceOut {
   success_rate_pct: number;
 }
 
+export interface RetryPredictionOut {
+  model_version: string;
+  retry_success_probability: number;
+  should_retry: boolean;
+}
+
 export interface RiskPredictionOut {
   is_high_risk: boolean;
   risk_score: number;
@@ -2089,6 +2095,21 @@ export const predictApproval = async (data: MLPredictionInput, options?: Request
 
 export function usePredictApproval(options?: { mutation?: UseMutationOptions<{ data: ApprovalPredictionOut }, ApiError, MLPredictionInput> }) {
   return useMutation({ mutationFn: (data) => predictApproval(data), ...options?.mutation });
+}
+
+export const predictRetry = async (data: MLPredictionInput, options?: RequestInit): Promise<{ data: RetryPredictionOut }> => {
+  const res = await fetch("/api/decision/ml/retry", { ...options, method: "POST", headers: { "Content-Type": "application/json", ...options?.headers }, body: JSON.stringify(data) });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export function usePredictRetry(options?: { mutation?: UseMutationOptions<{ data: RetryPredictionOut }, ApiError, MLPredictionInput> }) {
+  return useMutation({ mutationFn: (data) => predictRetry(data), ...options?.mutation });
 }
 
 export const predictRisk = async (data: MLPredictionInput, options?: RequestInit): Promise<{ data: RiskPredictionOut }> => {

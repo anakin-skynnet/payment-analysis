@@ -30,7 +30,7 @@ workspace:
 
 # Resource modules. Order: UC → warehouse → pipelines → jobs → dashboards → app.
 # Lakebase is required for UI CRUD (rules, experiments, incidents) and ML features.
-# model_serving.yml — uncomment after Step 5 (Train ML Models) so 4 models exist in UC.
+# model_serving.yml — uncomment after Step 5 (Train ML Models) and decline_analyst registered so 5 endpoints exist in UC.
 # Vector Search: create manually from resources/vector_search.yml.
 # Execution order for jobs (Setup & Run): see docs/DEPLOYMENT.md and Setup & Run in the app.
 #
@@ -46,7 +46,7 @@ include:
   - resources/streaming_simulator.yml
   - resources/genie_spaces.yml
   - resources/dashboards.yml
-  # - resources/model_serving.yml  # Uncomment after Step 5 (Train ML Models) so 4 models exist in UC
+  # - resources/model_serving.yml  # Uncomment after Step 5 (Train ML Models) and decline_analyst registered so 5 endpoints exist
   - resources/fastapi_app.yml
 
 # -----------------------------------------------------------------------------
@@ -93,8 +93,8 @@ variables:
     default: payment-analysis
   # Genie space ID for app resource binding. Default empty; do not add genie-space to app resources in resources/fastapi_app.yml unless this is set (empty space_id causes deploy to fail).
   genie_space_id:
-    description: "Genie space ID (e.g. UUID of 'Approvals domain expert' from Genie UI). Set for genie-space app resource (empty may cause deploy to fail)."
-    default: ""
+    description: "Genie space ID (e.g. UUID of 'Payment Analytics' from Genie UI). Set for genie-space app resource (empty may cause deploy to fail)."
+    default: "01f10700a35c1756a892406b5bab0b67"
   pipelines_development:
     description: "If true, pipelines use development mode (e.g. lower cost). Set false for prod."
     default: true

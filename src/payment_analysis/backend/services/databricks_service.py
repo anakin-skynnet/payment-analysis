@@ -1027,7 +1027,15 @@ class DatabricksService:
             features=features,
             mock_fallback=lambda: MockDataGenerator.routing_prediction(features),
         )
-    
+
+    async def call_retry_model(self, features: dict[str, Any]) -> dict[str, Any]:
+        """Call smart retry model endpoint (retry success likelihood and recovery)."""
+        return await self._call_model_endpoint(
+            endpoint_name=f"smart-retry-{os.getenv('ENVIRONMENT', 'dev')}",
+            features=features,
+            mock_fallback=lambda: MockDataGenerator.retry_prediction(features),
+        )
+
     async def _call_model_endpoint(
         self,
         endpoint_name: str,
@@ -1070,6 +1078,14 @@ class DatabricksService:
                 "risk_score": prob,
                 "is_high_risk": prediction.get("prediction", 0) == 1,
                 "risk_tier": RiskTier.from_score(prob).value,
+            }
+        elif "retry" in endpoint_name:
+            prob = prediction.get("probability", [0.5, 0.5])
+            retry_prob = prob[1] if isinstance(prob, (list, tuple)) and len(prob) > 1 else (float(prob) if isinstance(prob, (int, float)) else 0.5)
+            return {
+                "should_retry": prediction.get("prediction", 1) == 1,
+                "retry_success_probability": retry_prob,
+                "model_version": model_version,
             }
         else:  # routing
             return {
@@ -1622,6 +1638,20 @@ class MockDataGenerator:
             "recommended_solution": recommended,
             "confidence": 0.85,
             "alternatives": [s for s in all_solutions if s != recommended],
+        }
+
+    @staticmethod
+    def retry_prediction(features: dict[str, Any]) -> dict[str, Any]:
+        """Generate mock retry prediction (smart retry model fallback)."""
+        retry_count = features.get("retry_count", 0)
+        fraud_score = features.get("fraud_score", 0.1)
+        # Lower success probability as retries increase or risk increases
+        base = 0.75 - (retry_count * 0.15) - (fraud_score * 0.2)
+        prob = max(0.1, min(0.95, base))
+        return {
+            "should_retry": prob > 0.5,
+            "retry_success_probability": round(prob, 3),
+            "model_version": "mock-v1",
         }
 
 

@@ -7,6 +7,10 @@ import {
   useDecideRetry,
   useDecideRouting,
   useGetRecommendations,
+  usePredictApproval,
+  usePredictRisk,
+  usePredictRouting,
+  usePredictRetry,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ExternalLink, Code2, Brain, Database, Sparkles, ArrowRight, Target, AlertCircle } from "lucide-react";
+import { ExternalLink, Code2, Brain, Database, Sparkles, ArrowRight, Target, AlertCircle, TrendingUp, Shield, Waypoints, RotateCcw } from "lucide-react";
 import { openNotebookInDatabricks } from "@/lib/notebooks";
 
 export const Route = createFileRoute("/_sidebar/decisioning")({
@@ -42,11 +46,39 @@ function Decisioning() {
   const auth = useDecideAuthentication();
   const retry = useDecideRetry();
   const routing = useDecideRouting();
+  const predictApproval = usePredictApproval();
+  const predictRisk = usePredictRisk();
+  const predictRouting = usePredictRouting();
+  const predictRetry = usePredictRetry();
   const { data: recommendationsData, isLoading: recommendationsLoading, isError: recommendationsError } = useGetRecommendations({
     params: { limit: 20 },
     query: { refetchInterval: 30_000 },
   });
   const recommendations = recommendationsData?.data ?? [];
+
+  const mlFeatures = {
+    amount: (ctx.amount_minor ?? 0) / 100,
+    fraud_score: ctx.risk_score ?? 0.1,
+    device_trust_score: ctx.device_trust_score ?? 0.8,
+    is_cross_border: (ctx.issuer_country ?? "US") !== "US",
+    retry_count: ctx.attempt_number ?? 0,
+    uses_3ds: false,
+    merchant_segment: "retail",
+    card_network: (ctx.network as string) ?? "visa",
+  };
+
+  const runAllPredictions = () => {
+    predictApproval.mutate(mlFeatures);
+    predictRisk.mutate(mlFeatures);
+    predictRouting.mutate(mlFeatures);
+    predictRetry.mutate(mlFeatures);
+  };
+
+  const predictionsPending =
+    predictApproval.isPending ||
+    predictRisk.isPending ||
+    predictRouting.isPending ||
+    predictRetry.isPending;
 
   return (
     <div className="space-y-6">
@@ -256,7 +288,83 @@ function Decisioning() {
           )}
         </CardContent>
       </Card>
+
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="w-5 h-5 text-primary" />
+            Live ML predictions (Model Serving)
+          </CardTitle>
+          <CardDescription>
+            Run real-time inference with the same context as above. Approval propensity, risk score, smart routing, and smart retry models accelerate approval rates by guiding authentication, routing, and recovery decisions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button
+            onClick={runAllPredictions}
+            disabled={predictionsPending}
+          >
+            {predictionsPending ? "Running…" : "Run all ML predictions"}
+          </Button>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <PredictionCard
+              title="Approval propensity"
+              icon={<TrendingUp className="w-4 h-4" />}
+              result={predictApproval.data?.data}
+              render={(d) => d && `${(d.approval_probability * 100).toFixed(1)}% approve · ${d.should_approve ? "Approve" : "Decline"}`}
+            />
+            <PredictionCard
+              title="Risk score"
+              icon={<Shield className="w-4 h-4" />}
+              result={predictRisk.data?.data}
+              render={(d) => d && `${(d.risk_score * 100).toFixed(1)}% risk · ${d.risk_tier}`}
+            />
+            <PredictionCard
+              title="Smart routing"
+              icon={<Waypoints className="w-4 h-4" />}
+              result={predictRouting.data?.data}
+              render={(d) => d && `${d.recommended_solution} (${(d.confidence * 100).toFixed(0)}%)`}
+            />
+            <PredictionCard
+              title="Smart retry"
+              icon={<RotateCcw className="w-4 h-4" />}
+              result={predictRetry.data?.data}
+              render={(d) => d && `${d.should_retry ? "Retry" : "No retry"} · ${(d.retry_success_probability * 100).toFixed(1)}% success`}
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
+  );
+}
+
+function PredictionCard<T>({
+  title,
+  icon,
+  result,
+  render,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  result: T | undefined;
+  render: (d: T) => string;
+}) {
+  return (
+    <Card>
+      <CardHeader className="py-3">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          {icon}
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="py-2">
+        {result ? (
+          <p className="text-sm text-muted-foreground">{render(result)}</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">Run predictions to see result.</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

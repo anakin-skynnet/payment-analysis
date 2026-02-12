@@ -13,12 +13,14 @@ resources:
       description: "Syncs Genie space configuration and sample questions for natural language analytics"
       tasks:
         - task_key: sync_genie_config
-          description: "Sync Genie space configuration"
+          description: "Sync Genie space configuration and sample questions to deployed Genie space"
           notebook_task:
             notebook_path: ${workspace.root_path}/src/payment_analysis/genie/sync_genie_space
             base_parameters:
+              workspace_path: ${workspace.root_path}
               catalog: ${var.catalog}
               schema: ${var.schema}
+              space_id: ${var.genie_space_id}
           timeout_seconds: 600
       schedule:
         quartz_cron_expression: "0 0 5 ? * SUN"

@@ -4,6 +4,7 @@
 # Runtime: app.yml at project root (command, env). source_code_path = workspace root (sync destination).
 #
 # Full configuration: User authorization scopes (below) + App resources listed. Set --var genie_space_id=<uuid> for Genie when deploying.
+# Model serving: Endpoints (payment-analysis-orchestrator, decline-analyst, approval-propensity, etc.) from resources/model_serving.yml. Set ORCHESTRATOR_SERVING_ENDPOINT=payment-analysis-orchestrator so app chat uses AgentBricks/Supervisor instead of Job 6. Comment out serving-* entries if endpoints do not exist yet.
 # Note: Bundle validate may warn on experiment, vector_search_index, function (schema not yet in CLI). If app update fails, add those in Apps UI → Configure → App resources.
 # Environment (Workspace → Apps → payment-analysis → Edit → Environment):
 #   LAKEBASE_* — Required. DATABRICKS_WAREHOUSE_ID — Required (from sql-warehouse binding).
@@ -40,11 +41,121 @@ resources:
             securable_type: VOLUME
             securable_full_name: "${var.catalog}.${var.schema}.reports"
             permission: READ_VOLUME
-        # Genie: add in Apps UI or set --var genie_space_id=<uuid> and uncomment genie-space block in this file
-        # Serving endpoint
-        - name: serving-endpoint
-          description: Model serving endpoint
+        # Genie space — Payment Analytics (space_id default in databricks.yml)
+        - name: genie-space
+          description: Genie space Payment Analytics
+          genie_space:
+            name: "Payment Analytics"
+            space_id: ${var.genie_space_id}
+            permission: CAN_EDIT
+        # Model serving — include model_serving.yml and register agents (Job 6 task 2) for orchestrator
+        - name: serving-orchestrator
+          description: AgentBricks/Supervisor orchestrator (set ORCHESTRATOR_SERVING_ENDPOINT=payment-analysis-orchestrator to use)
           serving_endpoint:
-            name: "mas-b6e74e87-endpoint"
+            name: "payment-analysis-orchestrator"
             permission: CAN_QUERY
-        # experiment, vector_search_index, function: add in Workspace → Apps → payment-analysis → Configure → App resources (bundle schema does not support them yet)
+        - name: serving-decline-analyst
+          description: Decline analyst agent (LangGraph)
+          serving_endpoint:
+            name: "decline-analyst-${var.environment}"
+            permission: CAN_QUERY
+        - name: serving-approval-prop
+          description: Approval propensity model (predicts transaction approval likelihood)
+          serving_endpoint:
+            name: "approval-propensity-${var.environment}"
+            permission: CAN_QUERY
+        - name: serving-risk-scoring
+          description: Risk scoring model (fraud risk with PII guardrails)
+          serving_endpoint:
+            name: "risk-scoring-${var.environment}"
+            permission: CAN_QUERY
+        - name: serving-smart-routing
+          description: Smart routing model (optimal payment route recommendation)
+          serving_endpoint:
+            name: "smart-routing-${var.environment}"
+            permission: CAN_QUERY
+        - name: serving-smart-retry
+          description: Smart retry model (retry success likelihood and recovery)
+          serving_endpoint:
+            name: "smart-retry-${var.environment}"
+            permission: CAN_QUERY
+        # Optional: legacy/external LLM endpoint (uncomment if used)
+        # - name: serving-endpoint
+        #   description: External model endpoint
+        #   serving_endpoint:
+        #     name: "mas-b6e74e87-endpoint"
+        #     permission: CAN_QUERY
+        # --- Not supported by bundle schema yet; add in Workspace → Apps → payment-analysis → Configure → App resources ---
+        # MLflow experiments
+        # - name: experiment
+        #   description: MLflow experiment
+        #   experiment:
+        #     experiment_id: "276177355410657"
+        #     permission: CAN_EDIT
+        # - name: experiment-2
+        #   description: MLflow experiment 2
+        #   experiment:
+        #     experiment_id: "276177355500503"
+        #     permission: CAN_EDIT
+        # Vector search index
+        # - name: vector-search-index
+        #   description: Similar transactions vector search index
+        #   vector_search_index:
+        #     index_name: "ahs_demos_catalog.payment_analysis.similar_transactions_index"
+        #     permission: CAN_SELECT
+        # UC functions (agent tools)
+        # - name: function
+        #   description: get_cascade_recommendations
+        #   function:
+        #     function_name: "ahs_demos_catalog.payment_analysis.get_cascade_recommendations"
+        #     permission: CAN_EXECUTE
+        # - name: function-2
+        #   description: get_decline_by_segment
+        #   function:
+        #     function_name: "ahs_demos_catalog.payment_analysis.get_decline_by_segment"
+        #     permission: CAN_EXECUTE
+        # - name: function-3
+        #   description: get_decline_trends
+        #   function:
+        #     function_name: "ahs_demos_catalog.payment_analysis.get_decline_trends"
+        #     permission: CAN_EXECUTE
+        # - name: function-4
+        #   description: get_high_risk_transactions
+        #   function:
+        #     function_name: "ahs_demos_catalog.payment_analysis.get_high_risk_transactions"
+        #     permission: CAN_EXECUTE
+        # - name: function-5
+        #   description: get_kpi_summary
+        #   function:
+        #     function_name: "ahs_demos_catalog.payment_analysis.get_kpi_summary"
+        #     permission: CAN_EXECUTE
+        # - name: function-6
+        #   description: get_optimization_opportunities
+        #   function:
+        #     function_name: "ahs_demos_catalog.payment_analysis.get_optimization_opportunities"
+        #     permission: CAN_EXECUTE
+        # - name: function-7
+        #   description: get_recovery_opportunities
+        #   function:
+        #     function_name: "ahs_demos_catalog.payment_analysis.get_recovery_opportunities"
+        #     permission: CAN_EXECUTE
+        # - name: function-8
+        #   description: get_retry_success_rates
+        #   function:
+        #     function_name: "ahs_demos_catalog.payment_analysis.get_retry_success_rates"
+        #     permission: CAN_EXECUTE
+        # - name: function-9
+        #   description: get_risk_distribution
+        #   function:
+        #     function_name: "ahs_demos_catalog.payment_analysis.get_risk_distribution"
+        #     permission: CAN_EXECUTE
+        # - name: function-10
+        #   description: get_route_performance
+        #   function:
+        #     function_name: "ahs_demos_catalog.payment_analysis.get_route_performance"
+        #     permission: CAN_EXECUTE
+        # - name: function-11
+        #   description: get_trend_analysis
+        #   function:
+        #     function_name: "ahs_demos_catalog.payment_analysis.get_trend_analysis"
+        #     permission: CAN_EXECUTE
