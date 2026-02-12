@@ -6,7 +6,7 @@
 # Full configuration (when deployed + UI steps):
 #   User authorization scopes (below): sql, dashboards.genie, files.files, serving.serving-endpoints,
 #     vectorsearch.vector-search-indexes, catalog.connections, catalog.catalogs:read, catalog.schemas:read, catalog.tables:read.
-#   App resources from bundle: SQL warehouse, UC volume, Jobs 1–7, Serving endpoints (4). Secret and Genie commented out until scope/key and space_id exist.
+#   App resources from bundle: SQL warehouse, UC volume, Jobs 1–7. Secret, Genie, Serving endpoints commented out until scope/key, space_id, and endpoints exist.
 #   Secret: create scope "payment-analysis" and key "api-key" in Workspace → Secrets, then uncomment app-secrets block and redeploy.
 #   Genie: uncomment genie-space block and set --var genie_space_id=<uuid> then redeploy.
 #   Add in Apps UI (Configure → App resources → + Add resource) after deploy: Database (Lakebase),
@@ -98,27 +98,27 @@ resources:
           job:
             id: ${resources.jobs.job_7_genie_sync.id}
             permission: CAN_MANAGE_RUN
-        # Model serving — include resources/model_serving.yml in databricks.yml and run Step 5 (Train ML) first
-        - name: serving-approval-prop
-          description: Approval propensity model endpoint
-          serving_endpoint:
-            name: "approval-propensity-${var.environment}"
-            permission: CAN_QUERY
-        - name: serving-risk-scoring
-          description: Risk scoring model endpoint
-          serving_endpoint:
-            name: "risk-scoring-${var.environment}"
-            permission: CAN_QUERY
-        - name: serving-smart-routing
-          description: Smart routing model endpoint
-          serving_endpoint:
-            name: "smart-routing-${var.environment}"
-            permission: CAN_QUERY
-        - name: serving-smart-retry
-          description: Smart retry model endpoint
-          serving_endpoint:
-            name: "smart-retry-${var.environment}"
-            permission: CAN_QUERY
+        # Model serving — uncomment after Step 5 (Train ML) and endpoints exist (or include resources/model_serving.yml)
+        # - name: serving-approval-prop
+        #   description: Approval propensity model endpoint
+        #   serving_endpoint:
+        #     name: "approval-propensity-${var.environment}"
+        #     permission: CAN_QUERY
+        # - name: serving-risk-scoring
+        #   description: Risk scoring model endpoint
+        #   serving_endpoint:
+        #     name: "risk-scoring-${var.environment}"
+        #     permission: CAN_QUERY
+        # - name: serving-smart-routing
+        #   description: Smart routing model endpoint
+        #   serving_endpoint:
+        #     name: "smart-routing-${var.environment}"
+        #     permission: CAN_QUERY
+        # - name: serving-smart-retry
+        #   description: Smart retry model endpoint
+        #   serving_endpoint:
+        #     name: "smart-retry-${var.environment}"
+        #     permission: CAN_QUERY
         # -------------------------------------------------------------------------
         # Full config: add these in Apps UI (Compute → Apps → payment-analysis → Edit → Configure → App resources → + Add resource).
         # Bundle YAML does not support these resource types yet; add after deploy to see them in the portal.
