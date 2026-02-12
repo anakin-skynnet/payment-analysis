@@ -95,6 +95,26 @@ def _request_host_for_derivation(request: Request) -> str:
     return request.headers.get("host") or ""
 
 
+def get_effective_workspace_url(request: Request, config: ConfigDep) -> str:
+    """
+    Workspace URL to use for dashboard embed and config. When the request is from a Databricks
+    Apps host (e.g. *.databricksapps.com), derive the workspace URL from the request so end
+    users always get their own workspace URL instead of a hardcoded or env-only host.
+    """
+    request_host = _request_host_for_derivation(request)
+    if _is_apps_host(request_host):
+        derived = workspace_url_from_apps_host(request_host, app_name).strip().rstrip("/")
+        if derived:
+            return ensure_absolute_workspace_url(derived).rstrip("/")
+    raw = (config.databricks.workspace_url or "").strip().rstrip("/")
+    if not raw or raw == WORKSPACE_URL_PLACEHOLDER.rstrip("/"):
+        return ""
+    return ensure_absolute_workspace_url(raw).rstrip("/")
+
+
+EffectiveWorkspaceUrlDep = Annotated[str, Depends(get_effective_workspace_url)]
+
+
 def _is_apps_host(host: str) -> bool:
     """True if host looks like a Databricks Apps URL (e.g. payment-analysis-xxx.databricksapps.com)."""
     return bool(host and "databricksapps" in (host or "").lower())

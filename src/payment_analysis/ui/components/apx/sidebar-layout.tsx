@@ -25,10 +25,10 @@ import { DateRangePresetSelect, type DateRangePreset } from "@/components/apx/da
 import Logo from "@/components/apx/logo";
 import { cn } from "@/lib/utils";
 import { AssistantProvider, useAssistant } from "@/contexts/assistant-context";
-import { GetnetAIAssistant } from "@/components/chat";
+import { AIChatbot, GenieAssistant } from "@/components/chat";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Bot } from "lucide-react";
+import { Bot, Sparkles } from "lucide-react";
 
 const PATH_LABELS: Record<string, string> = {
   "/command-center": "Overview",
@@ -43,8 +43,9 @@ const PATH_LABELS: Record<string, string> = {
   "/decisioning": "Recommendations & decisions",
   "/rules": "Rules",
   "/experiments": "Experiments",
-  "/incidents": "Real-Time Monitor",
-  "/alerts-data-quality": "Alerts & Data Quality",
+  "/data-quality": "Monitoring & Data Quality",
+  "/incidents": "Monitoring & Data Quality",
+  "/alerts-data-quality": "Monitoring & Data Quality",
   "/declines": "Declines",
   "/smart-checkout": "Smart Checkout",
   "/reason-codes": "Reason Codes",
@@ -95,10 +96,28 @@ function Breadcrumb() {
   );
 }
 
-/** Floating AI assistant wired to global context so it appears on every page and can be opened from Overview. */
-function GlobalAssistant() {
-  const { open, setOpen } = useAssistant();
-  return <GetnetAIAssistant open={open} onOpenChange={setOpen} />;
+/** Two floating chat dialogs: AI Chat (header) → orchestrator; Genie Assistant (bottom right) → Genie/lakehouse. */
+function GlobalChatPanels() {
+  const {
+    openAIChatbot,
+    setOpenAIChatbot,
+    openGenieAssistant,
+    setOpenGenieAssistant,
+  } = useAssistant();
+  return (
+    <>
+      <AIChatbot
+        open={openAIChatbot}
+        onOpenChange={setOpenAIChatbot}
+        position="left"
+      />
+      <GenieAssistant
+        open={openGenieAssistant}
+        onOpenChange={setOpenGenieAssistant}
+        position="right"
+      />
+    </>
+  );
 }
 
 interface SidebarLayoutProps {
@@ -106,24 +125,42 @@ interface SidebarLayoutProps {
 }
 
 function HeaderActions() {
-  const { openAssistant } = useAssistant();
+  const { openAIChatbotPanel, openGenieAssistantPanel } = useAssistant();
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={openAssistant}
-          aria-label="Open AI chat"
-        >
-          <Bot className="h-4 w-4" />
-          <span className="hidden sm:inline">AI chat</span>
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>Chat with Databricks AI agents</TooltipContent>
-    </Tooltip>
+    <div className="flex items-center gap-2">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={openAIChatbotPanel}
+            aria-label="Open AI chat"
+          >
+            <Bot className="h-4 w-4" />
+            <span className="hidden sm:inline">AI chat</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Orchestrator agents: recommendations, semantic search, payment analysis</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={openGenieAssistantPanel}
+            aria-label="Open Genie Assistant"
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">Genie Assistant</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Chat with Databricks Genie for lakehouse data and insights</TooltipContent>
+      </Tooltip>
+    </div>
   );
 }
 
@@ -204,7 +241,7 @@ function SidebarLayout({ children }: SidebarLayoutProps) {
             <Outlet />
           </motion.div>
         </main>
-        <GlobalAssistant />
+        <GlobalChatPanels />
       </SidebarInset>
     </SidebarProvider>
     </AssistantProvider>

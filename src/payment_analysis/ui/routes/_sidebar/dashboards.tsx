@@ -140,16 +140,19 @@ export function Component() {
                 allowFullScreen
               />
             ) : (
-              <div className="flex flex-col items-center justify-center h-[70vh] text-muted-foreground gap-2 p-4">
-                <p className="text-center">
-                  {embedError ? "Dashboard not found or embed not available." : "Dashboard embed is not available. Set DATABRICKS_HOST and DATABRICKS_WORKSPACE_ID, or open in a new tab."}
+              <div className="flex flex-col items-center justify-center h-[70vh] text-muted-foreground gap-3 p-4 max-w-md">
+                <p className="text-center text-sm">
+                  {embedError
+                    ? "Dashboard not found or embed not available."
+                    : "Dashboard embed needs a workspace URL. Open this app from Databricks (Compute → Apps) so your workspace is detected, or set DATABRICKS_HOST to your workspace URL."}
                 </p>
                 {embedId && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const u = getWorkspaceUrl() ? `${getWorkspaceUrl()}/sql/dashboards/${embedId}` : null;
+                      const base = getWorkspaceUrl();
+                      const u = base ? `${base.replace(/\/+$/, "")}/sql/dashboards/${embedId}` : null;
                       if (u) window.open(u, "_blank", "noopener,noreferrer");
                     }}
                   >

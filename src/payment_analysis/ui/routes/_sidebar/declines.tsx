@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 
-import { declineSummary, useGetReasonCodeInsights, type ReasonCodeInsightOut } from "@/lib/api";
+import { useDeclineSummary, useGetReasonCodeInsights, type ReasonCodeInsightOut } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Code2, TrendingUp, Target, ArrowRight } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ExternalLink, Code2, TrendingUp, Target, ArrowRight, AlertCircle } from "lucide-react";
 import { getDashboardUrl, openInDatabricks } from "@/config/workspace";
 import { useEntity } from "@/contexts/entity-context";
 
@@ -29,14 +30,10 @@ const openDashboard = () => {
 
 function Declines() {
   const { entity } = useEntity();
-  const q = useQuery({
-    queryKey: ["declines", "summary"],
-    queryFn: () => declineSummary(),
-  });
-  const { data: reasonCodeData } = useGetReasonCodeInsights({ params: { entity, limit: 5 } });
+  const { data: summaryData, isLoading: summaryLoading, isError: summaryError } = useDeclineSummary();
+  const { data: reasonCodeData, isLoading: reasonCodeLoading, isError: reasonCodeError } = useGetReasonCodeInsights({ params: { entity, limit: 5 } });
+  const buckets = summaryData?.data ?? [];
   const recommendedActions = reasonCodeData?.data ?? [];
-
-  const buckets = q.data?.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -80,12 +77,28 @@ function Declines() {
           <CardTitle>Top decline buckets</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {buckets.length === 0 ? (
+          {summaryLoading && (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-8 w-full rounded" />
+              ))}
+            </div>
+          )}
+          {summaryError && (
+            <Alert variant="destructive" className="rounded-lg">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Could not load decline summary</AlertTitle>
+              <AlertDescription>
+                Data comes from Databricks. Check connection and run Gold Views to populate decline buckets.
+              </AlertDescription>
+            </Alert>
+          )}
+          {!summaryLoading && !summaryError && buckets.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              No decline data yet. Post some `AuthorizationEvent`s via the Analytics
-              API to populate this.
+              No decline data yet. Post some `AuthorizationEvent`s via the Analytics API to populate this.
             </p>
-          ) : (
+          )}
+          {!summaryLoading && !summaryError && buckets.length > 0 && (
             buckets.map((b) => (
               <div key={b.key} className="flex items-center justify-between">
                 <div className="font-mono text-sm">{b.key}</div>
@@ -107,11 +120,28 @@ function Declines() {
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
-          {recommendedActions.length === 0 ? (
+          {reasonCodeLoading && (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-lg" />
+              ))}
+            </div>
+          )}
+          {reasonCodeError && (
+            <Alert variant="destructive" className="rounded-lg">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Could not load reason-code insights</AlertTitle>
+              <AlertDescription>
+                Data comes from Databricks. Run gold views and ensure Reason Codes table is populated.
+              </AlertDescription>
+            </Alert>
+          )}
+          {!reasonCodeLoading && !reasonCodeError && recommendedActions.length === 0 && (
             <p className="text-sm text-muted-foreground">
               No reason-code insights yet. Run gold views and open Reason Codes for full insights and recommended actions.
             </p>
-          ) : (
+          )}
+          {!reasonCodeLoading && !reasonCodeError && recommendedActions.length > 0 && (
             <ul className="space-y-2">
               {recommendedActions.map((r: ReasonCodeInsightOut) => (
                 <li key={`${r.entry_system}-${r.decline_reason_standard}-${r.priority}`} className="rounded-lg border border-border/60 p-2.5">

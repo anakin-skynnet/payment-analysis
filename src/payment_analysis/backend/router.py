@@ -13,13 +13,8 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.iam import User as UserOut
 from fastapi import APIRouter, Depends, Request
 
-from .config import (
-    WORKSPACE_URL_PLACEHOLDER,
-    app_name,
-    ensure_absolute_workspace_url,
-    workspace_url_from_apps_host,
-)
-from .dependencies import ConfigDep, _request_host_for_derivation, get_workspace_client
+from .config import ensure_absolute_workspace_url
+from .dependencies import ConfigDep, EffectiveWorkspaceUrlDep, get_workspace_client
 from .models import AuthStatusOut, VersionOut, WorkspaceConfigOut
 from .routes.agents import router as agents_router
 from .routes.analytics import router as analytics_router
@@ -63,15 +58,9 @@ async def version():
     response_model=WorkspaceConfigOut,
     operation_id="getWorkspaceConfig",
 )
-def get_workspace_config(request: Request, config: ConfigDep):
-    """Return workspace base URL for Execute links and dashboard embed. When DATABRICKS_HOST is unset and the request is from a Databricks Apps host, derive URL from X-Forwarded-Host or Host."""
-    raw = (config.databricks.workspace_url or "").strip().rstrip("/")
-    if not raw or raw.rstrip("/") == WORKSPACE_URL_PLACEHOLDER.rstrip("/"):
-        derived = workspace_url_from_apps_host(_request_host_for_derivation(request), app_name)
-        if derived:
-            return WorkspaceConfigOut(workspace_url=derived)
-        return WorkspaceConfigOut(workspace_url="")
-    return WorkspaceConfigOut(workspace_url=ensure_absolute_workspace_url(raw))
+def get_workspace_config(workspace_url: EffectiveWorkspaceUrlDep):
+    """Return workspace base URL for Execute links and dashboard embed. When the app is opened from Compute → Apps, uses the request-derived workspace URL so end users get their own workspace."""
+    return WorkspaceConfigOut(workspace_url=workspace_url or "")
 
 
 @api.get("/auth/status", response_model=AuthStatusOut, operation_id="getAuthStatus")

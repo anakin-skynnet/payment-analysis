@@ -1,34 +1,25 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 
 import {
   type DecisionContext,
   useDecideAuthentication,
   useDecideRetry,
   useDecideRouting,
+  useGetRecommendations,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "@tanstack/react-router";
-import { ExternalLink, Code2, Brain, Database, Sparkles, ArrowRight, Target } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ExternalLink, Code2, Brain, Database, Sparkles, ArrowRight, Target, AlertCircle } from "lucide-react";
 import { openInDatabricks } from "@/config/workspace";
 
 export const Route = createFileRoute("/_sidebar/decisioning")({
   component: () => <Decisioning />,
 });
-
-type Recommendation = {
-  id: string;
-  context_summary: string;
-  recommended_action: string;
-  score: number;
-  source_type: string;
-  created_at?: string | null;
-};
 
 const openNotebook = async (notebookId: string) => {
   try {
@@ -39,12 +30,6 @@ const openNotebook = async (notebookId: string) => {
     console.error("Failed to open notebook:", error);
   }
 };
-
-async function fetchRecommendations(limit = 20): Promise<Recommendation[]> {
-  const res = await fetch(`/api/analytics/recommendations?limit=${limit}`);
-  if (!res.ok) throw new Error(res.statusText);
-  return res.json();
-}
 
 function Decisioning() {
   const [ctx, setCtx] = useState<DecisionContext & { experiment_id?: string; subject_key?: string }>({
@@ -66,10 +51,10 @@ function Decisioning() {
   const auth = useDecideAuthentication();
   const retry = useDecideRetry();
   const routing = useDecideRouting();
-  const recommendationsQuery = useQuery({
-    queryKey: ["/api/analytics/recommendations", 20],
-    queryFn: () => fetchRecommendations(20),
+  const { data: recommendationsData, isLoading: recommendationsLoading, isError: recommendationsError } = useGetRecommendations({
+    params: { limit: 20 },
   });
+  const recommendations = recommendationsData?.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -239,22 +224,28 @@ function Decisioning() {
           </p>
         </CardHeader>
         <CardContent>
-          {recommendationsQuery.isLoading && (
+          {recommendationsLoading && (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-16 w-full" />
+                <Skeleton key={i} className="h-16 w-full rounded-lg" />
               ))}
             </div>
           )}
-          {recommendationsQuery.isError && (
-            <p className="text-sm text-destructive">Failed to load recommendations.</p>
+          {recommendationsError && (
+            <Alert variant="destructive" className="rounded-lg">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Could not load recommendations</AlertTitle>
+              <AlertDescription>
+                Data comes from Databricks (Lakehouse or Lakebase). Check connection and run the Gold Views job.
+              </AlertDescription>
+            </Alert>
           )}
-          {recommendationsQuery.data && recommendationsQuery.data.length === 0 && (
+          {!recommendationsLoading && !recommendationsError && recommendations.length === 0 && (
             <p className="text-sm text-muted-foreground">No recommendations yet. Run the gold views and populate approval_recommendations in the Lakehouse.</p>
           )}
-          {recommendationsQuery.data && recommendationsQuery.data.length > 0 && (
+          {!recommendationsLoading && !recommendationsError && recommendations.length > 0 && (
             <ul className="space-y-3">
-              {recommendationsQuery.data.map((r) => (
+              {recommendations.map((r) => (
                 <li key={r.id} className="flex items-start gap-3 rounded-lg border p-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{r.context_summary}</p>

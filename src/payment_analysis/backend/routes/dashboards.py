@@ -20,7 +20,7 @@ from ..config import (
     REFERENCE_WORKSPACE_ID,
     ensure_absolute_workspace_url,
 )
-from ..dependencies import ConfigDep
+from ..dependencies import ConfigDep, EffectiveWorkspaceUrlDep
 
 logger = logging.getLogger(__name__)
 
@@ -232,30 +232,19 @@ def _dashboard_url_path_and_full(
 async def get_dashboard_url(
     dashboard_id: str,
     config: ConfigDep,
+    workspace_host: EffectiveWorkspaceUrlDep,
     embed: bool = Query(False, description="Return embed-friendly URL"),
 ) -> dict[str, Any]:
     """
     Get the Databricks URL for a specific dashboard.
-    
-    When Executive & Trends (executive_trends_unified) is configured with a Lakeview dashboard ID
-    (or reference workspace matches), returns the dashboardsv3 published URL so the app opens the reference dashboard.
-    
-    Args:
-        dashboard_id: Unique dashboard identifier
-        embed: If True, returns URL suitable for iframe embedding
-        
-    Returns:
-        Dictionary with url (path or full URL), full_url when using Lakeview reference, embed_url, full_embed_url
-        
-    Raises:
-        HTTPException: If dashboard not found
+    Uses the effective workspace URL (from request when opened from Apps) so end users
+    get their own workspace, not a hardcoded host.
     """
     dashboard = await get_dashboard(dashboard_id)
     default_path = dashboard.url_path or ""
-    base_url, full_url = _dashboard_url_path_and_full(dashboard_id, default_path, config)
-    raw_host = (config.databricks.workspace_url or "").strip().rstrip("/")
-    is_placeholder = not raw_host or "example.databricks.com" in raw_host
-    workspace_host = ensure_absolute_workspace_url(raw_host).rstrip("/") if raw_host else ""
+    base_url, _full_from_config = _dashboard_url_path_and_full(dashboard_id, default_path, config)
+    # Use effective workspace host (request-derived when app opened from Apps) so end users get their workspace
+    full_url = f"{workspace_host}{base_url}" if workspace_host else (_full_from_config or None)
 
     if embed:
         sep = "&" if "?" in base_url else "?"
@@ -263,7 +252,7 @@ async def get_dashboard_url(
         full_embed_url = None
         if full_url:
             full_embed_url = f"{full_url}{sep}embed=true"
-        elif workspace_host and not is_placeholder:
+        elif workspace_host:
             full_embed_url = f"{workspace_host}{embed_path}"
         return {
             "dashboard_id": dashboard_id,
