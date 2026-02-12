@@ -115,11 +115,28 @@ Following the [dbdemos](https://github.com/databricks-demos/dbdemos) pattern, da
 
 4. **Data**: Gold views and Lakeflow tables must exist and have data. Run **Job 3** (Initialize Ingestion / Create Gold Views) and the **Lakeflow ETL pipeline** so `v_executive_kpis`, `payments_enriched_silver`, etc. exist in the catalog/schema used by the dashboards. Empty or missing tables produce empty charts.
 
+### Workspace layout: root vs files/
+
+Databricks Asset Bundles use two workspace path concepts:
+
+| Concept | Purpose | In this bundle |
+|--------|----------|----------------|
+| **`workspace.root_path`** | Path used by **jobs** (notebook_path), **pipelines** (path), **app** (source_code_path), and **dashboards** (parent_path). All resource paths are under `root_path`. | `/Workspace/Users/<user>/payment-analysis` |
+| **`workspace.file_path`** | Path where the CLI **syncs** (uploads) bundle files when you run `databricks bundle deploy`. If unset, the CLI defaults to `root_path/files`, which creates a second copy. | Set to **`${workspace.root_path}`** so sync writes to the same folder as jobs and the app. |
+
+**Which files are used at runtime?**
+
+- **Jobs and pipelines** run notebooks from **`${workspace.root_path}/src/payment_analysis/...`** (e.g. `agents/agentbricks_register`, `ml/train_models`).
+- The **Databricks App** runs with **`source_code_path: ${workspace.root_path}`**, so it sees `src/payment_analysis/__dist__`, `src/payment_analysis/backend`, etc., at the root.
+- **Sync** (from `databricks bundle deploy`) uploads everything in `sync.include` to **`file_path`**. With `file_path: ${workspace.root_path}`, that content lands in the same folder, so there is a single tree and no duplicate `files/` copy.
+
+If you see both a root folder and a `files/` folder with the same content, the CLI was using the default (sync to `root_path/files`) while jobs and app point at `root_path`. The **code that runs** is always the one under **`root_path`** (e.g. `.../payment-analysis/src/...`). To avoid duplication, this bundle sets **`file_path: ${workspace.root_path}`** so sync and runtime use the same path.
+
 ### Why one databricks.yml
 
 - **Source of truth:** The file at **repo root** `databricks.yml` is the only one used for `databricks bundle validate -t dev` and `databricks bundle deploy -t dev`. The bundle CLI runs from the project root and reads only the root `databricks.yml`.
-- **Workspace path:** In root `databricks.yml`, `workspace.root_path` is the path in the Databricks workspace used for both **sync** (upload destination) and the **app** (`source_code_path`). One path keeps the setup simple and aligns with [Apps Cookbook](https://apps-cookbook.dev/docs/intro) and [apx](https://github.com/databricks-solutions/apx). **`file_path`** is not used (removed to avoid a `files/` subfolder).
-- **No duplicate config:** The **`files/`** directory is in **`.gitignore`** and has been removed from git tracking. Do not commit workspace mirrors or sync copies under `files/`.
+- **Workspace path:** In root `databricks.yml`, `workspace.root_path` is the workspace folder (e.g. `.../payment-analysis`). **`workspace.file_path`** is set to **`${workspace.root_path}`** so bundle sync uploads to the same path as jobs and the app (no separate `files/` copy). Jobs, pipelines, and the app all reference **`root_path`** (e.g. `root_path/src/payment_analysis/agents/agent_framework`). See [Workspace layout: root vs files/](#workspace-layout-root-vs-files) below.
+- **No duplicate config:** Do not commit workspace mirrors. If you previously had a `files/` subfolder from an older DAB default, you can remove it after setting `file_path: ${workspace.root_path}` and redeploying.
 
 ## Version alignment
 
