@@ -1,4 +1,5 @@
 import { Suspense, useCallback, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Card,
@@ -172,11 +173,13 @@ function FrictionFunnelWidget({ steps }: { steps: FrictionFunnelStep[] }) {
           </div>
           <div className="h-2 rounded-full bg-muted/50 overflow-hidden">
             <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${(step.value / maxVal) * 100}%`,
-                backgroundColor: barColors[i] ?? "var(--primary)",
-              }}
+              className="funnel-bar-fill h-full rounded-full transition-all duration-500"
+              style={
+                {
+                  ["--funnel-bar-pct"]: `${(step.value / maxVal) * 100}%`,
+                  ["--funnel-bar-color"]: barColors[i] ?? "var(--primary)",
+                } as CSSProperties
+              }
             />
           </div>
         </div>
@@ -399,16 +402,16 @@ function CommandCenter() {
           <Card className="glass-card overflow-hidden border border-border/80">
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <Activity className="h-4 w-4" style={{ color: NEON_CYAN }} />
+                <Activity className="h-4 w-4 text-neon-cyan" />
                 Entry Systems Throughput
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
               <EntrySystemsChart points={entryPoints} />
               <div className="mt-2 flex flex-wrap gap-4 text-[10px]">
-                <span style={{ color: SANTANDER_RED }}>● PD 62%</span>
-                <span style={{ color: NEON_CYAN }}>● WS 34%</span>
-                <span style={{ color: VIBRANT_GREEN }}>● SEP 3%</span>
+                <span className="text-getnet-red">● PD 62%</span>
+                <span className="text-neon-cyan">● WS 34%</span>
+                <span className="text-vibrant-green">● SEP 3%</span>
                 <span className="text-muted-foreground">● Checkout 1%</span>
               </div>
             </CardContent>
@@ -478,7 +481,7 @@ function CommandCenter() {
             <Card className="glass-card border border-border/80">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4" style={{ color: NEON_CYAN }} />
+                  <CheckCircle2 className="h-4 w-4 text-neon-cyan" />
                   Data Quality
                 </CardTitle>
               </CardHeader>
@@ -494,11 +497,11 @@ function CommandCenter() {
                 )}
                 <ul className="space-y-1.5 text-sm">
                   <li className="flex items-center gap-2 text-muted-foreground">
-                    <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: VIBRANT_GREEN }} />
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-vibrant-green" />
                     <span>Schema validated</span>
                   </li>
                   <li className="flex items-center gap-2 text-muted-foreground">
-                    <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: VIBRANT_GREEN }} />
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-vibrant-green" />
                     <span>PII masking enabled</span>
                   </li>
                 </ul>
@@ -616,7 +619,7 @@ function CommandCenter() {
 
         <footer className="flex items-center justify-end gap-2 border-t border-border/80 px-4 py-2 text-xs text-muted-foreground">
           {fromDatabricks ? (
-            <span className="inline-flex items-center gap-1 rounded bg-green-500/10 px-2 py-0.5" style={{ color: VIBRANT_GREEN }}>
+            <span className="data-source-databricks">
               Data: Databricks
             </span>
           ) : (

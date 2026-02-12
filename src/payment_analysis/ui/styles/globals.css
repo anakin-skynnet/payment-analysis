@@ -313,6 +313,50 @@
   .progress-bar-fill {
     width: var(--progress-pct, 0);
   }
+  /* Chart/legend and status colors (avoid inline color styles) */
+  .text-getnet-red {
+    color: var(--getnet-red);
+  }
+  .text-neon-cyan {
+    color: var(--neon-cyan);
+  }
+  .text-vibrant-green {
+    color: var(--vibrant-green);
+  }
+  /* KPI card accent (parent sets --kpi-accent) */
+  .kpi-accent-icon,
+  .kpi-accent-value {
+    color: var(--kpi-accent);
+  }
+  /* Funnel bar: set --funnel-bar-pct and --funnel-bar-color on element */
+  .funnel-bar-fill {
+    width: var(--funnel-bar-pct, 0);
+    background-color: var(--funnel-bar-color, var(--primary));
+  }
+  /* Progress indicator: set --progress-value (0-100) on root; transform in CSS */
+  .progress-indicator-value {
+    transform: translateX(calc(-100% + var(--progress-value, 0) * 1%));
+  }
+  /* Conic gauge: set --gauge-pct (e.g. 85%) on element */
+  .gauge-conic-cyan {
+    background: conic-gradient(var(--neon-cyan) 0%, var(--gauge-pct, 0%), hsl(var(--muted)) var(--gauge-pct, 0%) 100%);
+  }
+  .gauge-conic-primary {
+    background: conic-gradient(hsl(var(--primary)) 0%, var(--gauge-pct, 0%), hsl(var(--muted)) var(--gauge-pct, 0%) 100%);
+  }
+  /* Dynamic bar width: set --bar-width-pct (e.g. 75%) */
+  .bar-fill-width {
+    width: var(--bar-width-pct, 0);
+  }
+  /* Layout containment for logo */
+  .contain-layout {
+    contain: layout;
+  }
+  /* Data source badge (Databricks live) */
+  .data-source-databricks {
+    @apply inline-flex items-center gap-1 rounded bg-green-500/10 px-2 py-0.5;
+    color: var(--vibrant-green);
+  }
   /* Embed container min height for dashboard iframes */
   .min-h-embed {
     min-height: 70vh;

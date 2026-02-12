@@ -51,19 +51,12 @@ export function KPICard({
             {label}
           </span>
           {icon != null && (
-            <span
-              className="shrink-0 [&>svg]:size-4"
-              style={{ color: "var(--kpi-accent)" }}
-              aria-hidden
-            >
+            <span className="kpi-accent-icon shrink-0 [&>svg]:size-4" aria-hidden>
               {icon}
             </span>
           )}
         </div>
-        <p
-          className="mt-2 text-4xl font-bold kpi-number font-heading tabular-nums"
-          style={{ color: "var(--kpi-accent)" }}
-        >
+        <p className="kpi-accent-value mt-2 text-4xl font-bold kpi-number font-heading tabular-nums">
           {value}
         </p>
         {subtitle != null && (

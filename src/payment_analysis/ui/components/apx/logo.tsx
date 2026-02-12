@@ -9,8 +9,7 @@ interface LogoProps {
 export function Logo({ to = "/", className = "", showText = false }: LogoProps) {
   const content = (
     <div
-      className={`flex flex-col items-center justify-center gap-2 py-2 px-2 min-h-[3rem] min-w-0 ${className}`}
-      style={{ contain: "layout" }}
+      className={`contain-layout flex flex-col items-center justify-center gap-2 py-2 px-2 min-h-[3rem] min-w-0 ${className}`}
     >
       <span className="media-container h-9 max-h-9 w-full shrink-0">
         <img

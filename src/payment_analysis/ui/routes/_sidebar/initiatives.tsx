@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { CSSProperties } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -130,10 +131,8 @@ function Initiatives() {
               ) : (
                 <div className="flex flex-col items-center gap-3">
                   <div
-                    className="h-32 w-32 rounded-full border-4 border-muted bg-muted"
-                    style={{
-                      background: `conic-gradient(hsl(var(--primary)) 0% ${brazilPct ?? 0}%, hsl(var(--muted)) ${brazilPct ?? 0}% 100%)`,
-                    }}
+                    className="gauge-conic-primary h-32 w-32 rounded-full border-4 border-muted bg-muted"
+                    style={{ ["--gauge-pct"]: `${brazilPct ?? 0}%` } as CSSProperties}
                     aria-hidden
                   />
                   <p className="text-center text-lg font-semibold tabular-nums">
@@ -207,8 +206,8 @@ function Initiatives() {
                   {solutions.slice(0, 6).map((s) => (
                     <div key={s.payment_solution} className="flex items-center gap-2">
                       <div
-                        className="h-6 min-w-[4px] rounded bg-primary"
-                        style={{ width: `${Math.max(4, (s.transaction_count / maxSolutionCount) * 100)}%` }}
+                        className="bar-fill-width h-6 min-w-[4px] rounded bg-primary"
+                        style={{ ["--bar-width-pct"]: `${Math.max(4, (s.transaction_count / maxSolutionCount) * 100)}%` } as CSSProperties}
                         aria-hidden
                       />
                       <span className="w-24 shrink-0 truncate text-xs" title={s.payment_solution}>

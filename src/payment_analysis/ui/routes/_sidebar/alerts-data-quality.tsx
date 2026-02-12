@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { CSSProperties } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -86,10 +87,8 @@ function AlertsDataQuality() {
               <>
                 <div className="mb-4 flex items-center gap-3">
                   <div
-                    className="h-16 w-16 rounded-full border-2 border-[var(--neon-cyan)]/50 flex items-center justify-center text-xl font-bold tabular-nums text-[var(--neon-cyan)]"
-                    style={{
-                      background: `conic-gradient(var(--neon-cyan) 0% ${dqScore ?? 0}%, hsl(var(--muted)) ${dqScore ?? 0}% 100%)`,
-                    }}
+                    className="gauge-conic-cyan h-16 w-16 rounded-full border-2 border-[var(--neon-cyan)]/50 flex items-center justify-center text-xl font-bold tabular-nums text-neon-cyan"
+                    style={{ ["--gauge-pct"]: `${dqScore ?? 0}%` } as CSSProperties}
                   >
                     <span className="bg-card rounded-full h-12 w-12 flex items-center justify-center text-sm">
                       {dqScore != null ? `${dqScore}%` : "—"}
