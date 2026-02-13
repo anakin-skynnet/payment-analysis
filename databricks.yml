@@ -135,6 +135,8 @@ sync:
     - tsconfig.json
     - vite.config.ts
     - components.json
+    - package.json    # Prevents Apps runtime from running npm install (UI is pre-built)
+    - bun.lock        # Frontend lockfile — not needed in deployed workspace
 
 # Build artifact for app deployment (served at /)
 artifacts:
