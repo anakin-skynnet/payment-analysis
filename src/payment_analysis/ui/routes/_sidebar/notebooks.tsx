@@ -53,7 +53,9 @@ export function Component() {
   const handleNotebookClick = async (notebookId: string) => {
     try {
       const { data } = await getNotebookUrl({ notebook_id: notebookId });
-      openInDatabricks(data.url);
+      if (data?.url) {
+        openInDatabricks(data.url);
+      }
     } catch (error) {
       console.error("Failed to open notebook:", error);
     }

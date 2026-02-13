@@ -221,7 +221,7 @@ function ReasonCodes() {
                     Action: {r.recommended_action}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Est. recoverable: {r.estimated_recoverable_declines} declines · ${r.estimated_recoverable_value.toFixed(2)}
+                    Est. recoverable: {r.estimated_recoverable_declines} declines · ${(r.estimated_recoverable_value ?? 0).toFixed(2)}
                   </p>
                   <div className="flex justify-end">
                     <Badge variant="secondary">{r.decline_count} declines</Badge>

@@ -57,7 +57,7 @@ export function Component() {
   });
 
   const { data: embedUrlData, isLoading: embedLoading, isError: embedError } = useGetDashboardUrl({
-    params: { dashboard_id: embedId!, embed: true },
+    params: { dashboard_id: embedId ?? "", embed: true },
     query: { enabled: !!embedId },
   });
 
@@ -71,8 +71,10 @@ export function Component() {
 
   const handleDashboardClick = (dashboard: Dashboard) => {
     if (dashboard.url_path) {
-      const databricksUrl = `${getWorkspaceUrl()}${dashboard.url_path}`;
-      window.open(databricksUrl, "_blank", "noopener,noreferrer");
+      const base = getWorkspaceUrl();
+      if (base) {
+        window.open(`${base}${dashboard.url_path}`, "_blank", "noopener,noreferrer");
+      }
     }
   };
 
