@@ -17,7 +17,7 @@ router = APIRouter(tags=["experiments"])
 
 class ExperimentIn(BaseModel):
     name: str = Field(min_length=1)
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class AssignIn(BaseModel):
