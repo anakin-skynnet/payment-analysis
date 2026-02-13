@@ -419,14 +419,32 @@ async def chat(
             reply = _extract_genie_reply(msg)
             if reply:
                 return ChatOut(reply=reply, genie_url=genie_url)
-        except Exception:
-            logger.debug("Genie space query failed; falling back to orchestrator", exc_info=True)
+            # Genie returned an empty reply (e.g. query succeeded but no text attachment).
+            # Fall through to provide a helpful message with the Genie link.
+            logger.info("Genie returned empty reply for space %s; showing fallback.", space_id)
+        except Exception as exc:
+            logger.warning(
+                "Genie space query failed (space_id=%s): %s",
+                space_id,
+                exc,
+                exc_info=True,
+            )
 
-    reply = (
-        "I can help you explore payment and approval data. For natural language questions "
-        "(e.g. top merchants by approval rate, decline reasons, trends), open Genie in your "
-        "workspace to run queries against your Databricks tables and dashboards."
-    )
+    # Provide a helpful static reply. When Genie is configured but failed,
+    # include context so the user knows Genie is available in the workspace.
+    if space_id:
+        reply = (
+            "I can help you explore payment and approval data. "
+            "The Genie space is configured but the live query could not complete right now. "
+            "You can open Genie directly in your Databricks workspace for natural language "
+            "questions (e.g. top merchants by approval rate, decline reasons, trends)."
+        )
+    else:
+        reply = (
+            "I can help you explore payment and approval data. For natural language questions "
+            "(e.g. top merchants by approval rate, decline reasons, trends), open Genie in your "
+            "workspace to run queries against your Databricks tables and dashboards."
+        )
     return ChatOut(reply=reply, genie_url=genie_url)
 
 
@@ -452,31 +470,82 @@ def _orchestrator_job_id() -> str:
 
 
 def _query_orchestrator_endpoint(ws: WorkspaceClient, endpoint_name: str, user_message: str) -> tuple[str, list[str]]:
-    """Call the orchestrator Model Serving endpoint (AgentBricks/Supervisor). Returns (reply, agents_used)."""
-    # LangChain/LangGraph chat format: messages list
-    payload = {"messages": [{"type": "human", "content": user_message}]}
+    """Call the orchestrator Model Serving endpoint (AgentBricks/Supervisor). Returns (reply, agents_used).
+
+    Tries the standard OpenAI-chat ``inputs`` format first (MLflow ResponsesAgent / LangGraph),
+    then falls back to ``dataframe_records`` (legacy). Parses reply from ``predictions`` or
+    ``choices`` depending on which format was used.
+    """
+    reply = ""
+    agents_used: list[str] = []
+
+    # --- Attempt 1: ``inputs`` with OpenAI-style messages (MLflow 3.x / ResponsesAgent / LangGraph) ---
+    try:
+        response = ws.serving_endpoints.query(
+            name=endpoint_name,
+            inputs={"messages": [{"role": "user", "content": user_message}]},
+        )
+        reply, agents_used = _parse_orchestrator_response(response)
+        if reply:
+            return reply, agents_used
+    except Exception as e:
+        logger.debug("Orchestrator inputs query attempt failed: %s", e)
+
+    # --- Attempt 2: ``messages`` param (chat-completion style) ---
+    try:
+        from databricks.sdk.service.serving import ChatMessage, ChatMessageRole
+
+        response = ws.serving_endpoints.query(
+            name=endpoint_name,
+            messages=[ChatMessage(role=ChatMessageRole.USER, content=user_message)],
+        )
+        # Chat-completion style: response.choices
+        choices = getattr(response, "choices", None) or []
+        if choices:
+            msg = choices[0]
+            msg_obj = getattr(msg, "message", msg)
+            reply = (getattr(msg_obj, "content", "") or "").strip()
+            if reply:
+                return reply, agents_used
+        # Also check predictions (some endpoints return here)
+        reply, agents_used = _parse_orchestrator_response(response)
+        if reply:
+            return reply, agents_used
+    except Exception as e:
+        logger.debug("Orchestrator messages query attempt failed: %s", e)
+
+    # --- Attempt 3: ``dataframe_records`` legacy (LangChain format) ---
+    payload = {"messages": [{"role": "user", "content": user_message}]}
     response = ws.serving_endpoints.query(
         name=endpoint_name,
         dataframe_records=[payload],
     )
+    reply, agents_used = _parse_orchestrator_response(response)
+    return reply or "No response from orchestrator endpoint.", agents_used
+
+
+def _parse_orchestrator_response(response: Any) -> tuple[str, list[str]]:
+    """Extract reply text and agents_used from a Model Serving query response."""
     reply = ""
     agents_used: list[str] = []
-    if response.predictions:
-        pred = response.predictions[0]
-        if isinstance(pred, dict):
-            # Optional: messages list with last message content
-            msgs = pred.get("messages") or pred.get("output") or pred.get("outputs")
-            if isinstance(msgs, list) and msgs:
-                last = msgs[-1]
-                if isinstance(last, dict):
-                    reply = (last.get("content") or last.get("text") or "").strip()
-            if not reply:
-                reply = (pred.get("content") or pred.get("text") or pred.get("synthesis") or "").strip()
-            raw_agents = pred.get("agents_used")
-            agents_used = list(raw_agents) if isinstance(raw_agents, (list, tuple)) else []
-        elif isinstance(pred, str):
-            reply = pred.strip()
-    return reply or "No response from orchestrator endpoint.", agents_used
+    predictions = getattr(response, "predictions", None)
+    if not predictions:
+        return reply, agents_used
+    pred = predictions[0]
+    if isinstance(pred, dict):
+        # Messages list with last message content
+        msgs = pred.get("messages") or pred.get("output") or pred.get("outputs")
+        if isinstance(msgs, list) and msgs:
+            last = msgs[-1]
+            if isinstance(last, dict):
+                reply = (last.get("content") or last.get("text") or "").strip()
+        if not reply:
+            reply = (pred.get("content") or pred.get("text") or pred.get("synthesis") or "").strip()
+        raw_agents = pred.get("agents_used")
+        agents_used = list(raw_agents) if isinstance(raw_agents, (list, tuple)) else []
+    elif isinstance(pred, str):
+        reply = pred.strip()
+    return reply, agents_used
 
 
 @router.post("/orchestrator/chat", response_model=OrchestratorChatOut, operation_id="postOrchestratorChat")
@@ -497,10 +566,10 @@ async def orchestrator_chat(
             return OrchestratorChatOut(reply=reply, run_page_url=None, agents_used=agents_used)
         except Exception as e:
             logger.warning(
-                "Orchestrator serving endpoint %s failed, falling back to Job 6: %s",
+                "Orchestrator serving endpoint '%s' failed, falling back to Job 6: %s",
                 endpoint_name,
                 e,
-                exc_info=False,
+                exc_info=True,
             )
 
     job_id_str = _orchestrator_job_id().strip()

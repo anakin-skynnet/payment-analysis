@@ -25,7 +25,7 @@ from sqlmodel import select
 from ..config import DEFAULT_ENTITY
 from ..db_models import AuthorizationEvent, DecisionLog
 from ..decisioning.schemas import KPIOut
-from ..dependencies import RuntimeDep, SessionDep, DatabricksServiceDep
+from ..dependencies import RuntimeDep, SessionDep, OptionalSessionDep, DatabricksServiceDep
 from ..lakebase_config import get_countries_from_lakebase, get_online_features_from_lakebase, write_app_settings_keys
 
 router = APIRouter(tags=["analytics"])
@@ -403,7 +403,7 @@ async def list_models(
 
 
 @router.get("/kpis", response_model=KPIOut, operation_id="getKpis")
-async def kpis(session: SessionDep, service: DatabricksServiceDep) -> KPIOut:
+async def kpis(session: OptionalSessionDep, service: DatabricksServiceDep) -> KPIOut:
     """Get KPIs: from Databricks Unity Catalog when available, otherwise from local database."""
     if service.is_available:
         try:
@@ -422,6 +422,8 @@ async def kpis(session: SessionDep, service: DatabricksServiceDep) -> KPIOut:
             return KPIOut(total=total, approved=approved, approval_rate=approval_rate)
         except Exception:
             logger.debug("UC view KPI query unavailable; falling back to local DB", exc_info=True)
+    if session is None:
+        return KPIOut(total=0, approved=0, approval_rate=0.0)
     total = session.exec(select(func.count(AuthorizationEvent.id))).one() or 0
     approved = (
         session.exec(
@@ -441,7 +443,7 @@ async def kpis(session: SessionDep, service: DatabricksServiceDep) -> KPIOut:
     operation_id="getMetrics",
 )
 async def metrics(
-    session: SessionDep,
+    session: OptionalSessionDep,
     service: DatabricksServiceDep,
     country_filter: str = Query(DEFAULT_ENTITY, alias="country", description="Country/entity filter (e.g. BR)."),
 ) -> KPIOut:
@@ -858,7 +860,7 @@ def recent_decisions(
     operation_id="declineSummary",
 )
 async def decline_summary(
-    session: SessionDep,
+    session: OptionalSessionDep,
     service: DatabricksServiceDep,
     limit: int = 20,
 ) -> list[DeclineBucketOut]:
@@ -878,6 +880,8 @@ async def decline_summary(
             ]
         except Exception:
             logger.debug("UC view recommendations unavailable; falling back to local DB", exc_info=True)
+    if session is None:
+        return []
     limit = max(1, min(limit, 100))
     stmt = (
         select(

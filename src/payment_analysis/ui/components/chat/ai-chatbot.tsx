@@ -3,30 +3,49 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { postOrchestratorChat } from "@/lib/api";
+import { postOrchestratorChat, postChat } from "@/lib/api";
+import { getGenieUrl, openInDatabricks } from "@/config/workspace";
 import { Bot, X } from "lucide-react";
 
 export interface AIChatbotMessage {
   role: "user" | "assistant";
   content: string;
   runPageUrl?: string | null;
+  genieUrl?: string | null;
   agentsUsed?: string[];
 }
 
 const TITLE = "AI Chat";
 const PLACEHOLDER = "Ask orchestrator agents: recommendations, semantic search, approval analysis…";
 
-/** Uses backend POST /api/agents/orchestrator/chat (orchestrator agents – recommendations, semantic search). */
-async function sendToOrchestrator(message: string) {
-  const { data } = await postOrchestratorChat(
-    { message: message.trim() },
-    { credentials: "include" }
-  );
-  return {
-    reply: data.reply ?? "",
-    run_page_url: data.run_page_url ?? null,
-    agents_used: data.agents_used ?? [],
-  };
+/**
+ * AI Chat backend flow:
+ * 1. Try POST /api/agents/orchestrator/chat (Model Serving orchestrator / Job 6).
+ * 2. If that fails, fall back to POST /api/agents/chat (Genie / static reply).
+ */
+async function sendToOrchestrator(message: string): Promise<{
+  reply: string;
+  run_page_url?: string | null;
+  genie_url?: string | null;
+  agents_used?: string[];
+}> {
+  const body = { message: message.trim() };
+  const opts = { credentials: "include" as RequestCredentials };
+  try {
+    const { data } = await postOrchestratorChat(body, opts);
+    return {
+      reply: data.reply ?? "",
+      run_page_url: data.run_page_url ?? null,
+      agents_used: data.agents_used ?? [],
+    };
+  } catch {
+    // Orchestrator unavailable – fall back to Genie / chat
+    const { data } = await postChat(body, opts);
+    return {
+      reply: data.reply ?? "",
+      genie_url: data.genie_url ?? null,
+    };
+  }
 }
 
 export interface AIChatbotProps {
@@ -70,18 +89,19 @@ export function AIChatbot({
           role: "assistant",
           content: out.reply,
           runPageUrl: out.run_page_url ?? undefined,
+          genieUrl: out.genie_url ?? undefined,
           agentsUsed: out.agents_used,
         },
       ]);
       setTimeout(scrollToBottom, 50);
     } catch (e) {
-      const err = e instanceof Error ? e.message : "Orchestrator unavailable.";
+      const err = e instanceof Error ? e.message : "AI agents unavailable right now.";
       setError(err);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: `${err} Deploy Job 6 (Deploy Agents) or use Genie Assistant for data questions.`,
+          content: `Sorry, I couldn't process that. ${err}`,
         },
       ]);
     } finally {
@@ -98,6 +118,10 @@ export function AIChatbot({
     },
     [submit]
   );
+
+  const openGenieInWorkspace = useCallback(() => {
+    openInDatabricks(getGenieUrl());
+  }, []);
 
   if (!open) return null;
 
@@ -159,16 +183,31 @@ export function AIChatbot({
               )}
             >
               <p className="whitespace-pre-wrap">{m.content}</p>
-              {m.role === "assistant" && m.runPageUrl && (
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  className="mt-2 h-auto p-0 text-primary underline"
-                  onClick={() => window.open(m.runPageUrl!, "_blank", "noopener,noreferrer")}
-                >
-                  View run in Databricks
-                </Button>
+              {m.role === "assistant" && (m.runPageUrl || m.genieUrl) && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {m.runPageUrl && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-primary underline"
+                      onClick={() => window.open(m.runPageUrl!, "_blank", "noopener,noreferrer")}
+                    >
+                      View run in Databricks
+                    </Button>
+                  )}
+                  {m.genieUrl && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-primary underline"
+                      onClick={openGenieInWorkspace}
+                    >
+                      Open in Genie
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
             {m.role === "user" && <span className="h-6 w-6 shrink-0" />}

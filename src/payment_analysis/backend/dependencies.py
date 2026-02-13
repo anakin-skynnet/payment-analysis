@@ -213,21 +213,54 @@ def get_workspace_client_optional(request: Request) -> WorkspaceClient | None:
 
 def get_session(rt: RuntimeDep) -> Generator[Session, None, None]:
     """
-    Returns a SQLModel session. Raises 503 if database is not configured (set LAKEBASE_PROJECT_ID, LAKEBASE_BRANCH_ID, LAKEBASE_ENDPOINT_ID in app Environment).
+    Returns a SQLModel session. Raises 503 if database is not configured or unavailable.
     """
     try:
         with rt.get_session() as session:
             yield session
-    except RuntimeError as e:
+    except HTTPException:
+        raise
+    except (RuntimeError, ValueError) as e:
         if "not configured" in str(e).lower():
             raise HTTPException(
                 status_code=503,
                 detail="Database not configured. Set LAKEBASE_PROJECT_ID, LAKEBASE_BRANCH_ID, LAKEBASE_ENDPOINT_ID in the app Environment (same as Job 1 create_lakebase_autoscaling).",
             ) from e
-        raise
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database unavailable: {e}",
+        ) from e
+    except ConnectionError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database connection failed: {e}",
+        ) from e
+    except Exception as e:
+        # Catch-all for psycopg, sqlalchemy, and other DB driver errors
+        logger.warning("Database session error: %s", e, exc_info=False)
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database temporarily unavailable: {type(e).__name__}",
+        ) from e
 
 
 SessionDep = Annotated[Session, Depends(get_session)]
+
+
+def get_session_optional(rt: RuntimeDep) -> Generator[Session | None, None, None]:
+    """
+    Returns a SQLModel session when available; ``None`` when the database is
+    down or not configured. Use for routes that have a Databricks/Lakehouse
+    fallback and don't strictly need Lakebase.
+    """
+    try:
+        with rt.get_session() as session:
+            yield session
+    except Exception:
+        yield None
+
+
+OptionalSessionDep = Annotated[Session | None, Depends(get_session_optional)]
 
 
 def _effective_databricks_host(request: Request, bootstrap_host: str | None) -> str | None:
