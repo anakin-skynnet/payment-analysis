@@ -38,6 +38,8 @@ ALERT_FRAUD_SCORE_WARNING = float(spark.conf.get("spark.payment.alert_fraud_scor
 ALERT_FRAUD_SCORE_CRITICAL = float(spark.conf.get("spark.payment.alert_fraud_score_critical", "0.7"))
 ALERT_LATENCY_WARNING = float(spark.conf.get("spark.payment.alert_latency_warning", "500"))
 
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## Bronze: Stream Input (CDC from simulator table)
 
