@@ -315,19 +315,15 @@ GROUP BY DATE_TRUNC('second', event_timestamp)
 ORDER BY event_second DESC
 LIMIT 3600;
 
--- View 14c: Real-time streaming volume per second (from silver; always includes current second for live widget)
--- Uses payments_enriched_silver so the view exists even when streaming/bronze is not set up.
+-- View 14c: Real-time streaming volume per second (from silver layer).
+-- Returns empty when no data is flowing (no synthetic sentinel rows).
 CREATE OR REPLACE VIEW v_streaming_volume_per_second AS
-SELECT event_second, records_per_second FROM (
-    SELECT
-        DATE_TRUNC('second', event_timestamp) AS event_second,
-        COUNT(*) AS records_per_second
-    FROM payments_enriched_silver
-    WHERE event_timestamp >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR
-    GROUP BY DATE_TRUNC('second', event_timestamp)
-    UNION ALL
-    SELECT DATE_TRUNC('second', CURRENT_TIMESTAMP()) AS event_second, CAST(0 AS BIGINT) AS records_per_second
-) AS t
+SELECT
+    DATE_TRUNC('second', event_timestamp) AS event_second,
+    COUNT(*) AS records_per_second
+FROM payments_enriched_silver
+WHERE event_timestamp >= CURRENT_TIMESTAMP() - INTERVAL 1 HOUR
+GROUP BY DATE_TRUNC('second', event_timestamp)
 ORDER BY event_second DESC
 LIMIT 3600;
 

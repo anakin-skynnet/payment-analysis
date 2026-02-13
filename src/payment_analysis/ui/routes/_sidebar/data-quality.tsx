@@ -23,7 +23,7 @@ import {
   useGetStreamingTps,
   type Incident,
 } from "@/lib/api";
-import { getDashboardUrl, openInDatabricks } from "@/config/workspace";
+import { getLakeviewDashboardUrl, openInDatabricks } from "@/config/workspace";
 import { openNotebookInDatabricks } from "@/lib/notebooks";
 import {
   AlertTriangle,
@@ -44,7 +44,7 @@ export const Route = createFileRoute("/_sidebar/data-quality")({
 });
 
 const REFRESH_MS = 5000;
-const MONITORING_DASHBOARD_PATH = "/sql/dashboards/realtime_monitoring";
+const MONITORING_DASHBOARD_NAME = "realtime_monitoring";
 
 function DataQualitySkeleton() {
   return (
@@ -65,7 +65,7 @@ function DataQualitySkeleton() {
 
 function IncidentRow({ inc }: { inc: Incident }) {
   const openInWorkspace = () => {
-    const url = getDashboardUrl(MONITORING_DASHBOARD_PATH);
+    const url = getLakeviewDashboardUrl(MONITORING_DASHBOARD_NAME);
     openInDatabricks(url);
   };
   return (
@@ -232,6 +232,10 @@ function DataQualityPage() {
           <CardContent>
             {dataQualityQ.isLoading ? (
               <Skeleton className="h-32 w-full" />
+            ) : !dataQuality || (dataQuality.bronze_last_24h === 0 && dataQuality.silver_last_24h === 0 && dqScore == null) ? (
+              <div className="flex h-32 items-center justify-center rounded-lg bg-muted/20 text-sm text-muted-foreground">
+                No data quality metrics yet. Run the streaming pipeline to populate.
+              </div>
             ) : (
               <>
                 <div className="mb-4 flex items-center gap-3">
@@ -280,7 +284,7 @@ function DataQualityPage() {
                   variant="outline"
                   size="sm"
                   className="mt-4"
-                  onClick={() => openInDatabricks(getDashboardUrl("/sql/dashboards/streaming_data_quality"))}
+                  onClick={() => openInDatabricks(getLakeviewDashboardUrl("streaming_data_quality"))}
                 >
                   Data Quality Dashboard
                   <ExternalLink className="h-3 w-3 ml-2" />
@@ -306,7 +310,7 @@ function DataQualityPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => openInDatabricks(getDashboardUrl(MONITORING_DASHBOARD_PATH))}
+                onClick={() => openInDatabricks(getLakeviewDashboardUrl(MONITORING_DASHBOARD_NAME))}
               >
                 Real-Time Monitoring
                 <ExternalLink className="h-3 w-3 ml-2" />

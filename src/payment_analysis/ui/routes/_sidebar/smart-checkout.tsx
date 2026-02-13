@@ -7,7 +7,7 @@ import {
   useGetThreeDsFunnel,
   useGetSmartCheckoutPathPerformance,
 } from "@/lib/api";
-import { getDashboardUrl, openInDatabricks } from "@/config/workspace";
+import { getLakeviewDashboardUrl, openInDatabricks } from "@/config/workspace";
 import { useEntity } from "@/contexts/entity-context";
 import { ExternalLink, Shield, CreditCard, Fingerprint, Key, Database } from "lucide-react";
 
@@ -103,6 +103,11 @@ function SmartCheckout() {
         <p className="text-sm text-muted-foreground mb-4">
           Controlled test 2025: friction, authentication success, and issuer approval post-auth.
         </p>
+        {funnel.length === 0 && (
+          <p className="text-sm text-muted-foreground mb-4">
+            No 3DS funnel data yet. Run the simulator and ETL pipeline to populate views.
+          </p>
+        )}
         <div className="grid gap-4 md:grid-cols-3">
           {[
             { label: "3DS friction rate", value: latest?.three_ds_friction_rate_pct, suffix: "%" },
@@ -112,10 +117,10 @@ function SmartCheckout() {
             <Card
               key={label}
               className="cursor-pointer border-border/80 hover:border-primary/40 hover:shadow-md transition-all"
-              onClick={() => openInDatabricks(getDashboardUrl("/sql/dashboards/authentication_security"))}
+              onClick={() => openInDatabricks(getLakeviewDashboardUrl("authentication_security"))}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => e.key === "Enter" && openInDatabricks(getDashboardUrl("/sql/dashboards/authentication_security"))}
+              onKeyDown={(e) => e.key === "Enter" && openInDatabricks(getLakeviewDashboardUrl("authentication_security"))}
             >
               <CardHeader>
                 <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
@@ -132,7 +137,7 @@ function SmartCheckout() {
           variant="outline"
           size="sm"
           className="mt-3 gap-2"
-          onClick={() => openInDatabricks(getDashboardUrl("/sql/dashboards/authentication_security"))}
+          onClick={() => openInDatabricks(getLakeviewDashboardUrl("authentication_security"))}
         >
           Open 3DS & authentication dashboard <ExternalLink className="h-3.5 w-3.5" />
         </Button>
@@ -182,7 +187,7 @@ function SmartCheckout() {
           variant="outline"
           size="sm"
           className="mt-3 gap-2"
-          onClick={() => openInDatabricks(getDashboardUrl("/sql/dashboards/routing_optimization"))}
+          onClick={() => openInDatabricks(getLakeviewDashboardUrl("routing_optimization"))}
         >
           Open routing dashboard <ExternalLink className="h-3.5 w-3.5" />
         </Button>

@@ -3,7 +3,6 @@ from functools import cached_property
 from urllib.parse import urlparse, urlunparse
 
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.errors import NotFound
 from sqlalchemy import Engine, create_engine, event
 from sqlmodel import SQLModel, Session, text
 
@@ -200,8 +199,6 @@ class Runtime:
         try:
             with self.get_session() as session:
                 session.connection().execute(text("SELECT 1"))
-                session.close()
-
         except Exception as db_err:
             err_msg = str(db_err).lower()
             if "password authentication failed" in err_msg:

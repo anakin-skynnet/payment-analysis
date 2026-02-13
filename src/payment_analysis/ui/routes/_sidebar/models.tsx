@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, Code2, Brain, TrendingUp, Shield, Waypoints, RotateCcw, AlertCircle } from "lucide-react";
-import { getMLflowUrl, getWorkspaceUrl, openInDatabricks } from "@/config/workspace";
+import { getMLflowUrl, getWorkspaceUrl, openInDatabricks, getLakeviewDashboardUrl } from "@/config/workspace";
 import { DataSourceBadge } from "@/components/apx/data-source-badge";
 import { useGetModelsSuspense, type ModelOut } from "@/lib/api";
 import { useEntity } from "@/contexts/entity-context";
@@ -244,10 +244,10 @@ function Models() {
       {/* Combined business impact — click opens Financial Impact dashboard */}
       <Card
         className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => openInDatabricks(getWorkspaceUrl() ? `${getWorkspaceUrl()}/sql/dashboards/financial_impact` : undefined)}
+        onClick={() => openInDatabricks(getLakeviewDashboardUrl("financial_impact"))}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter") openInDatabricks(getWorkspaceUrl() ? `${getWorkspaceUrl()}/sql/dashboards/financial_impact` : undefined); }}
+        onKeyDown={(e) => { if (e.key === "Enter") openInDatabricks(getLakeviewDashboardUrl("financial_impact")); }}
       >
         <CardHeader>
           <CardTitle className="text-lg">Combined business impact</CardTitle>
@@ -257,11 +257,11 @@ function Models() {
         </CardHeader>
         <CardContent onClick={(e) => e.stopPropagation()}>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => openInDatabricks(getWorkspaceUrl() ? `${getWorkspaceUrl()}/sql/dashboards/financial_impact` : undefined)}>
+            <Button variant="outline" size="sm" onClick={() => openInDatabricks(getLakeviewDashboardUrl("financial_impact"))}>
               Financial Impact dashboard
               <ExternalLink className="w-3 h-3 ml-2" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => openInDatabricks(getWorkspaceUrl() ? `${getWorkspaceUrl()}/sql/dashboards/routing_optimization` : undefined)}>
+            <Button variant="outline" size="sm" onClick={() => openInDatabricks(getLakeviewDashboardUrl("routing_optimization"))}>
               Smart Routing dashboard
               <ExternalLink className="w-3 h-3 ml-2" />
             </Button>

@@ -11,21 +11,13 @@ import {
   useGetFalseInsightsMetric,
   useSubmitInsightFeedback,
 } from "@/lib/api";
-import { getDashboardUrl, openInDatabricks } from "@/config/workspace";
+import { getLakeviewDashboardUrl, openInDatabricks } from "@/config/workspace";
 import { useEntity } from "@/contexts/entity-context";
 import { ExternalLink, CheckCircle2, AlertTriangle, Target } from "lucide-react";
 
 export const Route = createFileRoute("/_sidebar/reason-codes")({
   component: () => <ReasonCodes />,
 });
-
-/** Fallback sample when backend has no entry system data yet (Databricks/Lakehouse). */
-const ENTRY_DISTRIBUTION_FALLBACK = [
-  { system: "PD (Digital Platform)", pct: "~62%", desc: "Monthly volume" },
-  { system: "WS (WebService)", pct: "~34%", desc: "Monthly volume" },
-  { system: "SEP", pct: "~3%", desc: "Single Entry Point" },
-  { system: "Checkout", pct: "~1%", desc: "Monthly volume" },
-] as const;
 
 const INTELLIGENCE_OUTCOMES = [
   "Consolidate declines across Checkout, PD, WS, SEP into one view",
@@ -113,22 +105,11 @@ function ReasonCodes() {
           </CardContent>
         </Card>
         {!entryQ.isLoading && !entryQ.isError && entryRows.length === 0 && (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-4">
-            <p className="text-xs text-muted-foreground col-span-full">Sample distribution (for reference until data is available):</p>
-            {ENTRY_DISTRIBUTION_FALLBACK.map((e) => (
-              <Card key={e.system} className="border-border/80">
-                <CardHeader className="pb-1">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">{e.system}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xl font-semibold tabular-nums">{e.pct}</p>
-                  <p className="text-xs text-muted-foreground">{e.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            No entry system data yet. Run the streaming pipeline and gold views to populate.
+          </p>
         )}
-        <Button variant="outline" size="sm" className="mt-3 gap-2" onClick={() => openInDatabricks(getDashboardUrl("/sql/dashboards/decline_analysis"))}>
+        <Button variant="outline" size="sm" className="mt-3 gap-2" onClick={() => openInDatabricks(getLakeviewDashboardUrl("decline_analysis"))}>
           Open decline analysis dashboard <ExternalLink className="h-3.5 w-3.5" />
         </Button>
       </section>

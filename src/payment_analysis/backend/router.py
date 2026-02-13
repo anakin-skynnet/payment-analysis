@@ -13,7 +13,6 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.iam import User as UserOut
 from fastapi import APIRouter, Depends, Request
 
-from .config import ensure_absolute_workspace_url
 from .dependencies import ConfigDep, EffectiveWorkspaceUrlDep, get_workspace_client
 from .models import AuthStatusOut, VersionOut, WorkspaceConfigOut
 from .routes.agents import router as agents_router
@@ -30,7 +29,7 @@ from .routes.v1 import router as v1_router
 
 try:
     from .._metadata import api_prefix as _api_prefix
-except Exception:
+except (ImportError, ModuleNotFoundError):
     _api_prefix = "/api"
 
 api = APIRouter(prefix=_api_prefix)
@@ -51,7 +50,7 @@ api.include_router(v1_router, prefix="/v1")
 
 
 @api.get("/version", response_model=VersionOut, operation_id="version")
-async def version():
+def version() -> VersionOut:
     return VersionOut.from_metadata()
 
 

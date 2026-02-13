@@ -8,7 +8,7 @@ import logging
 
 try:
     from .._metadata import app_name
-except Exception:
+except ImportError:
     app_name = "payment-analysis"
 
-logger = logging.getLogger(app_name)
+logger: logging.Logger = logging.getLogger(app_name)

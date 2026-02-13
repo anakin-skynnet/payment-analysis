@@ -7,17 +7,18 @@ embedded in the FastAPI application.
 
 from __future__ import annotations
 
+import os
 from enum import Enum
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..config import (
-    REFERENCE_LAKEVIEW_DASHBOARD_ID_EXECUTIVE,
     REFERENCE_WORKSPACE_HOST,
     REFERENCE_WORKSPACE_ID,
     ensure_absolute_workspace_url,
+    workspace_id_from_workspace_url,
 )
 from ..dependencies import ConfigDep, EffectiveWorkspaceUrlDep
 
@@ -55,11 +56,34 @@ class DashboardList(BaseModel):
 
 
 # =============================================================================
-# Dashboard Registry (Databricks AI/BI Dashboards)
+# Dashboard Registry (Databricks AI/BI Lakeview Dashboards)
 # =============================================================================
 # Unified multi-visual dashboards for approval-rate analysis (see MERGE_GROUPS
 # in scripts/dashboards.py). Run "merge" then "prepare"; bundle deploys these three.
+#
+# Lakeview embed URL format:
+#   /dashboardsv3/<dashboard_id>/published?o=<workspace_id>
+# When opened via the app, ?embed=true is appended for iframe mode.
+#
+# Dashboard IDs: set via env (DASHBOARD_ID_*) or discovered at startup.
 # =============================================================================
+
+# Lakeview dashboard IDs — set in app env or default to the deployed IDs.
+_DASHBOARD_ID_DATA_QUALITY = os.getenv(
+    "DASHBOARD_ID_DATA_QUALITY", "01f108d27ecf161f8588c0466f1dc896"
+)
+_DASHBOARD_ID_ML_OPTIMIZATION = os.getenv(
+    "DASHBOARD_ID_ML_OPTIMIZATION", "01f108d27eba1d45a34c69272f561356"
+)
+_DASHBOARD_ID_EXECUTIVE_TRENDS = os.getenv(
+    "DASHBOARD_ID_EXECUTIVE_TRENDS", "01f108d27ecd166aa6e72a1149f132fe"
+)
+
+
+def _lakeview_url_path(dashboard_id: str) -> str:
+    """Lakeview published dashboard URL path (append ?embed=true for iframe)."""
+    return f"/dashboardsv3/{dashboard_id}/published"
+
 
 DASHBOARDS = [
     DashboardInfo(
@@ -68,7 +92,7 @@ DASHBOARDS = [
         description="Stream ingestion volume, data quality, real-time monitoring, active alerts, and global coverage by country. Single dashboard for data health and operational monitoring.",
         category=DashboardCategory.TECHNICAL,
         tags=["streaming", "ingestion", "data-quality", "realtime", "alerts", "countries", "geography"],
-        url_path="/sql/dashboards/data_quality_unified",
+        url_path=_lakeview_url_path(_DASHBOARD_ID_DATA_QUALITY),
     ),
     DashboardInfo(
         id="ml_optimization_unified",
@@ -76,7 +100,7 @@ DASHBOARDS = [
         description="Smart routing, decline analysis & recovery, fraud/risk, 3DS authentication, and financial impact. Predictions, smart retry impact, smart checkout behavior.",
         category=DashboardCategory.ANALYTICS,
         tags=["routing", "decline", "recovery", "fraud", "risk", "3ds", "smart-checkout", "smart-retry", "roi"],
-        url_path="/sql/dashboards/ml_optimization_unified",
+        url_path=_lakeview_url_path(_DASHBOARD_ID_ML_OPTIMIZATION),
     ),
     DashboardInfo(
         id="executive_trends_unified",
@@ -84,7 +108,7 @@ DASHBOARDS = [
         description="KPIs, approval rates, daily trends, merchant performance, and technical performance. For business users to analyze and understand approval rates.",
         category=DashboardCategory.EXECUTIVE,
         tags=["kpi", "approval-rate", "trends", "merchant", "performance", "executive"],
-        url_path="/sql/dashboards/executive_trends_unified",
+        url_path=_lakeview_url_path(_DASHBOARD_ID_EXECUTIVE_TRENDS),
     ),
 ]
 
@@ -197,32 +221,16 @@ async def get_dashboard(dashboard_id: str) -> DashboardInfo:
     )
 
 
-def _dashboard_url_path_and_full(
-    dashboard_id: str,
-    default_url_path: str,
-    config: Any,
-) -> tuple[str, str | None]:
-    """
-    Return (url_path, full_url) for a dashboard. When executive_trends_unified and a Lakeview
-    reference ID is configured (or workspace matches reference), use dashboardsv3 published URL.
-    Reference: https://adb-984752964297111.11.azuredatabricks.net/dashboardsv3/01efef6277e1146bb92982fc1364845d/published?o=984752964297111
-    """
-    lakeview_id = getattr(config.databricks, "lakeview_id_executive_overview", None) or (
-        REFERENCE_LAKEVIEW_DASHBOARD_ID_EXECUTIVE if dashboard_id == "executive_trends_unified" else None
-    )
-    raw_host = (config.databricks.workspace_url or "").strip().rstrip("/")
-    workspace_id = config.databricks.workspace_id
-    if not workspace_id and raw_host and REFERENCE_WORKSPACE_HOST.rstrip("/") == ensure_absolute_workspace_url(raw_host).rstrip("/"):
-        workspace_id = REFERENCE_WORKSPACE_ID
-    if dashboard_id == "executive_trends_unified" and lakeview_id:
-        path = f"/dashboardsv3/{lakeview_id}/published"
-        if workspace_id:
-            path = f"{path}?o={workspace_id}"
-        full = None
-        if raw_host and "example.databricks.com" not in raw_host:
-            full = ensure_absolute_workspace_url(raw_host).rstrip("/") + path
-        return path, full
-    return default_url_path, None
+def _resolve_workspace_id(config: Any) -> str:
+    """Workspace ID for ?o= query param. Tries config, then reference, then derives from host."""
+    wid = getattr(config.databricks, "workspace_id", None) or ""
+    if wid:
+        return wid
+    raw_host = (getattr(config.databricks, "workspace_url", "") or "").strip().rstrip("/")
+    if raw_host and REFERENCE_WORKSPACE_HOST.rstrip("/") == ensure_absolute_workspace_url(raw_host).rstrip("/"):
+        return REFERENCE_WORKSPACE_ID
+    # Derive from Azure host: adb-<workspace_id>.<region>.azuredatabricks.net
+    return workspace_id_from_workspace_url(raw_host) or ""
 
 
 @router.get("/{dashboard_id}/url", response_model=dict[str, Any], operation_id="getDashboardUrl")
@@ -233,37 +241,41 @@ async def get_dashboard_url(
     embed: bool = Query(False, description="Return embed-friendly URL"),
 ) -> dict[str, Any]:
     """
-    Get the Databricks URL for a specific dashboard.
-    Uses the effective workspace URL (from request when opened from Apps) so end users
-    get their own workspace, not a hardcoded host.
+    Get the Lakeview dashboard URL for embedding or opening in a new tab.
+    All dashboards use the /dashboardsv3/<id>/published format.
+    The ?o=<workspace_id> param is appended for context; &embed=true for iframe mode.
     """
     dashboard = await get_dashboard(dashboard_id)
-    default_path = dashboard.url_path or ""
-    base_url, _full_from_config = _dashboard_url_path_and_full(dashboard_id, default_path, config)
-    # Use effective workspace host (request-derived when app opened from Apps) so end users get their workspace
-    full_url = f"{workspace_host}{base_url}" if workspace_host else (_full_from_config or None)
+    base_path = dashboard.url_path or ""
+    workspace_id = _resolve_workspace_id(config)
+
+    # Build path with ?o=<workspace_id> for workspace context
+    if workspace_id and "?" not in base_path:
+        url_path = f"{base_path}?o={workspace_id}"
+    elif workspace_id:
+        url_path = f"{base_path}&o={workspace_id}"
+    else:
+        url_path = base_path
+
+    full_url = f"{workspace_host}{url_path}" if workspace_host else None
 
     if embed:
-        sep = "&" if "?" in base_url else "?"
-        embed_path = f"{base_url}{sep}embed=true"
-        full_embed_url = None
-        if full_url:
-            full_embed_url = f"{full_url}{sep}embed=true"
-        elif workspace_host:
-            full_embed_url = f"{workspace_host}{embed_path}"
+        sep = "&" if "?" in url_path else "?"
+        embed_path = f"{url_path}{sep}embed=true"
+        full_embed_url = f"{workspace_host}{embed_path}" if workspace_host else None
         return {
             "dashboard_id": dashboard_id,
-            "url": base_url,
+            "url": url_path,
             "full_url": full_url,
             "embed_url": embed_path,
             "full_embed_url": full_embed_url,
             "embed": True,
-            "instructions": "Use full_embed_url in an iframe when set; otherwise use workspace URL + embed_url",
+            "instructions": "Use full_embed_url in an iframe. Requires workspace admin to enable 'Allow embedding dashboards'.",
         }
 
     return {
         "dashboard_id": dashboard_id,
-        "url": base_url,
+        "url": url_path,
         "full_url": full_url,
         "embed": False,
     }

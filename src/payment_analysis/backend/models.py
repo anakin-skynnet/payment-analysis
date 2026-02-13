@@ -9,7 +9,7 @@ class VersionOut(BaseModel):
     version: str
 
     @classmethod
-    def from_metadata(cls):
+    def from_metadata(cls) -> "VersionOut":
         return cls(version=__version__)
 
 

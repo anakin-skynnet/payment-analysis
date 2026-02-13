@@ -21,7 +21,7 @@ export const MOCK_DASHBOARDS: DashboardInfo[] = [
     description: "Stream ingestion, data quality, real-time monitoring, alerts, and country coverage.",
     category: "technical" as DashboardCategory,
     tags: ["streaming", "data-quality", "countries", "risks"],
-    url_path: "/sql/dashboards/data_quality_unified",
+    url_path: "/dashboardsv3/01f108d27ecf161f8588c0466f1dc896/published",
   },
   {
     id: "ml_optimization_unified",
@@ -29,7 +29,7 @@ export const MOCK_DASHBOARDS: DashboardInfo[] = [
     description: "Predictions, behavior, smart retry impact, smart checkout, routing, decline, fraud, 3DS, financial impact.",
     category: "analytics" as DashboardCategory,
     tags: ["ml", "predictions", "routing", "decline", "fraud", "approval-rates"],
-    url_path: "/sql/dashboards/ml_optimization_unified",
+    url_path: "/dashboardsv3/01f108d27eba1d45a34c69272f561356/published",
   },
   {
     id: "executive_trends_unified",
@@ -37,6 +37,6 @@ export const MOCK_DASHBOARDS: DashboardInfo[] = [
     description: "KPIs, approval rates, trends, merchant performance, and latency for business analysis.",
     category: "executive" as DashboardCategory,
     tags: ["kpi", "overview", "executive", "approval-rates"],
-    url_path: "/sql/dashboards/executive_trends_unified",
+    url_path: "/dashboardsv3/01f108d27ecd166aa6e72a1149f132fe/published",
   },
 ];

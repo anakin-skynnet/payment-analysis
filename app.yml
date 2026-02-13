@@ -21,6 +21,10 @@ env:
     value: production
   - name: LAKEBASE_ENDPOINT_ID
     value: primary
+  # Genie space ID for natural language data queries (Genie Assistant floating dialog).
+  # When set, POST /api/agents/chat uses Databricks Genie Conversation API.
+  - name: GENIE_SPACE_ID
+    value: "01f10700a35c1756a892406b5bab0b67"
   # Use AgentBricks orchestrator for chat (Model Serving). Omit or set empty to use Job 6 (custom Python).
   - name: ORCHESTRATOR_SERVING_ENDPOINT
     value: payment-analysis-orchestrator

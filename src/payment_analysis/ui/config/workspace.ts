@@ -70,7 +70,51 @@ export function getWorkspacePath(path: string): string {
 }
 
 /**
+ * Lakeview dashboard IDs for the three unified dashboards.
+ * Must match backend (DASHBOARD_ID_* env vars in dashboards.py).
+ */
+export const LAKEVIEW_DASHBOARD_IDS: Record<string, string> = {
+  data_quality_unified: "01f108d27ecf161f8588c0466f1dc896",
+  ml_optimization_unified: "01f108d27eba1d45a34c69272f561356",
+  executive_trends_unified: "01f108d27ecd166aa6e72a1149f132fe",
+};
+
+/**
+ * Map legacy individual dashboard names to their unified Lakeview dashboard.
+ * After dashboard consolidation, all old individual dashboards are covered by
+ * one of the three unified ones.
+ */
+const LEGACY_TO_UNIFIED: Record<string, string> = {
+  // ML & Optimization — decline, fraud, routing, 3DS, financial impact
+  decline_analysis: "ml_optimization_unified",
+  financial_impact: "ml_optimization_unified",
+  routing_optimization: "ml_optimization_unified",
+  authentication_security: "ml_optimization_unified",
+  fraud_risk_analysis: "ml_optimization_unified",
+  merchant_performance: "ml_optimization_unified",
+  // Data & Quality — streaming, monitoring, data quality
+  realtime_monitoring: "data_quality_unified",
+  streaming_data_quality: "data_quality_unified",
+  daily_trends: "data_quality_unified",
+  // Executive
+  executive_overview: "executive_trends_unified",
+};
+
+/**
+ * Build a Lakeview published dashboard URL for the workspace.
+ * Accepts a unified dashboard ID (e.g. "ml_optimization_unified") or a legacy
+ * dashboard name (e.g. "decline_analysis") and resolves to the correct
+ * /dashboardsv3/<id>/published workspace path.
+ */
+export function getLakeviewDashboardUrl(dashboardName: string): string {
+  const unifiedKey = LEGACY_TO_UNIFIED[dashboardName] ?? dashboardName;
+  const lakeviewId = LAKEVIEW_DASHBOARD_IDS[unifiedKey] ?? dashboardName;
+  return getWorkspacePath(`/dashboardsv3/${lakeviewId}/published`);
+}
+
+/**
  * Construct a dashboard URL.
+ * @deprecated Use getLakeviewDashboardUrl() for Lakeview dashboard links.
  */
 export function getDashboardUrl(dashboardPath: string): string {
   return getWorkspacePath(dashboardPath);

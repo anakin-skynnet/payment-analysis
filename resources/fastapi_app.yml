@@ -27,16 +27,13 @@ resources:
       source_code_path: ${workspace.root_path}
       description: Payment Approval Optimization Platform – dashboards, rules, decisioning, ML models, and agent jobs.
       # User authorization scopes (Users must consent; required for OBO access). See Apps UI → Configure → User authorization.
+      # User authorization scopes — only include scopes supported by the workspace OAuth system.
+      # Invalid scopes cause "error while trying to authenticate" at login.
+      # See: https://docs.databricks.com/en/dev-tools/databricks-apps/auth.html
       user_api_scopes:
         - sql
-        - dashboards.genie
-        - files.files
         - serving.serving-endpoints
-        - vectorsearch.vector-search-indexes
-        - catalog.connections
-        - catalog.catalogs:read
-        - catalog.schemas:read
-        - catalog.tables:read
+        - dashboards.genie
       resources:
         # SQL warehouse — [dev] Payment Analysis Warehouse
         - name: sql-warehouse

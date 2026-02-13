@@ -27,7 +27,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Cell } from "recharts";
-import { getDashboardUrl, openInDatabricks } from "@/config/workspace";
+import { getLakeviewDashboardUrl, openInDatabricks } from "@/config/workspace";
 
 export const Route = createFileRoute("/_sidebar/smart-retry")({
   component: () => <SmartRetry />,
@@ -368,7 +368,7 @@ function SmartRetry() {
             </Suspense>
           </CardContent>
         </Card>
-        <Button variant="outline" size="sm" className="mt-3 gap-2" onClick={() => openInDatabricks(getDashboardUrl("/sql/dashboards/routing_optimization"))}>
+        <Button variant="outline" size="sm" className="mt-3 gap-2" onClick={() => openInDatabricks(getLakeviewDashboardUrl("routing_optimization"))}>
           Open routing dashboard <ExternalLink className="h-3.5 w-3.5" />
         </Button>
       </section>

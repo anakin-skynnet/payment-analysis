@@ -28,6 +28,7 @@ from .config import (
     workspace_url_from_apps_host,
 )
 from .databricks_client_helpers import workspace_client_pat_only, workspace_client_service_principal
+from .logger import logger
 from .runtime import Runtime
 from .services.databricks_service import DatabricksConfig, DatabricksService
 
@@ -84,8 +85,8 @@ def get_obo_ws(
             detail="Authentication required: X-Forwarded-Access-Token header is missing",
         )
     config = get_config(request)
-    raw = (config.databricks.workspace_url or "").strip().rstrip("/")
-    if not raw or raw == WORKSPACE_URL_PLACEHOLDER.rstrip("/"):
+    raw = _config_raw_host(config)
+    if not raw:
         raise HTTPException(status_code=503, detail="DATABRICKS_HOST is not set.")
     host = ensure_absolute_workspace_url(raw)
     return workspace_client_pat_only(host=host, token=token)
@@ -99,6 +100,14 @@ def _request_host_for_derivation(request: Request) -> str:
     return request.headers.get("host") or ""
 
 
+def _config_raw_host(config: AppConfig) -> str:
+    """Normalized workspace URL from config, empty string if placeholder or missing."""
+    raw = (config.databricks.workspace_url or "").strip().rstrip("/")
+    if not raw or raw == WORKSPACE_URL_PLACEHOLDER.rstrip("/"):
+        return ""
+    return raw
+
+
 def get_effective_workspace_url(request: Request, config: ConfigDep) -> str:
     """
     Workspace URL to use for dashboard embed and config. When the request is from a Databricks
@@ -110,8 +119,8 @@ def get_effective_workspace_url(request: Request, config: ConfigDep) -> str:
         derived = workspace_url_from_apps_host(request_host, app_name).strip().rstrip("/")
         if derived:
             return ensure_absolute_workspace_url(derived).rstrip("/")
-    raw = (config.databricks.workspace_url or "").strip().rstrip("/")
-    if not raw or raw == WORKSPACE_URL_PLACEHOLDER.rstrip("/"):
+    raw = _config_raw_host(config)
+    if not raw:
         return ""
     return ensure_absolute_workspace_url(raw).rstrip("/")
 
@@ -121,7 +130,7 @@ EffectiveWorkspaceUrlDep = Annotated[str, Depends(get_effective_workspace_url)]
 
 def _is_apps_host(host: str) -> bool:
     """True if host looks like a Databricks Apps URL (e.g. payment-analysis-xxx.databricksapps.com)."""
-    return bool(host and "databricksapps" in (host or "").lower())
+    return bool(host and "databricksapps" in host.lower())
 
 
 def _get_obo_token(request: Request) -> str | None:
@@ -131,9 +140,6 @@ def _get_obo_token(request: Request) -> str | None:
     v = request.headers.get("X-Forwarded-Access-Token") or request.headers.get("x-forwarded-access-token")
     if v and str(v).strip():
         return v.strip()
-    for name, value in request.headers.items():
-        if name.lower() == "x-forwarded-access-token" and value and str(value).strip():
-            return value.strip()
     # Fallback when request is clearly from Apps: Authorization: Bearer (some proxies inject user token here)
     host = _request_host_for_derivation(request)
     if _is_apps_host(host):
@@ -157,9 +163,9 @@ def get_workspace_client(request: Request) -> WorkspaceClient:
     """
     obo_token = _get_obo_token(request)
     config = get_config(request)
-    raw = (config.databricks.workspace_url or "").strip().rstrip("/")
-    if not raw or raw == WORKSPACE_URL_PLACEHOLDER.rstrip("/"):
-        raw = workspace_url_from_apps_host(_request_host_for_derivation(request), app_name).strip().rstrip("/")
+    raw = _config_raw_host(config) or workspace_url_from_apps_host(
+        _request_host_for_derivation(request), app_name
+    ).strip().rstrip("/")
     if not raw:
         raise HTTPException(
             status_code=503,
@@ -188,10 +194,9 @@ def get_workspace_client_optional(request: Request) -> WorkspaceClient | None:
     """
     obo_token = _get_obo_token(request)
     config = get_config(request)
-    raw = (config.databricks.workspace_url or "").strip().rstrip("/")
-    if not raw or raw == WORKSPACE_URL_PLACEHOLDER.rstrip("/"):
-        host_header = _request_host_for_derivation(request)
-        raw = workspace_url_from_apps_host(host_header, app_name).strip().rstrip("/")
+    raw = _config_raw_host(config) or workspace_url_from_apps_host(
+        _request_host_for_derivation(request), app_name
+    ).strip().rstrip("/")
     if not raw:
         return None
 
@@ -243,9 +248,9 @@ def get_workspace_client_app_identity(request: Request) -> WorkspaceClient | Non
     so the user token (X-Forwarded-Access-Token) is used when present.
     """
     config = get_config(request)
-    raw = (config.databricks.workspace_url or "").strip().rstrip("/")
-    if not raw or raw == WORKSPACE_URL_PLACEHOLDER.rstrip("/"):
-        raw = workspace_url_from_apps_host(_request_host_for_derivation(request), app_name).strip().rstrip("/")
+    raw = _config_raw_host(config) or workspace_url_from_apps_host(
+        _request_host_for_derivation(request), app_name
+    ).strip().rstrip("/")
     if not raw:
         return None
     client_id = os.environ.get("DATABRICKS_CLIENT_ID")
@@ -323,7 +328,7 @@ async def get_databricks_service(request: Request) -> DatabricksService:
                     request.app.state.uc_config_from_lakehouse = True
                     catalog, schema = row
             except Exception:
-                pass
+                logger.debug("Lazy UC config lookup failed; using env defaults", exc_info=True)
     # When no user token, use service principal (DATABRICKS_CLIENT_ID/SECRET from Apps) if set
     config = DatabricksConfig(
         host=effective_host,

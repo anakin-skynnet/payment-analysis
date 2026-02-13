@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 from sqlalchemy import Column, JSON
@@ -22,24 +22,24 @@ class AuthorizationEvent(SQLModel, table=True):
     For the scaffold, we keep it minimal but queryable for KPI dashboards.
     """
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=utcnow, index=True)
 
     merchant_id: str = Field(index=True)
     amount_minor: int
     currency: str = Field(index=True)
 
-    network: Optional[str] = Field(default=None, index=True)
-    card_bin: Optional[str] = Field(default=None, index=True)
-    issuer_country: Optional[str] = Field(default=None, index=True)
-    entry_mode: Optional[str] = Field(default=None, index=True)
+    network: str | None = Field(default=None, index=True)
+    card_bin: str | None = Field(default=None, index=True)
+    issuer_country: str | None = Field(default=None, index=True)
+    entry_mode: str | None = Field(default=None, index=True)
 
     # approved | declined
     result: str = Field(index=True)
 
     # raw decline (issuer/psp) + normalized taxonomy
-    decline_code_raw: Optional[str] = Field(default=None, index=True)
-    decline_reason: Optional[str] = Field(default=None, index=True)
+    decline_code_raw: str | None = Field(default=None, index=True)
+    decline_reason: str | None = Field(default=None, index=True)
 
     is_retry: bool = Field(default=False, index=True)
     attempt_number: int = Field(default=0, index=True)
@@ -50,7 +50,7 @@ class DecisionLog(SQLModel, table=True):
     Audit log of decisioning (auth, retry, routing, decline remediation).
     """
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=utcnow, index=True)
 
     audit_id: str = Field(default_factory=lambda: uuid4().hex, unique=True, index=True)
@@ -69,16 +69,16 @@ class Experiment(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow, index=True)
 
     name: str = Field(index=True)
-    description: Optional[str] = None
+    description: str | None = None
 
     # draft | running | paused | stopped
     status: str = Field(default="draft", index=True)
-    started_at: Optional[datetime] = None
-    ended_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
 
 
 class ExperimentAssignment(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=utcnow, index=True)
 
     experiment_id: str = Field(index=True, foreign_key="experiment.id")
@@ -104,12 +104,12 @@ class RemediationTask(SQLModel, table=True):
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     created_at: datetime = Field(default_factory=utcnow, index=True)
 
-    incident_id: Optional[str] = Field(default=None, index=True, foreign_key="incident.id")
+    incident_id: str | None = Field(default=None, index=True, foreign_key="incident.id")
     status: str = Field(default="open", index=True)  # open|in_progress|done|cancelled
 
     title: str
-    action: Optional[str] = None
-    owner: Optional[str] = None
+    action: str | None = None
+    owner: str | None = None
 
 
 class DecisionConfig(SQLModel, table=True):
@@ -122,7 +122,7 @@ class DecisionConfig(SQLModel, table=True):
 
     key: str = Field(primary_key=True)
     value: str
-    description: Optional[str] = None
+    description: str | None = None
     updated_at: datetime = Field(default_factory=utcnow)
 
 
@@ -168,15 +168,15 @@ class DecisionOutcome(SQLModel, table=True):
     This data feeds the learning loop for model retraining and rule tuning.
     """
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=utcnow, index=True)
 
     audit_id: str = Field(index=True)  # links to DecisionLog.audit_id
     decision_type: str = Field(index=True)  # authentication | retry | routing
     outcome: str = Field(index=True)  # approved | declined | timeout | error
-    outcome_code: Optional[str] = None  # raw issuer/psp code
-    outcome_reason: Optional[str] = None
-    latency_ms: Optional[int] = None
+    outcome_code: str | None = None  # raw issuer/psp code
+    outcome_reason: str | None = None
+    latency_ms: int | None = None
 
     extra: dict[str, Any] = Field(
         default_factory=dict, sa_column=Column(JSON, nullable=False)

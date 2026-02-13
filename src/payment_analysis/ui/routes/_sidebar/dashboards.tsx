@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BarChart3, Gauge, Award, Zap, ExternalLink, Code2, Activity, MessageSquareText, ArrowRight, LayoutGrid, ArrowLeft, AlertCircle } from "lucide-react";
-import { getWorkspaceUrl, getGenieUrl, openInDatabricks } from "@/config/workspace";
+import { getWorkspaceUrl, getGenieUrl, openInDatabricks, getLakeviewDashboardUrl } from "@/config/workspace";
 import { DataSourceBadge } from "@/components/apx/data-source-badge";
 import { PageHeader } from "@/components/layout";
 import { DashboardTable } from "@/components/dashboards";
@@ -163,8 +163,7 @@ export function Component() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const base = getWorkspaceUrl();
-                      const u = base ? `${base.replace(/\/+$/, "")}/sql/dashboards/${embedId}` : null;
+                      const u = getLakeviewDashboardUrl(embedId!);
                       if (u) window.open(u, "_blank", "noopener,noreferrer");
                     }}
                   >

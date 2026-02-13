@@ -48,7 +48,7 @@ import { useEntity } from "@/contexts/entity-context";
 import { useAssistant } from "@/contexts/assistant-context";
 import { PageHeader } from "@/components/apx/page-header";
 import { GeographyWorldMap } from "@/components/geography/geography-world-map";
-import { getDashboardUrl, getGenieUrl, openInDatabricks } from "@/config/workspace";
+import { getLakeviewDashboardUrl, getGenieUrl, openInDatabricks } from "@/config/workspace";
 import type { EntrySystemPoint, FrictionFunnelStep, RetryRecurrenceRow } from "@/lib/command-center-types";
 import {
   Activity,
@@ -102,7 +102,7 @@ function CommandCenterSkeleton() {
   );
 }
 
-/** Multi-line streaming chart: PD 62%, WS 34%, SEP 3%, Checkout 1% */
+/** Multi-line streaming chart: entry system throughput */
 function EntrySystemsChart({ points }: { points: EntrySystemPoint[] }) {
   const series = useMemo(() => {
     if (!points.length) return null;
@@ -247,7 +247,7 @@ function CommandCenter() {
 
   const { data: execUrlData } = useGetDashboardUrl({ params: { dashboard_id: "executive_trends_unified" } });
   const openExecutiveDashboard = () => {
-    const url = (execUrlData?.data as { full_url?: string } | undefined)?.full_url ?? getDashboardUrl("/sql/dashboards/executive_trends_unified");
+    const url = (execUrlData?.data as { full_url?: string } | undefined)?.full_url ?? getLakeviewDashboardUrl("executive_trends_unified");
     openInDatabricks(url);
   };
 
@@ -499,12 +499,14 @@ function CommandCenter() {
             </CardHeader>
             <CardContent className="p-4 pt-0">
               <EntrySystemsChart points={entryPoints} />
-              <div className="mt-2 flex flex-wrap gap-4 text-[10px]">
-                <span className="text-getnet-red">● PD 62%</span>
-                <span className="text-neon-cyan">● WS 34%</span>
-                <span className="text-vibrant-green">● SEP 3%</span>
-                <span className="text-muted-foreground">● Checkout 1%</span>
-              </div>
+              {entryPoints.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-4 text-[10px]">
+                  <span className="text-getnet-red">● PD</span>
+                  <span className="text-neon-cyan">● WS</span>
+                  <span className="text-vibrant-green">● SEP</span>
+                  <span className="text-muted-foreground">● Checkout</span>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card className="glass-card border border-border/80">
@@ -581,9 +583,9 @@ function CommandCenter() {
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Retention (24h)</span>
-                      <span className="font-medium tabular-nums kpi-number">{Math.round(dataQualityQ.data.data.retention_pct_24h)}%</span>
+                      <span className="font-medium tabular-nums kpi-number">{Math.round(dataQualityQ.data.data.retention_pct_24h ?? 0)}%</span>
                     </div>
-                    <Progress value={Math.min(100, dataQualityQ.data.data.retention_pct_24h)} className="h-2" />
+                    <Progress value={Math.min(100, dataQualityQ.data.data.retention_pct_24h ?? 0)} className="h-2" />
                   </div>
                 )}
                 <ul className="space-y-1.5 text-sm">

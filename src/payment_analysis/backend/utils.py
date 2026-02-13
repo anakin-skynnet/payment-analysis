@@ -15,7 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 try:
     from .._metadata import api_prefix as _api_prefix, dist_dir as _default_dist_dir
-except Exception:
+except (ImportError, ModuleNotFoundError):
     _api_prefix = "/api"
     _default_dist_dir = Path(__file__).resolve().parents[1] / "__dist__"
 

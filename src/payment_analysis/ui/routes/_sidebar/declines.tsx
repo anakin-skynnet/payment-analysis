@@ -30,7 +30,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Cell } from "recharts";
-import { getDashboardUrl, openInDatabricks } from "@/config/workspace";
+import { getLakeviewDashboardUrl, openInDatabricks } from "@/config/workspace";
 import { openNotebookInDatabricks } from "@/lib/notebooks";
 import { useEntity } from "@/contexts/entity-context";
 
@@ -39,7 +39,7 @@ export const Route = createFileRoute("/_sidebar/declines")({
 });
 
 const openDashboard = () => {
-  openInDatabricks(getDashboardUrl("/sql/dashboards/decline_analysis"));
+  openInDatabricks(getLakeviewDashboardUrl("decline_analysis"));
 };
 
 /** Refresh analytics from backend/Databricks every 15s for real-time feel. */

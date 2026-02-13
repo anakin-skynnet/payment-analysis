@@ -16,7 +16,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 try:
     from .._metadata import app_name, app_slug
-except Exception:
+except (ImportError, ModuleNotFoundError):
     # Safe defaults for local tooling / before APX generates metadata.
     app_name = "payment-analysis"
     app_slug = "payment_analysis"
@@ -31,7 +31,7 @@ if env_file.exists():
         from dotenv import load_dotenv
 
         load_dotenv(dotenv_path=env_file)
-    except Exception:
+    except ImportError:
         pass
 
 
@@ -91,7 +91,7 @@ def workspace_id_from_workspace_url(workspace_url: str) -> str | None:
     """
     if not workspace_url:
         return None
-    host = (workspace_url or "").strip().rstrip("/").lower()
+    host = workspace_url.strip().rstrip("/").lower()
     if "://" in host:
         host = host.split("://", 1)[1]
     host = host.split("/")[0].split(":")[0]

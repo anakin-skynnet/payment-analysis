@@ -1,14 +1,13 @@
 """Analytics API: KPIs, trends, reason codes, smart checkout, 3DS funnel, decline summary.
 
-All data is fetched from Databricks (Unity Catalog views via SQL Warehouse) when the
-connection is available. When Databricks is unavailable, endpoints return mock data
-or, for GET /kpis only, local DB counts. Validate with GET /api/v1/health/databricks.
+All data is fetched from Databricks (Unity Catalog views via SQL Warehouse).
+When Databricks is unavailable, endpoints return **empty results** (no synthetic
+fallback) so the UI shows proper "no data" states. GET /kpis and
+GET /declines/summary additionally fall back to the local SQLite database.
 
 **Data-source indicator:** Every analytics response includes an
 ``X-Data-Source: lakehouse`` or ``X-Data-Source: mock`` header so the frontend
-can display a "Using demo data" banner when real Lakehouse data is unavailable.
-
-See docs/GUIDE.md §10 (Data sources & code guidelines).
+can display a "no Databricks connection" banner when the Lakehouse is unavailable.
 """
 
 from __future__ import annotations
@@ -205,7 +204,7 @@ class GeographyOut(BaseModel):
 
 
 class ActiveAlertOut(BaseModel):
-    """Single active alert from v_active_alerts (Databricks) or mock."""
+    """Single active alert from v_active_alerts (Databricks)."""
     alert_type: str
     severity: str
     metric_name: str
@@ -690,7 +689,7 @@ async def command_center_entry_throughput(
     entity: str = Query(DEFAULT_ENTITY, description="Country/entity code (e.g. BR)."),
     limit_minutes: int = Query(30, ge=1, le=60, description="Time window in minutes"),
 ) -> list[CommandCenterEntryThroughputPointOut]:
-    """Real-time throughput by entry system (PD, WS, SEP, Checkout) for Command Center. Databricks first (from streaming TPS), then mock."""
+    """Real-time throughput by entry system (PD, WS, SEP, Checkout) for Command Center. Derived from streaming TPS with approximate entry-system shares."""
     data = await service.get_command_center_entry_throughput(entity=entity, limit_minutes=limit_minutes)
     return [
         CommandCenterEntryThroughputPointOut(ts=r["ts"], PD=r["PD"], WS=r["WS"], SEP=r["SEP"], Checkout=r["Checkout"])

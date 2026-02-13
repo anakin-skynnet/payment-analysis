@@ -26,13 +26,13 @@ from .utils import add_not_found_handler
 
 try:
     from .._metadata import app_name as _app_name, dist_dir as _dist_dir_meta
-except Exception:
+except (ImportError, ModuleNotFoundError):
     _app_name = "payment-analysis"
     _dist_dir_meta = Path(__file__).resolve().parents[1] / "__dist__"
 
 try:
     from .. import __version__ as _app_version
-except Exception:
+except (ImportError, ModuleNotFoundError):
     _app_version = "0.0.0"
 
 _APP_DESCRIPTION = (
