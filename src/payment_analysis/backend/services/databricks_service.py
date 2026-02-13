@@ -161,10 +161,16 @@ class DatabricksService:
     # =========================================================================
     # Query Execution
     # =========================================================================
-    
+
+    # Track whether the last query used mock data so callers/frontend can indicate it
+    _last_query_used_mock: bool = False
+
     async def execute_query(self, query: str) -> list[dict[str, Any]]:
         """
         Execute SQL query on SQL Warehouse.
+        
+        After calling, check ``self._last_query_used_mock`` to determine whether
+        the response came from real Lakehouse data or the demo mock generator.
         
         Args:
             query: SQL query string
@@ -174,10 +180,13 @@ class DatabricksService:
         """
         if not self.is_available:
             logger.warning("Databricks unavailable, returning mock data")
+            self._last_query_used_mock = True
             return self._get_mock_data_for_query(query)
         
         try:
-            return await self._execute_query_internal(query)
+            result = await self._execute_query_internal(query)
+            self._last_query_used_mock = False
+            return result
         except Exception as e:
             err_str = str(e).lower()
             if "invalid scope" in err_str or ("403" in err_str and "forbidden" in err_str):
@@ -188,6 +197,7 @@ class DatabricksService:
                 )
             else:
                 logger.error(f"Query execution failed: {e}")
+            self._last_query_used_mock = True
             return self._get_mock_data_for_query(query)
     
     async def _execute_query_internal(self, query: str) -> list[dict[str, Any]]:

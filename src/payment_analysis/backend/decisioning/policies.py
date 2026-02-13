@@ -151,6 +151,25 @@ def decide_retry(
             reason="[A/B treatment] Soft decline; allow retry with backoff.",
         )
 
+    # ML override: if model predicts high retry success, allow one retry
+    # Use ML-suggested delay when available; otherwise estimate from probability
+    ml_retry_prob = ctx.metadata.get("ml_retry_probability")
+    if ml_retry_prob is not None and float(ml_retry_prob) >= 0.65 and ctx.attempt_number < max_attempts:
+        ml_delay = ctx.metadata.get("ml_retry_delay_seconds")
+        if ml_delay is not None:
+            backoff = int(float(ml_delay))
+        else:
+            # Estimate backoff from probability: higher confidence -> shorter delay
+            prob = float(ml_retry_prob)
+            backoff = max(60, int(600 * (1 - prob)))  # 65% -> 210s, 90% -> 60s
+        return RetryDecisionOut(
+            audit_id=_audit_id(),
+            should_retry=True,
+            retry_after_seconds=backoff,
+            max_attempts=max_attempts,
+            reason=f"ML model predicts {float(ml_retry_prob):.0%} retry success; retry in {backoff}s.",
+        )
+
     return RetryDecisionOut(
         audit_id=_audit_id(),
         should_retry=False,

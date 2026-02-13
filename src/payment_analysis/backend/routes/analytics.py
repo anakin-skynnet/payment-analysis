@@ -3,6 +3,11 @@
 All data is fetched from Databricks (Unity Catalog views via SQL Warehouse) when the
 connection is available. When Databricks is unavailable, endpoints return mock data
 or, for GET /kpis only, local DB counts. Validate with GET /api/v1/health/databricks.
+
+**Data-source indicator:** Every analytics response includes an
+``X-Data-Source: lakehouse`` or ``X-Data-Source: mock`` header so the frontend
+can display a "Using demo data" banner when real Lakehouse data is unavailable.
+
 See docs/GUIDE.md §10 (Data sources & code guidelines).
 """
 
@@ -11,7 +16,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional, cast
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import desc, func
 
@@ -25,6 +30,12 @@ from ..dependencies import RuntimeDep, SessionDep, DatabricksServiceDep
 from ..lakebase_config import get_countries_from_lakebase, get_online_features_from_lakebase, write_app_settings_keys
 
 router = APIRouter(tags=["analytics"])
+
+
+def _set_data_source_header(response: Response, service: Any) -> None:
+    """Set X-Data-Source header based on whether the last query used mock data."""
+    is_mock = getattr(service, "_last_query_used_mock", False)
+    response.headers["X-Data-Source"] = "mock" if is_mock else "lakehouse"
 
 
 class ControlPanelIn(BaseModel):
@@ -464,24 +475,27 @@ async def control_panel(
 
 
 @router.get("/kpis/databricks", response_model=DatabricksKPIOut, operation_id="getDatabricksKpis")
-async def databricks_kpis(service: DatabricksServiceDep) -> DatabricksKPIOut:
+async def databricks_kpis(service: DatabricksServiceDep, response: Response) -> DatabricksKPIOut:
     """Get KPIs from Databricks Unity Catalog."""
     data = await service.get_kpis()
+    _set_data_source_header(response, service)
     return DatabricksKPIOut(**data)
 
 
 @router.get("/trends", response_model=list[ApprovalTrendOut], operation_id="getApprovalTrends")
-async def approval_trends(service: DatabricksServiceDep, seconds: int = 3600) -> list[ApprovalTrendOut]:
+async def approval_trends(service: DatabricksServiceDep, response: Response, seconds: int = 3600) -> list[ApprovalTrendOut]:
     """Get approval rate trends by second (real-time) from Databricks."""
     seconds = max(1, min(seconds, 3600))  # Limit to 1 hour of per-second data
     data = await service.get_approval_trends(seconds)
+    _set_data_source_header(response, service)
     return [ApprovalTrendOut(**row) for row in data]
 
 
 @router.get("/solutions", response_model=list[SolutionPerformanceOut], operation_id="getSolutionPerformance")
-async def solution_performance(service: DatabricksServiceDep) -> list[SolutionPerformanceOut]:
+async def solution_performance(service: DatabricksServiceDep, response: Response) -> list[SolutionPerformanceOut]:
     """Get payment solution performance from Databricks."""
     data = await service.get_solution_performance()
+    _set_data_source_header(response, service)
     return [SolutionPerformanceOut(**row) for row in data]
 
 

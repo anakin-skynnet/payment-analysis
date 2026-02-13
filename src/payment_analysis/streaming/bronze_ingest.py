@@ -30,6 +30,12 @@ from pyspark.sql.functions import (  # type: ignore[import-untyped]
         "pipelines.autoOptimize.managed": "true",
     },
 )
+@dlt.expect_all_or_drop({
+    "valid_transaction_id": "transaction_id IS NOT NULL AND transaction_id != ''",
+    "valid_amount": "amount IS NOT NULL AND amount > 0",
+    "valid_timestamp": "event_timestamp IS NOT NULL",
+    "valid_merchant": "merchant_id IS NOT NULL",
+})
 def payments_raw_bronze():
     """
     Ingest raw payment events from the simulator output table via CDF.

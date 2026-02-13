@@ -474,12 +474,17 @@ class DecisionEngine:
                 retry_prob = retry_result.get("retry_success_probability")
                 if retry_prob is not None:
                     enriched = ctx.model_copy()
-                    enriched.metadata = {
+                    retry_meta: dict[str, Any] = {
                         **enriched.metadata,
                         "ml_retry_probability": float(retry_prob),
                         "ml_should_retry": retry_result.get("should_retry", False),
                         "ml_model_version": retry_result.get("model_version", ""),
                     }
+                    # Capture ML-suggested delay when the model provides it
+                    ml_delay = retry_result.get("retry_delay_seconds") or retry_result.get("suggested_delay_s")
+                    if ml_delay is not None:
+                        retry_meta["ml_retry_delay_seconds"] = float(ml_delay)
+                    enriched.metadata = retry_meta
             except Exception as e:
                 logger.debug("ML retry enrichment failed (graceful): %s", e)
 

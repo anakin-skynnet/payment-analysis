@@ -3,65 +3,47 @@
     {
       "name": "m0_ds_exec_kpis",
       "displayName": "Executive KPIs",
-      "queryLines": [
-        "SELECT total_transactions, approved_count, declined_count, approval_rate_pct, avg_fraud_score, total_transaction_value, approved_value, declined_value, avg_transaction_amount, auth_3ds_usage_pct, period_start, period_end FROM __CATALOG__.__SCHEMA__.v_executive_kpis LIMIT 1"
-      ]
+      "query": "SELECT total_transactions, approved_count, declined_count, approval_rate_pct, avg_fraud_score, total_transaction_value, approved_value, declined_value, avg_transaction_amount, auth_3ds_usage_pct, period_start, period_end FROM __CATALOG__.__SCHEMA__.v_executive_kpis LIMIT 1"
     },
     {
       "name": "m0_ds_approval_trends",
       "displayName": "Approval Trends (Real-Time)",
-      "queryLines": [
-        "SELECT event_second, transaction_count, approved_count, approval_rate_pct, avg_fraud_score, total_value FROM __CATALOG__.__SCHEMA__.v_approval_trends_by_second ORDER BY event_second DESC"
-      ]
+      "query": "SELECT event_second, transaction_count, approved_count, approval_rate_pct, avg_fraud_score, total_value FROM __CATALOG__.__SCHEMA__.v_approval_trends_by_second ORDER BY event_second DESC"
     },
     {
       "name": "m0_ds_solution_perf",
       "displayName": "Solution Performance",
-      "queryLines": [
-        "SELECT payment_solution, transaction_count, approved_count, approval_rate_pct, avg_fraud_score, avg_amount, total_value, avg_latency_ms FROM __CATALOG__.__SCHEMA__.v_solution_performance ORDER BY transaction_count DESC"
-      ]
+      "query": "SELECT payment_solution, transaction_count, approved_count, approval_rate_pct, avg_fraud_score, avg_amount, total_value, avg_latency_ms FROM __CATALOG__.__SCHEMA__.v_solution_performance ORDER BY transaction_count DESC"
     },
     {
       "name": "m0_ds_geography",
       "displayName": "Performance by Geography",
-      "queryLines": [
-        "SELECT country, transaction_count, approval_rate_pct, avg_fraud_score, total_transaction_value, unique_merchants FROM __CATALOG__.__SCHEMA__.v_performance_by_geography ORDER BY transaction_count DESC LIMIT 50"
-      ]
+      "query": "SELECT country, transaction_count, approval_rate_pct, avg_fraud_score, total_transaction_value, unique_merchants FROM __CATALOG__.__SCHEMA__.v_performance_by_geography ORDER BY transaction_count DESC LIMIT 50"
     },
     {
       "name": "m1_ds_daily",
       "displayName": "Daily Trends",
-      "queryLines": [
-        "SELECT event_date, transactions, approval_rate, avg_fraud_score, total_value, dod_volume_change FROM __CATALOG__.__SCHEMA__.v_daily_trends ORDER BY event_date DESC LIMIT 90"
-      ]
+      "query": "SELECT event_date, transactions, approval_rate, avg_fraud_score, total_value, dod_volume_change FROM __CATALOG__.__SCHEMA__.v_daily_trends ORDER BY event_date DESC LIMIT 90"
     },
     {
       "name": "m1_ds_by_second",
       "displayName": "Real-Time Approval Trends (by second)",
-      "queryLines": [
-        "SELECT event_second, transaction_count, approved_count, approval_rate_pct, avg_fraud_score, total_value FROM __CATALOG__.__SCHEMA__.v_approval_trends_by_second ORDER BY event_second DESC"
-      ]
+      "query": "SELECT event_second, transaction_count, approved_count, approval_rate_pct, avg_fraud_score, total_value FROM __CATALOG__.__SCHEMA__.v_approval_trends_by_second ORDER BY event_second DESC"
     },
     {
       "name": "m2_ds_merchant_segment",
       "displayName": "Merchant Segment Performance",
-      "queryLines": [
-        "SELECT merchant_segment, transaction_count, approval_rate_pct, unique_merchants, avg_transaction_amount, total_value, avg_fraud_score, auth_3ds_usage_pct FROM __CATALOG__.__SCHEMA__.v_merchant_segment_performance ORDER BY transaction_count DESC"
-      ]
+      "query": "SELECT merchant_segment, transaction_count, approval_rate_pct, unique_merchants, avg_transaction_amount, total_value, avg_fraud_score, auth_3ds_usage_pct FROM __CATALOG__.__SCHEMA__.v_merchant_segment_performance ORDER BY transaction_count DESC"
     },
     {
       "name": "m3_ds_latency",
       "displayName": "Latency by Solution",
-      "queryLines": [
-        "SELECT payment_solution, avg_latency_ms, transaction_count, approval_rate_pct FROM __CATALOG__.__SCHEMA__.v_solution_performance ORDER BY transaction_count DESC"
-      ]
+      "query": "SELECT payment_solution, avg_latency_ms, transaction_count, approval_rate_pct FROM __CATALOG__.__SCHEMA__.v_solution_performance ORDER BY transaction_count DESC"
     },
     {
       "name": "m3_ds_network_latency",
       "displayName": "Latency by Card Network",
-      "queryLines": [
-        "SELECT card_network, avg_latency_ms, transaction_count FROM __CATALOG__.__SCHEMA__.v_card_network_performance ORDER BY transaction_count DESC"
-      ]
+      "query": "SELECT card_network, avg_latency_ms, transaction_count FROM __CATALOG__.__SCHEMA__.v_card_network_performance ORDER BY transaction_count DESC"
     }
   ],
   "pages": [
@@ -139,8 +121,8 @@
                   {
                     "name": "total_transactions",
                     "fieldName": "total_transactions",
-                    "displayName": "Total Transactions",
-                    "title": "Total Transactions",
+                    "displayName": "total_transactions",
+                    "title": "total_transactions",
                     "order": 0,
                     "visible": true,
                     "type": "string",
@@ -167,8 +149,8 @@
                   {
                     "name": "approved_count",
                     "fieldName": "approved_count",
-                    "displayName": "Approved Count",
-                    "title": "Approved Count",
+                    "displayName": "approved_count",
+                    "title": "approved_count",
                     "order": 1,
                     "visible": true,
                     "type": "string",
@@ -195,8 +177,8 @@
                   {
                     "name": "declined_count",
                     "fieldName": "declined_count",
-                    "displayName": "Declined Count",
-                    "title": "Declined Count",
+                    "displayName": "declined_count",
+                    "title": "declined_count",
                     "order": 2,
                     "visible": true,
                     "type": "string",
@@ -223,8 +205,8 @@
                   {
                     "name": "approval_rate_pct",
                     "fieldName": "approval_rate_pct",
-                    "displayName": "Approval Rate Pct",
-                    "title": "Approval Rate Pct",
+                    "displayName": "approval_rate_pct",
+                    "title": "approval_rate_pct",
                     "order": 3,
                     "visible": true,
                     "type": "string",
@@ -251,8 +233,8 @@
                   {
                     "name": "avg_fraud_score",
                     "fieldName": "avg_fraud_score",
-                    "displayName": "Avg Fraud Score",
-                    "title": "Avg Fraud Score",
+                    "displayName": "avg_fraud_score",
+                    "title": "avg_fraud_score",
                     "order": 4,
                     "visible": true,
                     "type": "string",
@@ -279,8 +261,8 @@
                   {
                     "name": "total_transaction_value",
                     "fieldName": "total_transaction_value",
-                    "displayName": "Total Transaction Value",
-                    "title": "Total Transaction Value",
+                    "displayName": "total_transaction_value",
+                    "title": "total_transaction_value",
                     "order": 5,
                     "visible": true,
                     "type": "string",
@@ -307,8 +289,8 @@
                   {
                     "name": "approved_value",
                     "fieldName": "approved_value",
-                    "displayName": "Approved Value",
-                    "title": "Approved Value",
+                    "displayName": "approved_value",
+                    "title": "approved_value",
                     "order": 6,
                     "visible": true,
                     "type": "string",
@@ -335,8 +317,8 @@
                   {
                     "name": "declined_value",
                     "fieldName": "declined_value",
-                    "displayName": "Declined Value",
-                    "title": "Declined Value",
+                    "displayName": "declined_value",
+                    "title": "declined_value",
                     "order": 7,
                     "visible": true,
                     "type": "string",
@@ -363,8 +345,8 @@
                   {
                     "name": "avg_transaction_amount",
                     "fieldName": "avg_transaction_amount",
-                    "displayName": "Avg Transaction Amount",
-                    "title": "Avg Transaction Amount",
+                    "displayName": "avg_transaction_amount",
+                    "title": "avg_transaction_amount",
                     "order": 8,
                     "visible": true,
                     "type": "string",
@@ -391,8 +373,8 @@
                   {
                     "name": "auth_3ds_usage_pct",
                     "fieldName": "auth_3ds_usage_pct",
-                    "displayName": "Auth 3Ds Usage Pct",
-                    "title": "Auth 3Ds Usage Pct",
+                    "displayName": "auth_3ds_usage_pct",
+                    "title": "auth_3ds_usage_pct",
                     "order": 9,
                     "visible": true,
                     "type": "string",
@@ -419,8 +401,8 @@
                   {
                     "name": "period_start",
                     "fieldName": "period_start",
-                    "displayName": "Period Start",
-                    "title": "Period Start",
+                    "displayName": "period_start",
+                    "title": "period_start",
                     "order": 10,
                     "visible": true,
                     "type": "string",
@@ -447,8 +429,8 @@
                   {
                     "name": "period_end",
                     "fieldName": "period_end",
-                    "displayName": "Period End",
-                    "title": "Period End",
+                    "displayName": "period_end",
+                    "title": "period_end",
                     "order": 11,
                     "visible": true,
                     "type": "string",
@@ -484,7 +466,7 @@
           "position": {
             "x": 0,
             "y": 0,
-            "width": 12,
+            "width": 6,
             "height": 4
           }
         },
@@ -512,7 +494,7 @@
             ],
             "spec": {
               "version": 3,
-              "widgetType": "area",
+              "widgetType": "line",
               "encodings": {
                 "x": {
                   "fieldName": "event_second",
@@ -527,10 +509,7 @@
                 "y": {
                   "fieldName": "sum(transaction_count)",
                   "scale": {
-                    "type": "quantitative",
-                    "range": [
-                      "#EC0000"
-                    ]
+                    "type": "quantitative"
                   },
                   "displayName": "Transaction Count",
                   "axis": {
@@ -547,72 +526,8 @@
           },
           "position": {
             "x": 0,
-            "y": 4,
-            "width": 8,
-            "height": 4
-          }
-        },
-        {
-          "widget": {
-            "name": "approval_rate_line",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "m0_ds_approval_trends",
-                  "fields": [
-                    {
-                      "name": "event_second",
-                      "expression": "`event_second`"
-                    },
-                    {
-                      "name": "approval_rate_pct",
-                      "expression": "`approval_rate_pct`"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 3,
-              "widgetType": "line",
-              "encodings": {
-                "x": {
-                  "fieldName": "event_second",
-                  "scale": {
-                    "type": "temporal"
-                  },
-                  "displayName": "Time",
-                  "axis": {
-                    "title": "Time"
-                  }
-                },
-                "y": {
-                  "fieldName": "approval_rate_pct",
-                  "scale": {
-                    "type": "quantitative",
-                    "range": [
-                      "#22C55E"
-                    ]
-                  },
-                  "displayName": "Approval Rate (%)",
-                  "axis": {
-                    "title": "Approval Rate (%)"
-                  }
-                }
-              },
-              "frame": {
-                "showTitle": true,
-                "title": "Approval Rate Trend Over Time",
-                "showDescription": false
-              }
-            }
-          },
-          "position": {
-            "x": 8,
-            "y": 4,
-            "width": 4,
+            "y": 5,
+            "width": 6,
             "height": 4
           }
         },
@@ -652,15 +567,7 @@
                 "color": {
                   "fieldName": "payment_solution",
                   "scale": {
-                    "type": "categorical",
-                    "range": [
-                      "#EC0000",
-                      "#00E5FF",
-                      "#22C55E",
-                      "#6366F1",
-                      "#F59E0B",
-                      "#8B5CF6"
-                    ]
+                    "type": "categorical"
                   },
                   "displayName": "Payment Solution",
                   "legend": {
@@ -678,8 +585,8 @@
           },
           "position": {
             "x": 0,
-            "y": 8,
-            "width": 5,
+            "y": 10,
+            "width": 6,
             "height": 4
           }
         },
@@ -730,13 +637,12 @@
           },
           "position": {
             "x": 0,
-            "y": 12,
-            "width": 8,
-            "height": 5
+            "y": 15,
+            "width": 6,
+            "height": 4
           }
         }
-      ],
-      "pageType": "PAGE_TYPE_CANVAS"
+      ]
     },
     {
       "name": "page_trends",
@@ -788,8 +694,8 @@
                   {
                     "name": "event_date",
                     "fieldName": "event_date",
-                    "displayName": "Event Date",
-                    "title": "Event Date",
+                    "displayName": "event_date",
+                    "title": "event_date",
                     "order": 0,
                     "visible": true,
                     "type": "string",
@@ -816,8 +722,8 @@
                   {
                     "name": "transactions",
                     "fieldName": "transactions",
-                    "displayName": "Transactions",
-                    "title": "Transactions",
+                    "displayName": "transactions",
+                    "title": "transactions",
                     "order": 1,
                     "visible": true,
                     "type": "string",
@@ -844,8 +750,8 @@
                   {
                     "name": "approval_rate",
                     "fieldName": "approval_rate",
-                    "displayName": "Approval Rate",
-                    "title": "Approval Rate",
+                    "displayName": "approval_rate",
+                    "title": "approval_rate",
                     "order": 2,
                     "visible": true,
                     "type": "string",
@@ -872,8 +778,8 @@
                   {
                     "name": "avg_fraud_score",
                     "fieldName": "avg_fraud_score",
-                    "displayName": "Avg Fraud Score",
-                    "title": "Avg Fraud Score",
+                    "displayName": "avg_fraud_score",
+                    "title": "avg_fraud_score",
                     "order": 3,
                     "visible": true,
                     "type": "string",
@@ -900,8 +806,8 @@
                   {
                     "name": "total_value",
                     "fieldName": "total_value",
-                    "displayName": "Total Value",
-                    "title": "Total Value",
+                    "displayName": "total_value",
+                    "title": "total_value",
                     "order": 4,
                     "visible": true,
                     "type": "string",
@@ -928,8 +834,8 @@
                   {
                     "name": "dod_volume_change",
                     "fieldName": "dod_volume_change",
-                    "displayName": "Dod Volume Change",
-                    "title": "Dod Volume Change",
+                    "displayName": "dod_volume_change",
+                    "title": "dod_volume_change",
                     "order": 5,
                     "visible": true,
                     "type": "string",
@@ -965,7 +871,7 @@
           "position": {
             "x": 0,
             "y": 0,
-            "width": 12,
+            "width": 6,
             "height": 4
           }
         },
@@ -993,7 +899,7 @@
             ],
             "spec": {
               "version": 3,
-              "widgetType": "area",
+              "widgetType": "line",
               "encodings": {
                 "x": {
                   "fieldName": "event_second",
@@ -1008,10 +914,7 @@
                 "y": {
                   "fieldName": "sum(transaction_count)",
                   "scale": {
-                    "type": "quantitative",
-                    "range": [
-                      "#EC0000"
-                    ]
+                    "type": "quantitative"
                   },
                   "displayName": "Transaction Count",
                   "axis": {
@@ -1021,20 +924,19 @@
               },
               "frame": {
                 "showTitle": true,
-                "title": "Real-Time Approval Trends (by second)",
+                "title": "Hourly Approval Trends",
                 "showDescription": false
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 4,
-            "width": 8,
+            "y": 5,
+            "width": 6,
             "height": 4
           }
         }
-      ],
-      "pageType": "PAGE_TYPE_CANVAS"
+      ]
     },
     {
       "name": "page_merchant",
@@ -1076,15 +978,7 @@
                 "color": {
                   "fieldName": "merchant_segment",
                   "scale": {
-                    "type": "categorical",
-                    "range": [
-                      "#EC0000",
-                      "#00E5FF",
-                      "#22C55E",
-                      "#6366F1",
-                      "#F59E0B",
-                      "#8B5CF6"
-                    ]
+                    "type": "categorical"
                   },
                   "displayName": "Merchant Segment",
                   "legend": {
@@ -1103,12 +997,11 @@
           "position": {
             "x": 0,
             "y": 0,
-            "width": 5,
+            "width": 6,
             "height": 4
           }
         }
-      ],
-      "pageType": "PAGE_TYPE_CANVAS"
+      ]
     },
     {
       "name": "page_perf",
@@ -1128,8 +1021,8 @@
                       "expression": "`payment_solution`"
                     },
                     {
-                      "name": "avg_latency_ms",
-                      "expression": "`avg_latency_ms`"
+                      "name": "sum(avg_latency_ms)",
+                      "expression": "SUM(`avg_latency_ms`)"
                     }
                   ],
                   "disaggregated": false
@@ -1138,32 +1031,24 @@
             ],
             "spec": {
               "version": 3,
-              "widgetType": "bar",
+              "widgetType": "pie",
               "encodings": {
-                "x": {
+                "angle": {
+                  "fieldName": "sum(avg_latency_ms)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Avg Latency Ms"
+                },
+                "color": {
                   "fieldName": "payment_solution",
                   "scale": {
-                    "type": "categorical",
-                    "sort": {
-                      "by": "y-reversed"
-                    }
+                    "type": "categorical"
                   },
                   "displayName": "Payment Solution",
-                  "axis": {
-                    "title": "Payment Solution"
-                  }
-                },
-                "y": {
-                  "fieldName": "avg_latency_ms",
-                  "scale": {
-                    "type": "quantitative",
-                    "range": [
-                      "#EC0000"
-                    ]
-                  },
-                  "displayName": "Avg Latency (ms)",
-                  "axis": {
-                    "title": "Avg Latency (ms)"
+                  "legend": {
+                    "position": "bottom",
+                    "hideTitle": false
                   }
                 }
               },
@@ -1195,8 +1080,8 @@
                       "expression": "`card_network`"
                     },
                     {
-                      "name": "avg_latency_ms",
-                      "expression": "`avg_latency_ms`"
+                      "name": "sum(avg_latency_ms)",
+                      "expression": "SUM(`avg_latency_ms`)"
                     }
                   ],
                   "disaggregated": false
@@ -1205,32 +1090,24 @@
             ],
             "spec": {
               "version": 3,
-              "widgetType": "bar",
+              "widgetType": "pie",
               "encodings": {
-                "x": {
+                "angle": {
+                  "fieldName": "sum(avg_latency_ms)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Avg Latency Ms"
+                },
+                "color": {
                   "fieldName": "card_network",
                   "scale": {
-                    "type": "categorical",
-                    "sort": {
-                      "by": "y-reversed"
-                    }
+                    "type": "categorical"
                   },
                   "displayName": "Card Network",
-                  "axis": {
-                    "title": "Card Network"
-                  }
-                },
-                "y": {
-                  "fieldName": "avg_latency_ms",
-                  "scale": {
-                    "type": "quantitative",
-                    "range": [
-                      "#EC0000"
-                    ]
-                  },
-                  "displayName": "Avg Latency (ms)",
-                  "axis": {
-                    "title": "Avg Latency (ms)"
+                  "legend": {
+                    "position": "bottom",
+                    "hideTitle": false
                   }
                 }
               },
@@ -1242,14 +1119,13 @@
             }
           },
           "position": {
-            "x": 6,
-            "y": 0,
+            "x": 0,
+            "y": 5,
             "width": 6,
             "height": 4
           }
         }
-      ],
-      "pageType": "PAGE_TYPE_CANVAS"
+      ]
     }
   ]
 }
