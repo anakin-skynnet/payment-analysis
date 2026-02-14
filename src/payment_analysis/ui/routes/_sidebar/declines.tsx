@@ -60,22 +60,22 @@ const openDashboard = () => {
 const REFRESH_ANALYTICS_MS = 15_000;
 
 const DECLINE_COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
+  "var(--color-chart-1)",
+  "var(--color-chart-2)",
+  "var(--color-chart-3)",
+  "var(--color-chart-4)",
+  "var(--color-chart-5)",
   "hsl(220 70% 50%)",
   "hsl(340 75% 55%)",
   "hsl(30 80% 55%)",
 ];
 
 const declineChartConfig = {
-  count: { label: "Declines", color: "hsl(var(--chart-1))" },
+  count: { label: "Declines", color: "var(--color-chart-1)" },
 } satisfies ChartConfig;
 
 const factorsChartConfig = {
-  decline_count: { label: "Decline Count", color: "hsl(var(--chart-2))" },
+  decline_count: { label: "Decline Count", color: "var(--color-chart-2)" },
 } satisfies ChartConfig;
 
 /* ----- KPI Header (Suspense-wrapped) ----- */
@@ -229,7 +229,7 @@ function FactorsDelayingApproval() {
           <XAxis dataKey="factor" tick={{ fontSize: 10 }} height={50} />
           <YAxis tick={{ fontSize: 11 }} />
           <ChartTooltip content={<ChartTooltipContent />} />
-          <Bar dataKey="decline_count" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="decline_count" fill="var(--color-chart-2)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ChartContainer>
 

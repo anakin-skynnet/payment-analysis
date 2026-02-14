@@ -615,11 +615,27 @@ async def reason_codes(
     """Declines consolidated into unified reason-code taxonomy for the given entity."""
     limit = max(1, min(limit, 200))
     if _is_mock_request(request):
-        return [ReasonCodeOut(**row) for row in _mock.mock_reason_code_insights()[:limit]]
-    data = await service.get_reason_codes(entity=entity, limit=limit)
-    if not data:
         data = _mock.mock_reason_code_insights()[:limit]
-    return [ReasonCodeOut(**row) for row in data]
+    else:
+        data = await service.get_reason_codes(entity=entity, limit=limit)
+        if not data:
+            data = _mock.mock_reason_code_insights()[:limit]
+    # Fill defaults for fields required by ReasonCodeOut but absent in insight mock data
+    return [
+        ReasonCodeOut(
+            entry_system=row["entry_system"],
+            flow_type=row["flow_type"],
+            decline_reason_standard=row["decline_reason_standard"],
+            decline_reason_group=row["decline_reason_group"],
+            recommended_action=row["recommended_action"],
+            decline_count=row["decline_count"],
+            pct_of_declines=row.get("pct_of_declines"),
+            total_declined_value=row["total_declined_value"],
+            avg_amount=row.get("avg_amount", row["total_declined_value"] / max(row["decline_count"], 1)),
+            affected_merchants=row.get("affected_merchants", max(1, row["decline_count"] // 10)),
+        )
+        for row in data
+    ]
 
 
 @router.get(

@@ -88,12 +88,12 @@ const NEON_CYAN = "#00E5FF";
 const VIBRANT_GREEN = "#22C55E";
 
 const approvalTrendChartConfig = {
-  approval_rate: { label: "Approval Rate %", color: "hsl(var(--chart-1))" },
+  approval_rate: { label: "Approval Rate %", color: "var(--color-chart-1)" },
 } satisfies ChartConfig;
 
 const dailyTrendChartConfig = {
-  approval_rate: { label: "Approval Rate %", color: "hsl(var(--chart-1))" },
-  total: { label: "Total Txns", color: "hsl(var(--chart-3))" },
+  approval_rate: { label: "Approval Rate %", color: "var(--color-chart-1)" },
+  total: { label: "Total Txns", color: "var(--color-chart-3)" },
 } satisfies ChartConfig;
 
 
@@ -517,8 +517,8 @@ function CommandCenter() {
                 <AreaChart data={approvalTrendData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="approvalGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--color-chart-1)" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="var(--color-chart-1)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -528,7 +528,7 @@ function CommandCenter() {
                   <Area
                     type="monotone"
                     dataKey="approval_rate"
-                    stroke="hsl(var(--chart-1))"
+                    stroke="var(--color-chart-1)"
                     strokeWidth={2}
                     fill="url(#approvalGradient)"
                   />
@@ -811,7 +811,7 @@ function CommandCenter() {
                     <Line
                       type="monotone"
                       dataKey="approval_rate"
-                      stroke="hsl(var(--chart-1))"
+                      stroke="var(--color-chart-1)"
                       strokeWidth={2}
                       dot={{ r: 3 }}
                       activeDot={{ r: 5 }}
