@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import SidebarUserFooter from "@/components/apx/sidebar-user-footer";
 import { ModeToggle } from "@/components/apx/mode-toggle";
+import { MockDataToggle } from "@/components/apx/mock-data-toggle";
 import { CountrySelect } from "@/components/apx/country-select";
 import { DateRangePresetSelect, type DateRangePreset } from "@/components/apx/date-range-preset";
 import Logo from "@/components/apx/logo";
@@ -208,6 +209,7 @@ function SidebarLayout({ children }: SidebarLayoutProps) {
             <HeaderActions />
             <CountrySelect className="hidden sm:flex" />
             <DateRangePresetSelect value={dateRange} onChange={setDateRange} className="hidden md:flex" />
+            <MockDataToggle />
             <ModeToggle />
             <Tooltip>
               <TooltipTrigger asChild>

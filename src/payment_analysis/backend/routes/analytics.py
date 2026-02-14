@@ -33,8 +33,21 @@ from .. import mock_analytics as _mock
 router = APIRouter(tags=["analytics"])
 
 
-def _set_data_source_header(response: Response, service: Any) -> None:
+def _is_mock_request(request: Request) -> bool:
+    """Check if the client explicitly requested mock data via the ``X-Mock-Data`` header.
+
+    The frontend toggle sets this header to ``"true"`` on every ``/api/`` call
+    when mock mode is enabled.  Backend endpoints check this *before* querying
+    Databricks so we skip the (potentially slow) lakehouse round-trip entirely.
+    """
+    return request.headers.get("x-mock-data", "").lower() == "true"
+
+
+def _set_data_source_header(response: Response, service: Any, *, forced_mock: bool = False) -> None:
     """Set X-Data-Source header based on whether the last query used mock data."""
+    if forced_mock:
+        response.headers["X-Data-Source"] = "mock"
+        return
     is_mock = getattr(service, "_last_query_used_mock", False)
     response.headers["X-Data-Source"] = "mock" if is_mock else "lakehouse"
 
@@ -349,13 +362,17 @@ async def get_online_features(
 
 @router.get("/recommendations", response_model=list[RecommendationOut], operation_id="getRecommendations")
 async def get_recommendations(
+    request: Request,
     service: DatabricksServiceDep,
     limit: int = Query(20, ge=1, le=100, description="Max number of recommendations to return"),
 ) -> list[RecommendationOut]:
     """Get approval recommendations from Lakehouse (UC) and Vector Search–backed similar cases; mock fallback."""
-    rows = await service.get_recommendations_from_lakehouse(limit=limit)
-    if not rows:
+    if _is_mock_request(request):
         rows = _mock.mock_recommendations()[:limit]
+    else:
+        rows = await service.get_recommendations_from_lakehouse(limit=limit)
+        if not rows:
+            rows = _mock.mock_recommendations()[:limit]
     return [
         RecommendationOut(
             id=r["id"],
@@ -407,8 +424,10 @@ async def list_models(
 
 
 @router.get("/kpis", response_model=KPIOut, operation_id="getKpis")
-async def kpis(session: OptionalSessionDep, service: DatabricksServiceDep) -> KPIOut:
+async def kpis(request: Request, session: OptionalSessionDep, service: DatabricksServiceDep) -> KPIOut:
     """Get KPIs: from Databricks Unity Catalog when available, otherwise from local database."""
+    if _is_mock_request(request):
+        return KPIOut(**_mock.mock_kpis())
     if service.is_available:
         try:
             data = await service.get_kpis()
@@ -451,13 +470,14 @@ async def kpis(session: OptionalSessionDep, service: DatabricksServiceDep) -> KP
     operation_id="getMetrics",
 )
 async def metrics(
+    request: Request,
     session: OptionalSessionDep,
     service: DatabricksServiceDep,
     country_filter: str = Query(DEFAULT_ENTITY, alias="country", description="Country/entity filter (e.g. BR)."),
 ) -> KPIOut:
     """Aggregated Gold-layer metrics (KPIs) filtered by country. Alias for executive dashboards and global multi-tenancy."""
     # country_filter reserved for future Unity Catalog row-level filtering; KPIs currently global
-    return await kpis(session, service)
+    return await kpis(request, session, service)
 
 
 @router.post(
@@ -492,9 +512,12 @@ async def databricks_kpis(service: DatabricksServiceDep, response: Response) -> 
 
 
 @router.get("/trends", response_model=list[ApprovalTrendOut], operation_id="getApprovalTrends")
-async def approval_trends(service: DatabricksServiceDep, response: Response, seconds: int = 3600) -> list[ApprovalTrendOut]:
+async def approval_trends(request: Request, service: DatabricksServiceDep, response: Response, seconds: int = 3600) -> list[ApprovalTrendOut]:
     """Get approval rate trends by second (real-time) from Databricks; mock fallback."""
     seconds = max(1, min(seconds, 3600))
+    if _is_mock_request(request):
+        _set_data_source_header(response, service, forced_mock=True)
+        return [ApprovalTrendOut(**row) for row in _mock.mock_approval_trends(seconds)]
     data = await service.get_approval_trends(seconds)
     if not data:
         data = _mock.mock_approval_trends(seconds)
@@ -503,8 +526,11 @@ async def approval_trends(service: DatabricksServiceDep, response: Response, sec
 
 
 @router.get("/solutions", response_model=list[SolutionPerformanceOut], operation_id="getSolutionPerformance")
-async def solution_performance(service: DatabricksServiceDep, response: Response) -> list[SolutionPerformanceOut]:
+async def solution_performance(request: Request, service: DatabricksServiceDep, response: Response) -> list[SolutionPerformanceOut]:
     """Get payment solution performance from Databricks; mock fallback."""
+    if _is_mock_request(request):
+        _set_data_source_header(response, service, forced_mock=True)
+        return [SolutionPerformanceOut(**row) for row in _mock.mock_solution_performance()]
     data = await service.get_solution_performance()
     if not data:
         data = _mock.mock_solution_performance()
@@ -518,12 +544,15 @@ async def solution_performance(service: DatabricksServiceDep, response: Response
     operation_id="getSmartCheckoutServicePaths",
 )
 async def smart_checkout_service_paths(
+    request: Request,
     service: DatabricksServiceDep,
     entity: str = Query(DEFAULT_ENTITY, description="Entity or country code (e.g. BR). Filter by Getnet entity."),
     limit: int = 25,
 ) -> list[SmartCheckoutServicePathOut]:
     """Payment-link performance by Smart Checkout service path for the given entity."""
     limit = max(1, min(limit, 100))
+    if _is_mock_request(request):
+        return [SmartCheckoutServicePathOut(**row) for row in _mock.mock_smart_checkout_service_paths()]
     data = await service.get_smart_checkout_service_paths(entity=entity, limit=limit)
     if not data:
         data = _mock.mock_smart_checkout_service_paths()
@@ -536,12 +565,15 @@ async def smart_checkout_service_paths(
     operation_id="getSmartCheckoutPathPerformance",
 )
 async def smart_checkout_path_performance(
+    request: Request,
     service: DatabricksServiceDep,
     entity: str = Query(DEFAULT_ENTITY, description="Entity or country code (e.g. BR). Filter by Getnet entity."),
     limit: int = 20,
 ) -> list[SmartCheckoutPathPerformanceOut]:
     """Payment-link performance by recommended Smart Checkout path for the given entity."""
     limit = max(1, min(limit, 50))
+    if _is_mock_request(request):
+        return [SmartCheckoutPathPerformanceOut(**row) for row in _mock.mock_smart_checkout_path_performance()]
     data = await service.get_smart_checkout_path_performance(entity=entity, limit=limit)
     if not data:
         data = _mock.mock_smart_checkout_path_performance()
@@ -554,12 +586,15 @@ async def smart_checkout_path_performance(
     operation_id="getThreeDsFunnel",
 )
 async def three_ds_funnel(
+    request: Request,
     service: DatabricksServiceDep,
     entity: str = Query(DEFAULT_ENTITY, description="Entity or country code (e.g. BR). Filter by Getnet entity."),
     days: int = 30,
 ) -> list[ThreeDSFunnelOut]:
     """Payment-link 3DS funnel metrics by day for the given entity."""
     days = max(1, min(days, 90))
+    if _is_mock_request(request):
+        return [ThreeDSFunnelOut(**row) for row in _mock.mock_3ds_funnel()]
     data = await service.get_3ds_funnel(entity=entity, days=days)
     if not data:
         data = _mock.mock_3ds_funnel()
@@ -572,15 +607,17 @@ async def three_ds_funnel(
     operation_id="getReasonCodes",
 )
 async def reason_codes(
+    request: Request,
     service: DatabricksServiceDep,
     entity: str = Query(DEFAULT_ENTITY, description="Entity or country code (e.g. BR). Filter by Getnet entity."),
     limit: int = 50,
 ) -> list[ReasonCodeOut]:
     """Declines consolidated into unified reason-code taxonomy for the given entity."""
     limit = max(1, min(limit, 200))
+    if _is_mock_request(request):
+        return [ReasonCodeOut(**row) for row in _mock.mock_reason_code_insights()[:limit]]
     data = await service.get_reason_codes(entity=entity, limit=limit)
     if not data:
-        # Use reason code insights as fallback (superset of fields)
         data = _mock.mock_reason_code_insights()[:limit]
     return [ReasonCodeOut(**row) for row in data]
 
@@ -591,12 +628,15 @@ async def reason_codes(
     operation_id="getReasonCodeInsights",
 )
 async def reason_code_insights(
+    request: Request,
     service: DatabricksServiceDep,
     entity: str = Query(DEFAULT_ENTITY, description="Entity or country code (e.g. BR). Filter by Getnet entity."),
     limit: int = 50,
 ) -> list[ReasonCodeInsightOut]:
     """Reason-code insights with estimated recoverability for the given entity (demo heuristic)."""
     limit = max(1, min(limit, 200))
+    if _is_mock_request(request):
+        return [ReasonCodeInsightOut(**row) for row in _mock.mock_reason_code_insights()]
     data = await service.get_reason_code_insights(entity=entity, limit=limit)
     if not data:
         data = _mock.mock_reason_code_insights()
@@ -609,6 +649,7 @@ async def reason_code_insights(
     operation_id="getFactorsDelayingApproval",
 )
 async def factors_delaying_approval(
+    request: Request,
     service: DatabricksServiceDep,
     entity: str = Query(DEFAULT_ENTITY, description="Entity or country code (e.g. BR). Filter by Getnet entity."),
     limit: int = Query(10, ge=1, le=50, description="Max number of factors to return"),
@@ -617,6 +658,8 @@ async def factors_delaying_approval(
     Top conditions or factors that delay or reduce approval rates, with recommended actions.
     Use this to discover what to fix and how to accelerate approvals.
     """
+    if _is_mock_request(request):
+        return [ReasonCodeInsightOut(**row) for row in _mock.mock_reason_code_insights()[:limit]]
     data = await service.get_reason_code_insights(entity=entity, limit=limit)
     if not data:
         data = _mock.mock_reason_code_insights()[:limit]
@@ -629,10 +672,13 @@ async def factors_delaying_approval(
     operation_id="getEntrySystemDistribution",
 )
 async def entry_system_distribution(
+    request: Request,
     service: DatabricksServiceDep,
     entity: str = Query(DEFAULT_ENTITY, description="Entity or country code (e.g. BR). Filter by Getnet entity."),
 ) -> list[EntrySystemDistributionOut]:
     """Transaction distribution by entry system for the given entity (coverage check)."""
+    if _is_mock_request(request):
+        return [EntrySystemDistributionOut(**row) for row in _mock.mock_entry_system_distribution()]
     data = await service.get_entry_system_distribution(entity=entity)
     if not data:
         data = _mock.mock_entry_system_distribution()
@@ -645,13 +691,17 @@ async def entry_system_distribution(
     operation_id="getGeography",
 )
 async def geography(
+    request: Request,
     service: DatabricksServiceDep,
     limit: int = Query(50, ge=1, le=200, description="Max countries to return"),
 ) -> list[GeographyOut]:
     """Transaction count and approval rate by country for geographic distribution (e.g. world map). Data from Databricks v_performance_by_geography."""
-    data = await service.get_performance_by_geography(limit=limit)
-    if not data:
+    if _is_mock_request(request):
         data = _mock.mock_geography()
+    else:
+        data = await service.get_performance_by_geography(limit=limit)
+        if not data:
+            data = _mock.mock_geography()
     return [
         GeographyOut(
             country=str(r.get("country", "")),
@@ -668,8 +718,10 @@ async def geography(
     response_model=LastHourPerformanceOut,
     operation_id="getLastHourPerformance",
 )
-async def last_hour_performance(service: DatabricksServiceDep) -> LastHourPerformanceOut:
+async def last_hour_performance(request: Request, service: DatabricksServiceDep) -> LastHourPerformanceOut:
     """Last-hour performance for real-time monitor; mock fallback."""
+    if _is_mock_request(request):
+        return LastHourPerformanceOut(**_mock.mock_last_hour_performance())
     data = await service.get_last_hour_performance()
     if not data or data.get("transactions_last_hour", 0) == 0:
         data = _mock.mock_last_hour_performance()
@@ -681,8 +733,10 @@ async def last_hour_performance(service: DatabricksServiceDep) -> LastHourPerfor
     response_model=Last60SecondsPerformanceOut,
     operation_id="getLast60SecondsPerformance",
 )
-async def last_60_seconds_performance(service: DatabricksServiceDep) -> Last60SecondsPerformanceOut:
+async def last_60_seconds_performance(request: Request, service: DatabricksServiceDep) -> Last60SecondsPerformanceOut:
     """Last-60-seconds performance for real-time live metrics; mock fallback."""
+    if _is_mock_request(request):
+        return Last60SecondsPerformanceOut(**_mock.mock_last_60_seconds_performance())
     data = await service.get_last_60_seconds_performance()
     if not data or data.get("transactions_last_60s", 0) == 0:
         data = _mock.mock_last_60_seconds_performance()
@@ -694,8 +748,10 @@ async def last_60_seconds_performance(service: DatabricksServiceDep) -> Last60Se
     response_model=DataQualitySummaryOut,
     operation_id="getDataQualitySummary",
 )
-async def data_quality_summary(service: DatabricksServiceDep) -> DataQualitySummaryOut:
+async def data_quality_summary(request: Request, service: DatabricksServiceDep) -> DataQualitySummaryOut:
     """Data quality summary (bronze/silver volumes, retention); mock fallback."""
+    if _is_mock_request(request):
+        return DataQualitySummaryOut(**_mock.mock_data_quality_summary())
     data = await service.get_data_quality_summary()
     if not data or data.get("bronze_last_24h", 0) == 0:
         data = _mock.mock_data_quality_summary()
@@ -708,10 +764,13 @@ async def data_quality_summary(service: DatabricksServiceDep) -> DataQualitySumm
     operation_id="getStreamingTps",
 )
 async def streaming_tps(
+    request: Request,
     service: DatabricksServiceDep,
     limit_seconds: int = Query(300, ge=10, le=3600, description="Time window in seconds (min 10 for real-time)"),
 ) -> list[StreamingTpsPointOut]:
     """Real-time TPS from streaming pipeline (v_streaming_volume_per_second). Simulate Transaction Events -> ETL -> Payment Real-Time Stream."""
+    if _is_mock_request(request):
+        return [StreamingTpsPointOut(event_second=r["event_second"], records_per_second=r["records_per_second"]) for r in _mock.mock_streaming_tps()]
     data = await service.get_streaming_tps(limit_seconds=limit_seconds)
     if not data:
         data = _mock.mock_streaming_tps()
@@ -724,14 +783,18 @@ async def streaming_tps(
     operation_id="getCommandCenterEntryThroughput",
 )
 async def command_center_entry_throughput(
+    request: Request,
     service: DatabricksServiceDep,
     entity: str = Query(DEFAULT_ENTITY, description="Country/entity code (e.g. BR)."),
     limit_minutes: int = Query(30, ge=1, le=60, description="Time window in minutes"),
 ) -> list[CommandCenterEntryThroughputPointOut]:
     """Real-time throughput by entry system (PD, WS, SEP, Checkout) for Command Center. Derived from streaming TPS with approximate entry-system shares."""
-    data = await service.get_command_center_entry_throughput(entity=entity, limit_minutes=limit_minutes)
-    if not data:
+    if _is_mock_request(request):
         data = _mock.mock_entry_throughput()
+    else:
+        data = await service.get_command_center_entry_throughput(entity=entity, limit_minutes=limit_minutes)
+        if not data:
+            data = _mock.mock_entry_throughput()
     return [
         CommandCenterEntryThroughputPointOut(ts=r["ts"], PD=r["PD"], WS=r["WS"], SEP=r["SEP"], Checkout=r["Checkout"])
         for r in data
@@ -744,10 +807,13 @@ async def command_center_entry_throughput(
     operation_id="getActiveAlerts",
 )
 async def active_alerts(
+    request: Request,
     service: DatabricksServiceDep,
     limit: int = Query(50, ge=1, le=100, description="Max alerts to return"),
 ) -> list[ActiveAlertOut]:
     """Active alerts for command center (approval rate drop, high fraud, etc.). Data from Databricks v_active_alerts."""
+    if _is_mock_request(request):
+        return [ActiveAlertOut(**row) for row in _mock.mock_active_alerts()]
     data = await service.get_active_alerts(limit=limit)
     if not data:
         data = _mock.mock_active_alerts()
@@ -770,9 +836,11 @@ async def dedup_collision_stats(service: DatabricksServiceDep) -> DedupCollision
     response_model=list[FalseInsightsMetricOut],
     operation_id="getFalseInsightsMetric",
 )
-async def false_insights_metric(service: DatabricksServiceDep, days: int = 30) -> list[FalseInsightsMetricOut]:
+async def false_insights_metric(request: Request, service: DatabricksServiceDep, days: int = 30) -> list[FalseInsightsMetricOut]:
     """False Insights counter-metric time series (expert review invalid/non-actionable)."""
     days = max(1, min(days, 180))
+    if _is_mock_request(request):
+        return [FalseInsightsMetricOut(**row) for row in _mock.mock_false_insights_metric()]
     data = await service.get_false_insights_metric(days=days)
     if not data:
         data = _mock.mock_false_insights_metric()
@@ -784,9 +852,11 @@ async def false_insights_metric(service: DatabricksServiceDep, days: int = 30) -
     response_model=list[RetryPerformanceOut],
     operation_id="getRetryPerformance",
 )
-async def retry_performance(service: DatabricksServiceDep, limit: int = 50) -> list[RetryPerformanceOut]:
+async def retry_performance(request: Request, service: DatabricksServiceDep, limit: int = 50) -> list[RetryPerformanceOut]:
     """Smart Retry performance with scenario split."""
     limit = max(1, min(limit, 200))
+    if _is_mock_request(request):
+        return [RetryPerformanceOut(**row) for row in _mock.mock_retry_performance()]
     data = await service.get_retry_performance(limit=limit)
     if not data:
         data = _mock.mock_retry_performance()
@@ -831,10 +901,13 @@ async def submit_insight_feedback(
     operation_id="getDeclineRecoveryOpportunities",
 )
 async def decline_recovery_opportunities(
+    request: Request,
     service: DatabricksServiceDep,
     limit: int = Query(20, ge=1, le=100, description="Max rows"),
 ) -> list[dict]:
     """Decline recovery opportunities ranked by estimated recoverable value; mock fallback."""
+    if _is_mock_request(request):
+        return _mock.mock_decline_recovery_opportunities()[:limit]
     data = await service.get_decline_recovery_opportunities(limit=limit)
     if not data:
         data = _mock.mock_decline_recovery_opportunities()[:limit]
@@ -847,10 +920,13 @@ async def decline_recovery_opportunities(
     operation_id="getCardNetworkPerformance",
 )
 async def card_network_performance(
+    request: Request,
     service: DatabricksServiceDep,
     limit: int = Query(20, ge=1, le=50, description="Max rows"),
 ) -> list[dict]:
     """Approval rate and volume by card network; mock fallback."""
+    if _is_mock_request(request):
+        return _mock.mock_card_network_performance()[:limit]
     data = await service.get_card_network_performance(limit=limit)
     if not data:
         data = _mock.mock_card_network_performance()[:limit]
@@ -863,10 +939,13 @@ async def card_network_performance(
     operation_id="getMerchantSegmentPerformance",
 )
 async def merchant_segment_performance(
+    request: Request,
     service: DatabricksServiceDep,
     limit: int = Query(20, ge=1, le=50, description="Max rows"),
 ) -> list[dict]:
     """Approval rate and volume by merchant segment; mock fallback."""
+    if _is_mock_request(request):
+        return _mock.mock_merchant_segment_performance()[:limit]
     data = await service.get_merchant_segment_performance(limit=limit)
     if not data:
         data = _mock.mock_merchant_segment_performance()[:limit]
@@ -879,10 +958,13 @@ async def merchant_segment_performance(
     operation_id="getDailyTrends",
 )
 async def daily_trends(
+    request: Request,
     service: DatabricksServiceDep,
     days: int = Query(30, ge=1, le=90, description="Number of days"),
 ) -> list[dict]:
     """Daily approval rate and volume trends; mock fallback."""
+    if _is_mock_request(request):
+        return _mock.mock_daily_trends(days=days)
     data = await service.get_daily_trends(days=days)
     if not data:
         data = _mock.mock_daily_trends(days=days)
@@ -917,11 +999,14 @@ def recent_decisions(
     operation_id="declineSummary",
 )
 async def decline_summary(
+    request: Request,
     session: OptionalSessionDep,
     service: DatabricksServiceDep,
     limit: int = 20,
 ) -> list[DeclineBucketOut]:
     """Get decline summary: from Databricks Unity Catalog when available, otherwise from local database."""
+    if _is_mock_request(request):
+        return [DeclineBucketOut(**r) for r in _mock.mock_decline_summary()[:limit]]
     if service.is_available:
         try:
             data = await service.get_decline_summary()
@@ -964,11 +1049,14 @@ async def decline_summary(
     response_model=list[DeclineBucketOut],
     operation_id="getDatabricksDeclines",
 )
-async def databricks_decline_summary(service: DatabricksServiceDep) -> list[DeclineBucketOut]:
+async def databricks_decline_summary(request: Request, service: DatabricksServiceDep) -> list[DeclineBucketOut]:
     """Get decline summary from Databricks Unity Catalog with recovery insights; mock fallback."""
-    data = await service.get_decline_summary()
-    if not data:
+    if _is_mock_request(request):
         data = _mock.mock_decline_summary()
+    else:
+        data = await service.get_decline_summary()
+        if not data:
+            data = _mock.mock_decline_summary()
     return [
         DeclineBucketOut(
             key=row.get("decline_reason", row.get("key", "unknown")),
