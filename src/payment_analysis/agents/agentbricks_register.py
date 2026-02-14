@@ -53,33 +53,40 @@ if _src_root and _src_root not in sys.path:
 # COMMAND ----------
 
 def _get_config():
-    """Read catalog, schema, and model registry from widgets or env."""
+    """Read catalog, schema, model registry, and tiered LLM endpoints from widgets or env.
+
+    Tiered LLM strategy:
+    - ``llm_endpoint_orchestrator``: Strongest reasoning (Claude Opus 4.6) for router + synthesizer
+    - ``llm_endpoint_specialist``: Balanced speed/quality (Claude Sonnet 4.5) for individual agents
+    - ``llm_endpoint``: Backward-compatible fallback (defaults to specialist tier)
+    """
     defaults = {
         "catalog": os.environ.get("CATALOG", "ahs_demos_catalog"),
         "schema": os.environ.get("SCHEMA", "payment_analysis"),
         "model_registry_schema": os.environ.get("MODEL_REGISTRY_SCHEMA", "agents"),
-        "llm_endpoint": os.environ.get("LLM_ENDPOINT", "databricks-meta-llama-3-3-70b-instruct"),
+        "llm_endpoint": os.environ.get("LLM_ENDPOINT", "databricks-claude-sonnet-4-5"),
+        "llm_endpoint_orchestrator": os.environ.get("LLM_ENDPOINT_ORCHESTRATOR", "databricks-claude-opus-4-6"),
+        "llm_endpoint_specialist": os.environ.get("LLM_ENDPOINT_SPECIALIST", "databricks-claude-sonnet-4-5"),
     }
     dbutils = _get_dbutils()
     if not dbutils:
         return defaults
-    dbutils.widgets.text("catalog", defaults["catalog"])
-    dbutils.widgets.text("schema", defaults["schema"])
-    dbutils.widgets.text("model_registry_schema", defaults["model_registry_schema"])
-    dbutils.widgets.text("llm_endpoint", defaults["llm_endpoint"])
+    for key, default in defaults.items():
+        dbutils.widgets.text(key, default)
     return {
-        "catalog": (dbutils.widgets.get("catalog") or defaults["catalog"]).strip(),
-        "schema": (dbutils.widgets.get("schema") or defaults["schema"]).strip(),
-        "model_registry_schema": (dbutils.widgets.get("model_registry_schema") or defaults["model_registry_schema"]).strip(),
-        "llm_endpoint": (dbutils.widgets.get("llm_endpoint") or defaults["llm_endpoint"]).strip(),
+        key: (dbutils.widgets.get(key) or default).strip()
+        for key, default in defaults.items()
     }
 
 # COMMAND ----------
 
 def _agent_script_content(suffix: str, is_orchestrator: bool) -> str:
-    """Generate a models-from-code script that wraps the LangGraph agent in
-    ``mlflow.pyfunc.ResponsesAgent`` — the MLflow 3.x recommended interface for
-    deploying agents to Databricks Model Serving.
+    """Generate a **self-contained** models-from-code script that wraps the
+    LangGraph agent in ``mlflow.pyfunc.ResponsesAgent``.
+
+    The script imports from ``langgraph_agents`` (NOT ``payment_analysis.…``)
+    because in Model Serving the ``langgraph_agents.py`` file is delivered via
+    ``code_paths`` and lives directly on ``sys.path`` as a top-level module.
 
     Key design decisions:
     1. **ResponsesAgent** (not ChatModel / PythonModel / langchain flavor).
@@ -104,6 +111,11 @@ The LangGraph agent is built lazily on the first ``predict()`` call.
 
 Env vars (set via Model Serving environment_vars):
   CATALOG, SCHEMA, LLM_ENDPOINT
+  LLM_ENDPOINT_ORCHESTRATOR (optional, used by orchestrator for strongest reasoning)
+  LLM_ENDPOINT_SPECIALIST   (optional, used by specialist agents for balanced speed/quality)
+
+IMPORTANT: This script imports from ``langgraph_agents`` (a top-level module
+delivered via MLflow ``code_paths``), NOT from ``payment_analysis.agents.…``.
 """
 import os
 import sys
@@ -136,12 +148,18 @@ class _LangGraphResponsesAgent(ResponsesAgent):
         if self._init_error is not None:
             raise RuntimeError(self._init_error)
         try:
-            from payment_analysis.agents.langgraph_agents import {import_name}
+            # Import from the standalone module (delivered via code_paths).
+            # This is NOT payment_analysis.agents.langgraph_agents — the file
+            # is placed directly on sys.path by MLflow at model load time.
+            from langgraph_agents import {import_name}
 
             catalog = os.environ.get("CATALOG", "ahs_demos_catalog")
             schema = os.environ.get("SCHEMA", "payment_analysis")
+            # Tiered LLM: orchestrator uses strongest model, specialists use balanced model.
+            # Falls back to LLM_ENDPOINT for backward compatibility.
             llm_endpoint = os.environ.get(
-                "LLM_ENDPOINT", "databricks-meta-llama-3-3-70b-instruct"
+                "LLM_ENDPOINT{'_ORCHESTRATOR' if is_orchestrator else '_SPECIALIST'}",
+                os.environ.get("LLM_ENDPOINT", "{'databricks-claude-opus-4-6' if is_orchestrator else 'databricks-claude-sonnet-4-5'}"),
             )
             self._agent = {import_name}(
                 catalog, schema=schema, llm_endpoint=llm_endpoint
@@ -207,6 +225,54 @@ SERVING_PIP_REQUIREMENTS = [
     "pydantic>=2",
 ]
 
+# ---------------------------------------------------------------------------
+# UC tool names used by each specialist agent.
+# Used for mlflow.models.resources declarations → automatic auth passthrough
+# when served on Databricks Model Serving.
+# See: https://docs.databricks.com/en/generative-ai/agent-framework/agent-authentication-model-serving
+# ---------------------------------------------------------------------------
+SPECIALIST_UC_TOOLS: dict[str, list[str]] = {
+    "decline_analyst": ["get_decline_trends", "get_decline_by_segment"],
+    "smart_routing": ["get_route_performance", "get_cascade_recommendations"],
+    "smart_retry": ["get_retry_success_rates", "get_recovery_opportunities"],
+    "risk_assessor": ["get_high_risk_transactions", "get_risk_distribution"],
+    "performance_recommender": ["get_kpi_summary", "get_optimization_opportunities", "get_trend_analysis"],
+}
+
+# Orchestrator uses all specialist tools (it delegates to all of them).
+ALL_UC_TOOL_NAMES_SHORT = sorted({
+    tool for tools in SPECIALIST_UC_TOOLS.values() for tool in tools
+})
+
+
+def _build_resources(catalog: str, schema: str, llm_endpoint: str, tool_names: list[str]):
+    """Build mlflow.models.resources list for a given agent.
+
+    Declares:
+    - DatabricksServingEndpoint for the foundation model (LLM)
+    - DatabricksFunction for each UC tool used by the agent
+
+    These declarations enable **automatic authentication passthrough** when
+    the agent is deployed to Model Serving: the serving container receives
+    short-lived credentials scoped to exactly these resources.
+
+    See: https://docs.databricks.com/en/generative-ai/agent-framework/log-agent
+    """
+    from mlflow.models.resources import (
+        DatabricksFunction,
+        DatabricksServingEndpoint,
+    )
+
+    resources = [
+        # Foundation model used by ChatDatabricks inside the LangGraph agent
+        DatabricksServingEndpoint(endpoint_name=llm_endpoint),
+    ]
+    # UC functions used as tools
+    for short_name in tool_names:
+        full_name = f"{catalog}.{schema}.{short_name}" if "." not in short_name else short_name
+        resources.append(DatabricksFunction(function_name=full_name))
+    return resources
+
 
 def register_agents():
     """Log each agent as an MLflow ``ResponsesAgent`` (models-from-code) and
@@ -218,6 +284,20 @@ def register_agents():
     - Streaming (``predict_stream``)
     - Tool-call message history
     - Automatic model signature inference
+
+    Resource declarations (``mlflow.models.resources``) are included for each
+    agent so that Model Serving can automatically provision short-lived
+    credentials scoped to the LLM endpoint and UC functions the agent needs
+    (automatic auth passthrough).
+
+    **Alternative for simpler agents**: For basic LangGraph ReAct agents that
+    don't need custom streaming, ``mlflow.langchain.log_model(lc_model=path)``
+    is slightly simpler. We use ``mlflow.pyfunc.log_model`` with ResponsesAgent
+    because it provides full control over streaming and message-format conversion.
+
+    **MCP integration (future)**: When Databricks managed MCP servers are GA,
+    consider migrating UC tool-calling to ``databricks-mcp`` for a more
+    standardised tool protocol. The current UCFunctionToolkit approach is stable.
 
     See: https://mlflow.org/docs/latest/genai/flavors/responses-agent-intro/
 
@@ -233,29 +313,53 @@ def register_agents():
     catalog = config["catalog"]
     schema = config["schema"]
     model_schema = config["model_registry_schema"]
-    llm_endpoint = config["llm_endpoint"]
+    llm_orchestrator = config["llm_endpoint_orchestrator"]
+    llm_specialist = config["llm_endpoint_specialist"]
+    llm_endpoint = config["llm_endpoint"]          # backward-compat fallback
     registered = []
 
     os.environ["CATALOG"] = catalog
     os.environ["SCHEMA"] = schema
     os.environ["LLM_ENDPOINT"] = llm_endpoint
+    os.environ["LLM_ENDPOINT_ORCHESTRATOR"] = llm_orchestrator
+    os.environ["LLM_ENDPOINT_SPECIALIST"] = llm_specialist
 
+    print(f"Tiered LLM strategy:")
+    print(f"  Orchestrator: {llm_orchestrator}")
+    print(f"  Specialist:   {llm_specialist}")
+    print(f"  Fallback:     {llm_endpoint}")
+
+    # ---------------------------------------------------------------------------
+    # Resolve code_paths: pass ONLY langgraph_agents.py (not the entire src/).
+    #
+    # Why: The Model Serving container does not pip-install the payment_analysis
+    # package. Passing the whole src/ tree via code_paths is fragile and bloated.
+    # langgraph_agents.py is self-contained (no payment_analysis imports) and
+    # only depends on pip-installable packages listed in SERVING_PIP_REQUIREMENTS.
+    #
+    # MLflow copies the file to model/code/langgraph_agents.py and adds
+    # model/code/ to sys.path. The generated agent script then does:
+    #     from langgraph_agents import create_orchestrator_agent
+    # ---------------------------------------------------------------------------
     _src_root = _resolve_src_root()
     if not _src_root or not os.path.isdir(_src_root):
-        raise RuntimeError("Could not resolve repo src root for code_paths; required for models-from-code.")
+        raise RuntimeError("Could not resolve repo src root; required for locating langgraph_agents.py.")
+
+    langgraph_agents_path = os.path.join(
+        _src_root, "payment_analysis", "agents", "langgraph_agents.py",
+    )
+    if not os.path.isfile(langgraph_agents_path):
+        raise RuntimeError(
+            f"langgraph_agents.py not found at {langgraph_agents_path}. "
+            "This file is required as a code_paths dependency for Model Serving."
+        )
+
+    print(f"code_paths: {langgraph_agents_path}")
 
     set_registry_uri("databricks-uc")
 
     with tempfile.TemporaryDirectory(prefix="agentbricks_mfc_") as tmpdir:
-        code_paths = [_src_root]
-
-        # ResponsesAgent auto-infers signature and input_example;
-        # we only pass pip_requirements and code_paths.
-        log_kwargs = dict(
-            artifact_path="model",
-            code_paths=code_paths,
-            pip_requirements=SERVING_PIP_REQUIREMENTS,
-        )
+        code_paths = [langgraph_agents_path]
 
         # 1. Register each specialist (Tool-Calling Agent)
         for create_fn, suffix in get_all_agent_builders():
@@ -263,28 +367,53 @@ def register_agents():
             script_path = os.path.join(tmpdir, f"agent_{suffix}.py")
             with open(script_path, "w") as f:
                 f.write(_agent_script_content(suffix, is_orchestrator=False))
+
+            # Resource declarations for this specialist's LLM (specialist tier) + UC tools
+            specialist_tools = SPECIALIST_UC_TOOLS.get(suffix, [])
+            resources = _build_resources(catalog, schema, llm_specialist, specialist_tools)
+
             with mlflow.start_run(run_name=f"register_{suffix}"):
                 mlflow.pyfunc.log_model(
                     python_model=script_path,
+                    artifact_path="model",
+                    code_paths=code_paths,
+                    pip_requirements=SERVING_PIP_REQUIREMENTS,
+                    resources=resources,
                     registered_model_name=model_name,
-                    **log_kwargs,
                 )
             registered.append(model_name)
-            print(f"Registered (ResponsesAgent): {model_name}")
+            print(f"Registered (ResponsesAgent): {model_name}  [{len(resources)} resources]")
 
         # 2. Register Orchestrator (Multi-Agent System)
+        #    The orchestrator delegates to all specialists, so it needs all UC tools.
         script_path = os.path.join(tmpdir, "agent_orchestrator.py")
         with open(script_path, "w") as f:
             f.write(_agent_script_content("orchestrator", is_orchestrator=True))
+
+        # Orchestrator needs both its own LLM (orchestrator tier) AND the specialist LLM
+        # because it delegates to specialists that use a different model.
+        orchestrator_resources = _build_resources(
+            catalog, schema, llm_orchestrator, ALL_UC_TOOL_NAMES_SHORT,
+        )
+        # Also declare the specialist endpoint so auth passthrough covers both tiers
+        if llm_specialist != llm_orchestrator:
+            from mlflow.models.resources import DatabricksServingEndpoint
+            orchestrator_resources.append(
+                DatabricksServingEndpoint(endpoint_name=llm_specialist),
+            )
+
         with mlflow.start_run(run_name="register_orchestrator"):
             model_name = f"{catalog}.{model_schema}.orchestrator"
             mlflow.pyfunc.log_model(
                 python_model=script_path,
+                artifact_path="model",
+                code_paths=code_paths,
+                pip_requirements=SERVING_PIP_REQUIREMENTS,
+                resources=orchestrator_resources,
                 registered_model_name=model_name,
-                **log_kwargs,
             )
             registered.append(model_name)
-            print(f"Registered (ResponsesAgent): {model_name}")
+            print(f"Registered (ResponsesAgent): {model_name}  [{len(orchestrator_resources)} resources]")
 
     return registered
 

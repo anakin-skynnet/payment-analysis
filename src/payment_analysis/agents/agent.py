@@ -43,8 +43,11 @@ from unitycatalog.ai.core.base import get_uc_function_client
 # ---------------------------------------------------------------------------
 # Configuration (from env or defaults)
 # ---------------------------------------------------------------------------
+# The ResponsesAgent (agent.py) is a single unified agent — use specialist tier
+# (balanced speed/quality) by default. Falls back to LLM_ENDPOINT for compat.
 LLM_ENDPOINT_NAME = os.environ.get(
-    "LLM_ENDPOINT", "databricks-meta-llama-3-3-70b-instruct"
+    "LLM_ENDPOINT_SPECIALIST",
+    os.environ.get("LLM_ENDPOINT", "databricks-claude-sonnet-4-5"),
 )
 CATALOG = os.environ.get("CATALOG", "ahs_demos_catalog")
 SCHEMA = os.environ.get("SCHEMA", "payment_analysis")

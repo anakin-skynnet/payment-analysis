@@ -36,19 +36,16 @@ def _get_config():
         "catalog": os.environ.get("CATALOG", "ahs_demos_catalog"),
         "schema": os.environ.get("SCHEMA", "payment_analysis"),
         "model_registry_schema": os.environ.get("MODEL_REGISTRY_SCHEMA", "agents"),
-        "llm_endpoint": os.environ.get("LLM_ENDPOINT", "databricks-meta-llama-3-3-70b-instruct"),
+        # ResponsesAgent (agent.py) is a single unified agent — uses specialist tier by default
+        "llm_endpoint": os.environ.get("LLM_ENDPOINT", "databricks-claude-sonnet-4-5"),
     }
     try:
         from databricks.sdk.runtime import dbutils
-        dbutils.widgets.text("catalog", defaults["catalog"])
-        dbutils.widgets.text("schema", defaults["schema"])
-        dbutils.widgets.text("model_registry_schema", defaults["model_registry_schema"])
-        dbutils.widgets.text("llm_endpoint", defaults["llm_endpoint"])
+        for key, default in defaults.items():
+            dbutils.widgets.text(key, default)
         return {
-            "catalog": (dbutils.widgets.get("catalog") or defaults["catalog"]).strip(),
-            "schema": (dbutils.widgets.get("schema") or defaults["schema"]).strip(),
-            "model_registry_schema": (dbutils.widgets.get("model_registry_schema") or defaults["model_registry_schema"]).strip(),
-            "llm_endpoint": (dbutils.widgets.get("llm_endpoint") or defaults["llm_endpoint"]).strip(),
+            key: (dbutils.widgets.get(key) or default).strip()
+            for key, default in defaults.items()
         }
     except Exception:
         return defaults
@@ -117,7 +114,7 @@ dbutils.library.restartPython()
 import os
 os.environ.setdefault("CATALOG", "ahs_demos_catalog")
 os.environ.setdefault("SCHEMA", "payment_analysis")
-os.environ.setdefault("LLM_ENDPOINT", "databricks-meta-llama-3-3-70b-instruct")
+os.environ.setdefault("LLM_ENDPOINT", "databricks-claude-sonnet-4-5")
 
 # Import the agent
 sys.path.insert(0, str(Path(__file__).resolve().parent)) if "__file__" in dir() else None
@@ -150,9 +147,15 @@ for chunk in AGENT.predict_stream({
 # COMMAND ----------
 
 import mlflow
-from mlflow.models.resources import DatabricksFunction
+from mlflow.models.resources import (
+    DatabricksFunction,
+    DatabricksServingEndpoint,
+)
 
-# Declare UC function resources for automatic auth passthrough
+# Declare Databricks resources for automatic auth passthrough at serving time.
+# DatabricksServingEndpoint: the foundation model used by the agent (via OpenAI client).
+# DatabricksFunction: UC functions used as tools by the agent.
+# See: https://docs.databricks.com/en/generative-ai/agent-framework/agent-authentication-model-serving
 UC_TOOL_NAMES = [
     f"{CATALOG}.{SCHEMA}.get_decline_trends",
     f"{CATALOG}.{SCHEMA}.get_decline_by_segment",
@@ -168,7 +171,12 @@ UC_TOOL_NAMES = [
     "system.ai.python_exec",
 ]
 
-resources = [DatabricksFunction(function_name=name) for name in UC_TOOL_NAMES]
+resources = [
+    # Foundation model endpoint used by the agent for LLM inference
+    DatabricksServingEndpoint(endpoint_name=LLM_ENDPOINT),
+    # UC functions used as tools
+    *[DatabricksFunction(function_name=name) for name in UC_TOOL_NAMES],
+]
 
 with mlflow.start_run(run_name="register_payment_analysis_agent"):
     logged_agent_info = mlflow.pyfunc.log_model(

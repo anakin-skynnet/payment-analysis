@@ -45,7 +45,7 @@ resources:
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
-              llm_endpoint: ${var.llm_endpoint}
+              llm_endpoint: ${var.llm_endpoint_orchestrator}
               query: "Run comprehensive payment analysis: routing, retries, declines, risk, and performance optimizations."
               agent_role: "orchestrator"
           timeout_seconds: 3600
@@ -59,7 +59,8 @@ resources:
               catalog: ${var.catalog}
               schema: ${var.schema}
               model_registry_schema: "agents"
-              llm_endpoint: ${var.llm_endpoint}
+              # ResponsesAgent (agent.py) uses a single LLM — give it the specialist tier
+              llm_endpoint: ${var.llm_endpoint_specialist}
           timeout_seconds: 1800
           max_retries: 2
         - task_key: register_agentbricks
@@ -72,7 +73,10 @@ resources:
               catalog: ${var.catalog}
               schema: ${var.schema}
               model_registry_schema: "agents"
-              llm_endpoint: ${var.llm_endpoint}
+              # Tiered: orchestrator gets strongest model; specialists get balanced model
+              llm_endpoint_orchestrator: ${var.llm_endpoint_orchestrator}
+              llm_endpoint_specialist: ${var.llm_endpoint_specialist}
+              llm_endpoint: ${var.llm_endpoint_specialist}
           timeout_seconds: 1800
           max_retries: 2
       schedule:

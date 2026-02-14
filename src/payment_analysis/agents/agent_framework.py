@@ -93,7 +93,7 @@ class BaseAgent:
         role: AgentRole,
         catalog: str,
         schema: str,
-        llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
+        llm_endpoint: str = "databricks-claude-sonnet-4-5",
         *,
         lakebase_project_id: str = "",
         lakebase_branch_id: str = "",
@@ -338,7 +338,7 @@ class SmartRoutingAgent(BaseAgent):
         lakebase_branch_id: str = "",
         lakebase_endpoint_id: str = "",
         lakebase_schema: str = "payment_analysis",
-        llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
+        llm_endpoint: str = "databricks-claude-sonnet-4-5",
     ):
         super().__init__(
             AgentRole.SMART_ROUTING,
@@ -446,7 +446,7 @@ class SmartRetryAgent(BaseAgent):
         lakebase_branch_id: str = "",
         lakebase_endpoint_id: str = "",
         lakebase_schema: str = "payment_analysis",
-        llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
+        llm_endpoint: str = "databricks-claude-sonnet-4-5",
     ):
         super().__init__(
             AgentRole.SMART_RETRY,
@@ -568,7 +568,7 @@ class DeclineAnalystAgent(BaseAgent):
         lakebase_branch_id: str = "",
         lakebase_endpoint_id: str = "",
         lakebase_schema: str = "payment_analysis",
-        llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
+        llm_endpoint: str = "databricks-claude-sonnet-4-5",
     ):
         super().__init__(
             AgentRole.DECLINE_ANALYST,
@@ -663,7 +663,7 @@ class RiskAssessorAgent(BaseAgent):
         lakebase_branch_id: str = "",
         lakebase_endpoint_id: str = "",
         lakebase_schema: str = "payment_analysis",
-        llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
+        llm_endpoint: str = "databricks-claude-sonnet-4-5",
     ):
         super().__init__(
             AgentRole.RISK_ASSESSOR,
@@ -767,7 +767,7 @@ class PerformanceRecommenderAgent(BaseAgent):
         lakebase_branch_id: str = "",
         lakebase_endpoint_id: str = "",
         lakebase_schema: str = "payment_analysis",
-        llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
+        llm_endpoint: str = "databricks-claude-sonnet-4-5",
     ):
         super().__init__(
             AgentRole.PERFORMANCE_RECOMMENDER,
@@ -907,7 +907,7 @@ class OrchestratorAgent(BaseAgent):
         lakebase_branch_id: str = "",
         lakebase_endpoint_id: str = "",
         lakebase_schema: str = "payment_analysis",
-        llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
+        llm_endpoint: str = "databricks-claude-sonnet-4-5",
     ):
         super().__init__(
             AgentRole.ORCHESTRATOR,
@@ -1007,7 +1007,7 @@ def setup_agent_framework(
     lakebase_schema: str = "payment_analysis",
     model_registry_catalog: str = "",
     model_registry_schema: str = "agents",
-    llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
+    llm_endpoint: str = "databricks-claude-sonnet-4-5",
 ) -> OrchestratorAgent:
     """Initialize the multi-agent framework. When Lakebase IDs are set, approval rules are read from OLTP Lakebase Postgres. model_registry_* define the UC registry for AgentBricks (catalog.schema.agent_name)."""
     orchestrator = OrchestratorAgent(
@@ -1017,7 +1017,7 @@ def setup_agent_framework(
         lakebase_branch_id=lakebase_branch_id,
         lakebase_endpoint_id=lakebase_endpoint_id,
         lakebase_schema=lakebase_schema,
-        llm_endpoint=llm_endpoint or "databricks-meta-llama-3-3-70b-instruct",
+        llm_endpoint=llm_endpoint or "databricks-claude-sonnet-4-5",
     )
     reg = f"{model_registry_catalog or catalog}.{model_registry_schema or 'agents'}"
     logger.info("Agent framework initialized (Orchestrator + 5 specialists); model registry: %s", reg)
@@ -1037,7 +1037,7 @@ def get_notebook_config() -> Dict[str, Any]:
         "lakebase_schema": "payment_analysis",
         "model_registry_catalog": "ahs_demos_catalog",
         "model_registry_schema": "agents",
-        "llm_endpoint": "databricks-meta-llama-3-3-70b-instruct",
+        "llm_endpoint": "databricks-claude-sonnet-4-5",
     }
     try:
         from databricks.sdk.runtime import dbutils
@@ -1063,7 +1063,7 @@ def get_notebook_config() -> Dict[str, Any]:
             "lakebase_schema": (dbutils.widgets.get("lakebase_schema") or defaults["lakebase_schema"]).strip() or "payment_analysis",
             "model_registry_catalog": (dbutils.widgets.get("model_registry_catalog") or defaults["model_registry_catalog"]).strip() or defaults["catalog"],
             "model_registry_schema": (dbutils.widgets.get("model_registry_schema") or defaults["model_registry_schema"]).strip() or "agents",
-            "llm_endpoint": (dbutils.widgets.get("llm_endpoint") or defaults["llm_endpoint"]).strip() or "databricks-meta-llama-3-3-70b-instruct",
+            "llm_endpoint": (dbutils.widgets.get("llm_endpoint") or defaults["llm_endpoint"]).strip() or "databricks-claude-sonnet-4-5",
         }
     except Exception:
         return defaults
@@ -1078,7 +1078,7 @@ def run_framework(config: Dict[str, Any]) -> Dict[str, Any]:
     schema = config["schema"]
     query = config["query"]
     agent_role = (config.get("agent_role") or "orchestrator").strip().lower()
-    llm_endpoint = (config.get("llm_endpoint") or "").strip() or "databricks-meta-llama-3-3-70b-instruct"
+    llm_endpoint = (config.get("llm_endpoint") or "").strip() or "databricks-claude-sonnet-4-5"
     lakebase_kw = {
         "lakebase_project_id": config.get("lakebase_project_id") or "",
         "lakebase_branch_id": config.get("lakebase_branch_id") or "",

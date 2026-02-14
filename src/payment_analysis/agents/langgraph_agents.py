@@ -13,6 +13,13 @@ Dependencies (install in notebook or job cluster):
   dbutils.library.restartPython()
 
 Requires: UC functions in catalog.schema (e.g. ahs_demos_catalog.payment_analysis); run run_create_uc_agent_tools first.
+
+IMPORTANT — STANDALONE MODULE CONSTRAINT:
+    This file is passed as an individual ``code_paths`` entry when logging agents
+    to MLflow (see ``agentbricks_register.py``). In the Model Serving container it
+    is importable as ``import langgraph_agents`` (NOT ``payment_analysis.agents.…``).
+    Therefore it **must NOT import anything from the ``payment_analysis`` package**.
+    Only standard-library and pip-installable dependencies are allowed.
 """
 
 from __future__ import annotations
@@ -183,8 +190,36 @@ def _toolkit_tools(catalog: str, function_names: List[str], schema: str = "payme
     return toolkit.tools
 
 
-def _llm(endpoint: str = "databricks-meta-llama-3-3-70b-instruct", temperature: float = 0.1) -> "Any":
-    """Chat model for Databricks Model Serving. Requires databricks-langchain."""
+# ---------------------------------------------------------------------------
+# Tiered LLM defaults
+# Orchestrator: strongest reasoning (Claude Opus 4.6)
+# Specialist:   balanced speed/quality (Claude Sonnet 4.5)
+# Simple:       fast, low cost (Llama 3.3 70B)
+# Override via env: LLM_ENDPOINT_ORCHESTRATOR, LLM_ENDPOINT_SPECIALIST, LLM_ENDPOINT_SIMPLE
+# ---------------------------------------------------------------------------
+import os as _os
+
+DEFAULT_LLM_ORCHESTRATOR = _os.environ.get(
+    "LLM_ENDPOINT_ORCHESTRATOR",
+    _os.environ.get("LLM_ENDPOINT", "databricks-claude-opus-4-6"),
+)
+DEFAULT_LLM_SPECIALIST = _os.environ.get(
+    "LLM_ENDPOINT_SPECIALIST",
+    _os.environ.get("LLM_ENDPOINT", "databricks-claude-sonnet-4-5"),
+)
+DEFAULT_LLM_SIMPLE = _os.environ.get(
+    "LLM_ENDPOINT_SIMPLE",
+    _os.environ.get("LLM_ENDPOINT", "databricks-meta-llama-3-3-70b-instruct"),
+)
+
+
+def _llm(endpoint: str = DEFAULT_LLM_SPECIALIST, temperature: float = 0.1) -> "Any":
+    """Chat model for Databricks Model Serving. Requires databricks-langchain.
+
+    Default endpoint follows the tiered strategy (specialist tier).
+    Pass ``DEFAULT_LLM_ORCHESTRATOR`` for orchestrator-level reasoning or
+    ``DEFAULT_LLM_SIMPLE`` for fast low-cost tasks.
+    """
     from databricks_langchain import ChatDatabricks
 
     return ChatDatabricks(endpoint=endpoint, temperature=temperature)
@@ -194,11 +229,12 @@ def create_decline_analyst_agent(
     catalog: str,
     *,
     schema: str = "payment_analysis",
-    llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
+    llm_endpoint: str = DEFAULT_LLM_SPECIALIST,
     temperature: float = 0.1,
 ) -> "Any":
     """
     Build Decline Analyst agent (LangGraph ReAct) with UC tools.
+    Uses the **specialist-tier** LLM (balanced speed/quality).
 
     Tools: get_decline_trends, get_decline_by_segment (from catalog.schema).
     """
@@ -216,10 +252,10 @@ def create_smart_routing_agent(
     catalog: str,
     *,
     schema: str = "payment_analysis",
-    llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
+    llm_endpoint: str = DEFAULT_LLM_SPECIALIST,
     temperature: float = 0.1,
 ) -> "Any":
-    """Build Smart Routing & Cascading agent (same role as SmartRoutingAgent in agent_framework.py)."""
+    """Build Smart Routing & Cascading agent. Uses **specialist-tier** LLM."""
     llm = _llm(endpoint=llm_endpoint, temperature=temperature)
     tools = _toolkit_tools(catalog, ["get_route_performance", "get_cascade_recommendations"], schema=schema)
     return create_react_agent(
@@ -233,10 +269,10 @@ def create_smart_retry_agent(
     catalog: str,
     *,
     schema: str = "payment_analysis",
-    llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
+    llm_endpoint: str = DEFAULT_LLM_SPECIALIST,
     temperature: float = 0.1,
 ) -> "Any":
-    """Build Smart Retry agent (same role as SmartRetryAgent in agent_framework.py)."""
+    """Build Smart Retry agent. Uses **specialist-tier** LLM."""
     llm = _llm(endpoint=llm_endpoint, temperature=temperature)
     tools = _toolkit_tools(catalog, ["get_retry_success_rates", "get_recovery_opportunities"], schema=schema)
     return create_react_agent(
@@ -250,10 +286,10 @@ def create_risk_assessor_agent(
     catalog: str,
     *,
     schema: str = "payment_analysis",
-    llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
+    llm_endpoint: str = DEFAULT_LLM_SPECIALIST,
     temperature: float = 0.1,
 ) -> "Any":
-    """Build Risk Assessor agent (same role as RiskAssessorAgent in agent_framework.py)."""
+    """Build Risk Assessor agent. Uses **specialist-tier** LLM."""
     llm = _llm(endpoint=llm_endpoint, temperature=temperature)
     tools = _toolkit_tools(catalog, ["get_high_risk_transactions", "get_risk_distribution"], schema=schema)
     return create_react_agent(
@@ -267,10 +303,10 @@ def create_performance_recommender_agent(
     catalog: str,
     *,
     schema: str = "payment_analysis",
-    llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
+    llm_endpoint: str = DEFAULT_LLM_SPECIALIST,
     temperature: float = 0.1,
 ) -> "Any":
-    """Build Performance Recommender agent (same role as PerformanceRecommenderAgent in agent_framework.py)."""
+    """Build Performance Recommender agent. Uses **specialist-tier** LLM."""
     llm = _llm(endpoint=llm_endpoint, temperature=temperature)
     tools = _toolkit_tools(
         catalog,
@@ -338,15 +374,19 @@ def create_orchestrator_agent(
     catalog: str,
     *,
     schema: str = "payment_analysis",
-    llm_endpoint: str = "databricks-meta-llama-3-3-70b-instruct",
+    llm_endpoint: str = DEFAULT_LLM_ORCHESTRATOR,
     temperature: float = 0.1,
 ) -> "Any":
     """
     Build Supervisor-style Orchestrator as a LangGraph Multi-Agent System:
     (1) Router: LLM selects which specialist(s) to run from the user query.
-    (2) Run specialists: Invoke only the selected agents.
-    (3) Synthesize: Single response from specialist outputs.
+    (2) Run specialists: Invoke only the selected agents (uses specialist-tier LLM).
+    (3) Synthesize: Single response from specialist outputs (uses orchestrator-tier LLM).
     Returns a compiled graph suitable for MLflow and AgentBricks deployment.
+
+    Tiered LLM strategy:
+    - Router + Synthesizer: ``llm_endpoint`` (defaults to orchestrator tier — strongest reasoning)
+    - Specialists: ``DEFAULT_LLM_SPECIALIST`` (balanced speed/quality)
     """
     SPECIALIST_KEYS = [
         "decline_analyst",
@@ -372,7 +412,8 @@ def create_orchestrator_agent(
 
     catalog_arg = catalog
     schema_arg = schema
-    llm_endpoint_arg = llm_endpoint
+    llm_endpoint_arg = llm_endpoint                # orchestrator tier: router + synthesizer
+    llm_specialist_arg = DEFAULT_LLM_SPECIALIST    # specialist tier: individual agents
 
     def _parse_router_output(text: str) -> list[str]:
         """Parse LLM router output to list of specialist names. Default to all if invalid."""
@@ -428,7 +469,7 @@ def create_orchestrator_agent(
             if name not in NAME_TO_BUILDER:
                 continue
             create_fn = NAME_TO_BUILDER[name]
-            agent = create_fn(catalog_arg, schema=schema_arg, llm_endpoint=llm_endpoint_arg)
+            agent = create_fn(catalog_arg, schema=schema_arg, llm_endpoint=llm_specialist_arg)
             result = agent.invoke({"messages": [HumanMessage(content=state["query"])]})
             out = _last_ai_content(result.get("messages") or [])
             responses[name] = out
@@ -475,7 +516,7 @@ def get_notebook_config() -> "dict[str, Any]":
         "schema": "payment_analysis",
         "query": "Run comprehensive payment analysis: routing, retries, declines, risk, and performance optimizations.",
         "agent_role": "orchestrator",
-        "llm_endpoint": "databricks-meta-llama-3-3-70b-instruct",
+        "llm_endpoint": DEFAULT_LLM_ORCHESTRATOR,
     }
     try:
         from databricks.sdk.runtime import dbutils
@@ -491,7 +532,7 @@ def get_notebook_config() -> "dict[str, Any]":
             "query": (dbutils.widgets.get("query") or defaults["query"]).strip(),
             "agent_role": (dbutils.widgets.get("agent_role") or defaults["agent_role"]).strip().lower(),
             "llm_endpoint": (dbutils.widgets.get("llm_endpoint") or defaults["llm_endpoint"]).strip()
-            or "databricks-meta-llama-3-3-70b-instruct",
+            or DEFAULT_LLM_ORCHESTRATOR,
         }
     except Exception:
         return defaults
@@ -506,7 +547,7 @@ def run_agentbricks(config: "dict[str, Any]") -> "dict[str, Any]":
     schema = config.get("schema") or "payment_analysis"
     query = config["query"]
     agent_role = (config.get("agent_role") or "orchestrator").strip().lower()
-    llm_endpoint = (config.get("llm_endpoint") or "databricks-meta-llama-3-3-70b-instruct").strip()
+    llm_endpoint = (config.get("llm_endpoint") or DEFAULT_LLM_ORCHESTRATOR).strip()
 
     def _invoke_agent(agent: Any, q: str) -> str:
         result = agent.invoke({"messages": [HumanMessage(content=q)]})

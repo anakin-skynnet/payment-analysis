@@ -7,6 +7,11 @@
 # LangGraph agents are registered as MLflow ResponsesAgent (catalog.agents, Job 6 task 2).
 # ML models are registered to catalog.schema (Job 5).
 #
+# Tiered LLM strategy:
+#   Orchestrator → llm_endpoint_orchestrator (Claude Opus 4.6, strongest reasoning)
+#   Specialists  → llm_endpoint_specialist   (Claude Sonnet 4.5, balanced speed/quality)
+#   Simple tasks → llm_endpoint_simple        (Llama 3.3 70B, fast/cheap)
+#
 # Agent endpoints use ResponsesAgent (MLflow 3.x) with lazy LangGraph initialization and
 # explicit pip_requirements + environment_vars (CATALOG, SCHEMA, LLM_ENDPOINT).
 # See: https://mlflow.org/docs/latest/genai/flavors/responses-agent-intro/
@@ -16,6 +21,7 @@
 resources:
   model_serving_endpoints:
     # Supervisor / Orchestrator (ResponsesAgent wrapping LangGraph multi-agent).
+    # Uses the strongest reasoning model (Opus) for multi-step routing and synthesis.
     # App env ORCHESTRATOR_SERVING_ENDPOINT points to this endpoint name.
     payment_analysis_orchestrator_endpoint:
       name: "payment-analysis-orchestrator"
@@ -30,11 +36,16 @@ resources:
               ENABLE_MLFLOW_TRACING: "true"
               CATALOG: "${var.catalog}"
               SCHEMA: "${var.schema}"
-              LLM_ENDPOINT: "${var.llm_endpoint}"
+              # Tiered: orchestrator-level for router + synthesizer
+              LLM_ENDPOINT: "${var.llm_endpoint_orchestrator}"
+              LLM_ENDPOINT_ORCHESTRATOR: "${var.llm_endpoint_orchestrator}"
+              # Specialist-level for delegated agent calls
+              LLM_ENDPOINT_SPECIALIST: "${var.llm_endpoint_specialist}"
         traffic_config:
           routes: [{ served_model_name: "orchestrator-9", traffic_percentage: 100 }]
 
     # Decline analyst agent (ResponsesAgent wrapping LangGraph ReAct + UC tools)
+    # Uses balanced specialist model (Sonnet) for tool-calling and analysis.
     decline_analyst_endpoint:
       name: "decline-analyst"
       config:
@@ -48,7 +59,7 @@ resources:
               ENABLE_MLFLOW_TRACING: "true"
               CATALOG: "${var.catalog}"
               SCHEMA: "${var.schema}"
-              LLM_ENDPOINT: "${var.llm_endpoint}"
+              LLM_ENDPOINT: "${var.llm_endpoint_specialist}"
         traffic_config:
           routes: [{ served_model_name: "decline_analyst-15", traffic_percentage: 100 }]
 

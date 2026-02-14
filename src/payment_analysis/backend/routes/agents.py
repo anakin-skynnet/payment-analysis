@@ -230,8 +230,8 @@ AGENTS = [
             AgentCapability.NATURAL_LANGUAGE_ANALYTICS,
         ],
         use_case="Ask complex questions about payment performance, get AI-generated insights, and receive personalized recommendations for improving approval rates based on your specific merchant portfolio.",
-        databricks_resource="Mosaic AI Gateway: databricks-meta-llama-3-3-70b-instruct",
-        workspace_url=f"{get_workspace_url()}/serving-endpoints/databricks-meta-llama-3-3-70b-instruct",
+        databricks_resource="Mosaic AI Gateway: databricks-claude-sonnet-4-5",
+        workspace_url=f"{get_workspace_url()}/serving-endpoints/databricks-claude-sonnet-4-5",
         tags=["ai-gateway", "llm", "conversational", "insights"],
         example_queries=[
             "Explain why our approval rate dropped last week",
@@ -253,8 +253,8 @@ AGENTS = [
             AgentCapability.REAL_TIME_DECISIONING,
         ],
         use_case="Real-time risk consultation for high-value or suspicious transactions. Get natural language explanations of risk factors and specific recommendations for fraud prevention.",
-        databricks_resource="Mosaic AI Gateway: databricks-meta-llama-3-3-70b-instruct",
-        workspace_url=f"{get_workspace_url()}/serving-endpoints/databricks-meta-llama-3-3-70b-instruct",
+        databricks_resource="Mosaic AI Gateway: databricks-claude-sonnet-4-5",
+        workspace_url=f"{get_workspace_url()}/serving-endpoints/databricks-claude-sonnet-4-5",
         tags=["ai-gateway", "risk", "fraud", "aml"],
         example_queries=[
             "Is this transaction risky? Explain the risk factors.",

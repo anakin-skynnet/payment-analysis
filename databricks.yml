@@ -92,8 +92,19 @@ variables:
   genie_space_id:
     description: "Genie space ID (e.g. UUID of 'Payment Analytics' from Genie UI). Set for genie-space app resource (empty may cause deploy to fail)."
     default: "01f10700a35c1756a892406b5bab0b67"
+  # Tiered LLM strategy: Orchestrator (strongest reasoning) → Specialist (balanced) → Simple (fast/cheap).
+  # See: Foundation Model API endpoints in the workspace (databricks serving-endpoints list).
   llm_endpoint:
-    description: "Model Serving endpoint for LLM inference (used by agents, model serving environment_vars). Foundation Model API or external."
+    description: "Default LLM endpoint (backward-compatible, used where no tier is specified)."
+    default: "databricks-claude-sonnet-4-5"
+  llm_endpoint_orchestrator:
+    description: "LLM for the orchestrator / supervisor agent (needs strongest reasoning for multi-step routing and synthesis)."
+    default: "databricks-claude-opus-4-6"
+  llm_endpoint_specialist:
+    description: "LLM for specialist agents (decline, routing, retry, risk, perf). Balanced speed/quality."
+    default: "databricks-claude-sonnet-4-5"
+  llm_endpoint_simple:
+    description: "LLM for simple lookups, basic formatting, and low-latency tasks."
     default: "databricks-meta-llama-3-3-70b-instruct"
   pipelines_development:
     description: "If true, pipelines use development mode (e.g. lower cost). Set false for prod."
