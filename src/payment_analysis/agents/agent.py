@@ -25,7 +25,7 @@ import backoff
 import mlflow
 import openai
 from databricks.sdk import WorkspaceClient
-from databricks_openai import UCFunctionToolkit
+from databricks_openai import DatabricksOpenAI, UCFunctionToolkit
 from mlflow.entities import SpanType
 from mlflow.pyfunc import ResponsesAgent
 from mlflow.types.responses import (
@@ -176,7 +176,8 @@ class PaymentAnalysisAgent(ResponsesAgent):
     def __init__(self, llm_endpoint: str, tools: list[ToolInfo]):
         self.llm_endpoint = llm_endpoint
         self.workspace_client = WorkspaceClient()
-        self.model_serving_client: OpenAI = self.DatabricksOpenAI()
+        # DatabricksOpenAI auto-configures host/token from the Databricks environment
+        self.model_serving_client: OpenAI = DatabricksOpenAI()
         self._tools_dict = {tool.name: tool for tool in tools}
 
     def get_tool_specs(self) -> list[dict]:

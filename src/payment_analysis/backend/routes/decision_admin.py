@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from ..dependencies import RuntimeDep
@@ -76,7 +76,11 @@ class RoutePerformanceIn(BaseModel):
 # ---------------------------------------------------------------------------
 
 def _get_schema(runtime: RuntimeDep) -> str:
-    return (runtime.config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
+    schema = (runtime.config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
+    # Validate schema name to prevent SQL injection (only alphanumeric + underscore allowed)
+    if not schema.replace("_", "").replace(".", "").isalnum():
+        raise HTTPException(status_code=400, detail="Invalid schema name")
+    return schema
 
 
 def _check_runtime(runtime: RuntimeDep) -> None:

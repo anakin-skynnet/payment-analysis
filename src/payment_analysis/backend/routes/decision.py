@@ -8,11 +8,14 @@ Validate with GET /api/v1/health/databricks. See docs/GUIDE.md §10 (Data source
 from __future__ import annotations
 
 import hashlib
+import logging
 from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from sqlmodel import select
+
+logger = logging.getLogger(__name__)
 
 from ..db_models import DecisionLog, Experiment, ExperimentAssignment
 from ..services.databricks_service import MockDataGenerator
@@ -194,7 +197,11 @@ async def predict_approval(
     if _is_mock_request(request):
         result = MockDataGenerator.approval_prediction(features.model_dump())
         return ApprovalPredictionOut(**{k: v for k, v in result.items() if k != "_source"})
-    result = await service.call_approval_model(features.model_dump())
+    try:
+        result = await service.call_approval_model(features.model_dump())
+    except Exception as exc:
+        logger.exception("Approval model prediction failed")
+        raise HTTPException(status_code=502, detail=f"ML model error: {exc}") from exc
     return ApprovalPredictionOut(**result)
 
 
@@ -212,7 +219,11 @@ async def predict_risk(
     if _is_mock_request(request):
         result = MockDataGenerator.risk_prediction(features.model_dump())
         return RiskPredictionOut(**{k: v for k, v in result.items() if k != "_source"})
-    result = await service.call_risk_model(features.model_dump())
+    try:
+        result = await service.call_risk_model(features.model_dump())
+    except Exception as exc:
+        logger.exception("Risk model prediction failed")
+        raise HTTPException(status_code=502, detail=f"ML model error: {exc}") from exc
     return RiskPredictionOut(**result)
 
 
@@ -230,7 +241,11 @@ async def predict_routing(
     if _is_mock_request(request):
         result = MockDataGenerator.routing_prediction(features.model_dump())
         return RoutingPredictionOut(**{k: v for k, v in result.items() if k != "_source"})
-    result = await service.call_routing_model(features.model_dump())
+    try:
+        result = await service.call_routing_model(features.model_dump())
+    except Exception as exc:
+        logger.exception("Routing model prediction failed")
+        raise HTTPException(status_code=502, detail=f"ML model error: {exc}") from exc
     return RoutingPredictionOut(**result)
 
 
@@ -248,6 +263,10 @@ async def predict_retry(
     if _is_mock_request(request):
         result = MockDataGenerator.retry_prediction(features.model_dump())
         return RetryPredictionOut(**{k: v for k, v in result.items() if k != "_source"})
-    result = await service.call_retry_model(features.model_dump())
+    try:
+        result = await service.call_retry_model(features.model_dump())
+    except Exception as exc:
+        logger.exception("Retry model prediction failed")
+        raise HTTPException(status_code=502, detail=f"ML model error: {exc}") from exc
     return RetryPredictionOut(**result)
 

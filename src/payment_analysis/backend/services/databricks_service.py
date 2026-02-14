@@ -51,6 +51,13 @@ class RiskTier(str, Enum):
         return cls.HIGH
 
 
+def _validate_sql_identifier(value: str, label: str = "identifier") -> str:
+    """Validate that a value is a safe SQL identifier (alphanumeric + underscore only)."""
+    if not value.replace("_", "").isalnum():
+        raise ValueError(f"Invalid {label}: {value!r} — only alphanumeric and underscore allowed")
+    return value
+
+
 @dataclass(frozen=True)
 class DatabricksConfig:
     """
@@ -72,6 +79,11 @@ class DatabricksConfig:
     warehouse_id: str | None = None
     catalog: str = "ahs_demos_catalog"
     schema: str = "payment_analysis"
+
+    def __post_init__(self) -> None:
+        """Validate catalog and schema to prevent SQL injection."""
+        _validate_sql_identifier(self.catalog, "catalog")
+        _validate_sql_identifier(self.schema, "schema")
 
     @classmethod
     def from_environment(cls) -> "DatabricksConfig":
@@ -1017,9 +1029,12 @@ class DatabricksService:
                         run_id = vinfo.get("run_id")
                         if run_id:
                             try:
+                                # Sanitize inputs to prevent SQL injection
+                                safe_fname = fname.replace("'", "''")
+                                safe_version = int(vinfo["version"])
                                 metric_query = f"""
                                     SELECT key, value FROM system.ml.model_version_tags
-                                    WHERE full_name = '{fname}' AND version = {vinfo['version']}
+                                    WHERE full_name = '{safe_fname}' AND version = {safe_version}
                                     AND key LIKE 'metric.%'
                                 """
                                 tag_rows = await self.execute_query(metric_query)

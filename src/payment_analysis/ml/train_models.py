@@ -60,6 +60,11 @@ def _str_widget(name: str, default: str) -> str:
 
 CATALOG = _str_widget("catalog", "ahs_demos_catalog")
 SCHEMA = _str_widget("schema", "payment_analysis")
+
+# Validate catalog/schema names to prevent SQL injection (only alphanumeric + underscore)
+for _name, _val in [("catalog", CATALOG), ("schema", SCHEMA)]:
+    if not _val.replace("_", "").isalnum():
+        raise ValueError(f"Invalid {_name}: {_val!r} — only alphanumeric and underscore allowed")
 N_ESTIMATORS = _int_widget("n_estimators", 100)
 MAX_DEPTH_APPROVAL = _int_widget("max_depth_approval", 10)
 MAX_DEPTH_RISK = _int_widget("max_depth_risk", 12)
@@ -306,9 +311,9 @@ try:
         
         metrics = {
             "accuracy": accuracy_score(y_test, y_pred),
-            "precision": precision_score(y_test, y_pred),
-            "recall": recall_score(y_test, y_pred),
-            "f1_score": f1_score(y_test, y_pred),
+            "precision": precision_score(y_test, y_pred, zero_division=0),
+            "recall": recall_score(y_test, y_pred, zero_division=0),
+            "f1_score": f1_score(y_test, y_pred, zero_division=0),
             "roc_auc": roc_auc_score(y_test, y_pred_proba)
         }
         
@@ -371,9 +376,9 @@ try:
         
         metrics = {
             "accuracy": accuracy_score(y_test, y_pred),
-            "precision": precision_score(y_test, y_pred),
-            "recall": recall_score(y_test, y_pred),
-            "f1_score": f1_score(y_test, y_pred),
+            "precision": precision_score(y_test, y_pred, zero_division=0),
+            "recall": recall_score(y_test, y_pred, zero_division=0),
+            "f1_score": f1_score(y_test, y_pred, zero_division=0),
             "roc_auc": roc_auc_score(y_test, y_pred_proba)
         }
         

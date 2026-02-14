@@ -256,7 +256,8 @@ def get_session_optional(rt: RuntimeDep) -> Generator[Session | None, None, None
     try:
         with rt.get_session() as session:
             yield session
-    except Exception:
+    except Exception as exc:
+        logger.debug("Optional session unavailable: %s", exc)
         yield None
 
 

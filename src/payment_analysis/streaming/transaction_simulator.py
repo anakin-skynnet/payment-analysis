@@ -46,6 +46,12 @@ dbutils.widgets.text("antifraud_decline_attribution_pct", "0.45")
 
 CATALOG = dbutils.widgets.get("catalog")
 SCHEMA = dbutils.widgets.get("schema")
+
+# Validate catalog/schema to prevent SQL injection
+for _name, _val in [("catalog", CATALOG), ("schema", SCHEMA)]:
+    if not _val.replace("_", "").isalnum():
+        raise ValueError(f"Invalid {_name}: {_val!r} — only alphanumeric and underscore allowed")
+
 EVENTS_PER_SECOND = int(dbutils.widgets.get("events_per_second"))
 DURATION_MINUTES = int(dbutils.widgets.get("duration_minutes"))
 OUTPUT_MODE = dbutils.widgets.get("output_mode")

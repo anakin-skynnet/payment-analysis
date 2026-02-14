@@ -31,7 +31,13 @@ class Runtime:
     def _dev_db_port(self) -> int | None:
         """Check for APX_DEV_DB_PORT environment variable for local development."""
         port = os.environ.get("APX_DEV_DB_PORT")
-        return int(port) if port else None
+        if not port:
+            return None
+        try:
+            return int(port)
+        except ValueError:
+            logger.warning("Invalid APX_DEV_DB_PORT=%r — must be a valid integer, ignoring", port)
+            return None
 
     def _use_lakebase_direct_connection(self) -> bool:
         """True if LAKEBASE_CONNECTION_STRING is set (direct Postgres URL + LAKEBASE_OAUTH_TOKEN as password)."""

@@ -13,13 +13,21 @@ if TYPE_CHECKING:
     from .runtime import Runtime
 
 
+def _safe_schema_name(raw: str) -> str:
+    """Validate and return a safe schema name for SQL interpolation."""
+    name = (raw or "payment_analysis").strip() or "payment_analysis"
+    if not name.replace("_", "").isalnum():
+        raise ValueError(f"Invalid schema name: {name!r} — only alphanumeric and underscore allowed")
+    return name
+
+
 def load_app_config_and_settings(runtime: Runtime) -> tuple[tuple[str, str] | None, dict[str, str]]:
     """
     Read app_config (catalog, schema) and app_settings (key-value) from Lakebase.
     Returns ((catalog, schema) or None, settings_dict). Use at startup before any Lakehouse calls.
     """
     config = runtime.config
-    schema_name = (config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
+    schema_name = _safe_schema_name(config.db.db_schema or "payment_analysis")
     if not runtime._db_configured():
         return (None, {})
 
@@ -51,7 +59,7 @@ def load_app_config_and_settings(runtime: Runtime) -> tuple[tuple[str, str] | No
 def write_app_settings_keys(runtime: Runtime, settings: dict[str, str]) -> bool:
     """Write key-value pairs to Lakebase app_settings (e.g. control panel flags). Returns True on success."""
     config = runtime.config
-    schema_name = (config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
+    schema_name = _safe_schema_name(config.db.db_schema or "payment_analysis")
     if not runtime._db_configured() or not settings:
         return bool(settings)
     try:
@@ -77,7 +85,7 @@ def write_app_settings_keys(runtime: Runtime, settings: dict[str, str]) -> bool:
 def write_app_config(runtime: Runtime, catalog: str, schema: str) -> bool:
     """Write catalog and schema to Lakebase app_config and app_settings. Call after user saves config."""
     config = runtime.config
-    schema_name = (config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
+    schema_name = _safe_schema_name(config.db.db_schema or "payment_analysis")
     if not runtime._db_configured():
         return False
     try:
@@ -115,7 +123,7 @@ def get_approval_rules_from_lakebase(
 ) -> list[dict[str, Any]] | None:
     """Read approval_rules from Lakebase. Returns list of dicts, or None on error/unconfigured (caller should fall back to Lakehouse)."""
     config = runtime.config
-    schema_name = (config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
+    schema_name = _safe_schema_name(config.db.db_schema or "payment_analysis")
     if not runtime._db_configured():
         return None
     limit = max(1, min(limit, 500))
@@ -160,7 +168,7 @@ def get_approval_rules_from_lakebase(
 def get_countries_from_lakebase(runtime: Runtime, *, limit: int = 200) -> list[dict[str, Any]] | None:
     """Read countries/entities from Lakebase for the UI filter dropdown. Returns list of {code, name} or None on error/unconfigured."""
     config = runtime.config
-    schema_name = (config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
+    schema_name = _safe_schema_name(config.db.db_schema or "payment_analysis")
     if not runtime._db_configured():
         return None
     limit = max(1, min(limit, 500))
@@ -191,7 +199,7 @@ def get_countries_from_lakebase(runtime: Runtime, *, limit: int = 200) -> list[d
 def get_approval_rule_by_id(runtime: Runtime, rule_id: str) -> dict[str, Any] | None:
     """Return one approval rule from Lakebase by id, or None if not found / unconfigured."""
     config = runtime.config
-    schema_name = (config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
+    schema_name = _safe_schema_name(config.db.db_schema or "payment_analysis")
     if not runtime._db_configured():
         return None
     try:
@@ -237,7 +245,7 @@ def create_approval_rule_in_lakebase(
 ) -> bool:
     """Insert one approval rule into Lakebase. Returns True on success."""
     config = runtime.config
-    schema_name = (config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
+    schema_name = _safe_schema_name(config.db.db_schema or "payment_analysis")
     if not runtime._db_configured():
         return False
     try:
@@ -281,7 +289,7 @@ def update_approval_rule_in_lakebase(
 ) -> bool | None:
     """Update one approval rule in Lakebase. Returns True if a row was updated, False if rule not found (0 rows), None on error."""
     config = runtime.config
-    schema_name = (config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
+    schema_name = _safe_schema_name(config.db.db_schema or "payment_analysis")
     if not runtime._db_configured():
         return None
     try:
@@ -328,7 +336,7 @@ def update_approval_rule_in_lakebase(
 def delete_approval_rule_in_lakebase(runtime: Runtime, rule_id: str) -> bool:
     """Delete one approval rule from Lakebase. Returns True if the DELETE ran successfully (idempotent: 0 or 1 row), False on error."""
     config = runtime.config
-    schema_name = (config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
+    schema_name = _safe_schema_name(config.db.db_schema or "payment_analysis")
     if not runtime._db_configured():
         return False
     try:
@@ -350,7 +358,7 @@ def get_online_features_from_lakebase(
 ) -> list[dict[str, Any]] | None:
     """Read online_features from Lakebase (last 24h). Returns list of dicts, or None on error (caller should fall back to Lakehouse)."""
     config = runtime.config
-    schema_name = (config.db.db_schema or "payment_analysis").strip() or "payment_analysis"
+    schema_name = _safe_schema_name(config.db.db_schema or "payment_analysis")
     if not runtime._db_configured():
         return None
     limit = max(1, min(limit, 500))

@@ -14,6 +14,8 @@ from ..dependencies import SessionDep
 
 router = APIRouter(tags=["incidents"])
 
+_VALID_INCIDENT_STATUSES = {"open", "mitigating", "resolved"}
+
 
 class IncidentIn(BaseModel):
     category: str = Field(min_length=1)
@@ -37,6 +39,11 @@ def list_incidents(
     limit = max(1, min(limit, 200))
     stmt = select(Incident).order_by(desc(cast(Any, Incident.created_at))).limit(limit)
     if status:
+        if status not in _VALID_INCIDENT_STATUSES:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid status '{status}'. Must be one of: {', '.join(sorted(_VALID_INCIDENT_STATUSES))}",
+            )
         stmt = stmt.where(Incident.status == status)
     return list(session.exec(stmt).all())
 
