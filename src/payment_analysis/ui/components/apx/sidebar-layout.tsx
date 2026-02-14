@@ -31,26 +31,32 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Bot, Sparkles } from "lucide-react";
 
 const PATH_LABELS: Record<string, string> = {
+  /* Overview */
   "/command-center": "Overview",
-  "/about": "About this platform",
-  "/initiatives": "Payment Services & Data",
   "/dashboard": "Overview",
-  "/dashboards": "Dashboards",
-  "/setup": "Control panel",
-  "/notebooks": "Notebooks",
-  "/models": "ML models",
-  "/ai-agents": "AI agents",
-  "/decisioning": "Recommendations & decisions",
-  "/rules": "Rules",
-  "/experiments": "Experiments",
-  "/data-quality": "Monitoring & Data Quality",
-  "/incidents": "Monitoring & Data Quality",
-  "/alerts-data-quality": "Monitoring & Data Quality",
+  "/initiatives": "Overview",
+  /* Analytics */
+  "/dashboards": "Performance Dashboards",
   "/declines": "Declines",
-  "/smart-checkout": "Smart Checkout",
   "/reason-codes": "Reason Codes",
+  "/data-quality": "Monitoring & Quality",
+  "/incidents": "Monitoring & Quality",
+  "/alerts-data-quality": "Monitoring & Quality",
+  /* Optimization */
+  "/smart-checkout": "Smart Checkout",
   "/smart-retry": "Smart Retry",
-  "/profile": "Settings",
+  "/decisioning": "Decisioning",
+  /* AI & ML */
+  "/ai-agents": "AI Agents",
+  "/models": "ML Models",
+  "/experiments": "Experiments",
+  /* Administration */
+  "/rules": "Rules",
+  "/notebooks": "Notebooks",
+  "/setup": "Setup & Run",
+  /* Other */
+  "/about": "About this platform",
+  "/profile": "Profile",
 };
 
 // Friendly names for embedded dashboard breadcrumb (id -> label)

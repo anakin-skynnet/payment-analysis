@@ -179,9 +179,9 @@ export function Component() {
       {!showEmbedView && (
         <>
       <PageHeader
-        sectionLabel="Approval analytics"
-        title="Dashboards"
-        description="Approval rate, declines, fraud, routing, and real-time monitoring. Open in Databricks."
+        sectionLabel="Analytics"
+        title="Performance Dashboards"
+        description="Approval rate, declines, fraud, routing, and real-time monitoring. Open or embed Databricks dashboards."
         badge={<DataSourceBadge />}
       />
 

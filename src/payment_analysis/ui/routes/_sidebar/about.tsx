@@ -214,29 +214,32 @@ function About() {
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap gap-3">
-        <Link
-          to="/command-center"
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted/50 transition-colors"
-        >
-          Overview
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-        <Link
-          to="/initiatives"
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted/50 transition-colors"
-        >
-          Payment Services &amp; Data
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-        <Link
-          to="/decisioning"
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted/50 transition-colors"
-        >
-          Recommendations
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
+      <Card className="bg-muted/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Quick navigation</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { to: "/command-center", label: "Overview" },
+              { to: "/declines", label: "Declines" },
+              { to: "/smart-checkout", label: "Smart Checkout" },
+              { to: "/smart-retry", label: "Smart Retry" },
+              { to: "/decisioning", label: "Decisioning" },
+              { to: "/ai-agents", label: "AI Agents" },
+            ].map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted/50 transition-colors"
+              >
+                {link.label}
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

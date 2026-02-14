@@ -1,21 +1,33 @@
-/** Sidebar navigation — getnet Global Payments Command Center (reference layout). */
+/**
+ * Sidebar navigation — Getnet Global Payments Command Center.
+ *
+ * Groups are organised by user intent:
+ *   1. Overview        – single hub
+ *   2. Analytics       – dashboards, declines, reason-codes, monitoring
+ *   3. Optimization    – checkout, retry, decisioning
+ *   4. AI & ML         – agents, models, experiments
+ *   5. Administration  – rules, notebooks, setup
+ *
+ * "About" is accessible from the sidebar footer (reference, not a workflow page).
+ * "Profile" lives in the header avatar; not repeated here.
+ */
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import {
   Activity,
-  BarChart3,
   BadgeX,
-  Brain,
   Bot,
+  Brain,
   Code2,
   CreditCard,
   FlaskConical,
+  Info,
   LayoutDashboard,
   ListChecks,
-  MessageSquareText,
-  RotateCcw,
-  ScrollText,
+  PanelTop,
+  RefreshCw,
+  Scale,
   Settings,
-  User,
+  ShieldCheck,
 } from "lucide-react";
 import SidebarLayout from "@/components/apx/sidebar-layout";
 import {
@@ -24,6 +36,7 @@ import {
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   Tooltip,
@@ -49,7 +62,7 @@ function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
     <Link
       to={item.to}
       className={cn(
-        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 min-w-0 min-h-[2.75rem]",
+        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 min-w-0 min-h-[2.5rem]",
         "border-l-[3px] border-transparent -ml-[3px]",
         isActive
           ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-primary shadow-sm"
@@ -74,90 +87,168 @@ function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
 function Layout() {
   const location = useLocation();
 
-  // Command Center: overview, services, monitoring+data-quality (unified), dashboards, recommendations
-  const commandCenterItems: NavItem[] = [
-    { to: "/command-center", label: "Overview", icon: <LayoutDashboard size={16} />, tooltip: "Executive overview: KPIs, TPS, dashboards, AI chat.", match: (p) => p === "/command-center" || p === "/dashboard" },
-    { to: "/initiatives", label: "Payment Services & Data", icon: <BarChart3 size={16} />, tooltip: "Services and data sources.", match: (p) => p === "/initiatives" },
-    { to: "/data-quality", label: "Monitoring & Data Quality", icon: <Activity size={16} />, tooltip: "Real-time volume, TPS, data quality health, alerts, and incidents.", match: (p) => p === "/data-quality" || p === "/incidents" || p === "/alerts-data-quality" },
-    { to: "/dashboards", label: "Performance Deep-Dive", icon: <LayoutDashboard size={16} />, tooltip: "BI dashboards and performance analytics.", match: (p) => p === "/dashboards" },
-    { to: "/decisioning", label: "Recommendations & decisions", icon: <MessageSquareText size={16} />, tooltip: "Decisioning API.", match: (p) => p === "/decisioning" },
+  /* ── 1. Overview (single hub) ── */
+  const overviewItems: NavItem[] = [
+    {
+      to: "/command-center",
+      label: "Overview",
+      icon: <LayoutDashboard size={16} />,
+      tooltip: "Executive hub: KPIs, approval trends, dashboards, alerts, and AI chat.",
+      match: (p) => p === "/command-center" || p === "/dashboard" || p === "/initiatives",
+    },
   ];
 
-  // Decline intelligence: declines and reason codes
-  const declineItems: NavItem[] = [
-    { to: "/declines", label: "Declines", icon: <BadgeX size={16} />, tooltip: "Decline analysis.", match: (p) => p === "/declines" },
-    { to: "/reason-codes", label: "Reason Codes", icon: <ListChecks size={16} />, tooltip: "Reason-code taxonomy.", match: (p) => p === "/reason-codes" },
+  /* ── 2. Analytics ── */
+  const analyticsItems: NavItem[] = [
+    {
+      to: "/dashboards",
+      label: "Performance Dashboards",
+      icon: <PanelTop size={16} />,
+      tooltip: "Embedded BI dashboards and performance deep-dives.",
+      match: (p) => p === "/dashboards",
+    },
+    {
+      to: "/declines",
+      label: "Declines",
+      icon: <BadgeX size={16} />,
+      tooltip: "Decline analytics: KPIs, buckets, factors, recovery, and card network performance.",
+      match: (p) => p === "/declines",
+    },
+    {
+      to: "/reason-codes",
+      label: "Reason Codes",
+      icon: <ListChecks size={16} />,
+      tooltip: "Standardised reason-code taxonomy, false-insight metrics, and expert review.",
+      match: (p) => p === "/reason-codes",
+    },
+    {
+      to: "/data-quality",
+      label: "Monitoring & Quality",
+      icon: <Activity size={16} />,
+      tooltip: "Real-time TPS, data quality health, active alerts, and incident tracking.",
+      match: (p) => p === "/data-quality" || p === "/incidents" || p === "/alerts-data-quality",
+    },
   ];
 
-  // Initiatives: checkout and retry
-  const initiativeItems: NavItem[] = [
-    { to: "/smart-checkout", label: "Smart Checkout", icon: <CreditCard size={16} />, tooltip: "Checkout performance.", match: (p) => p === "/smart-checkout" },
-    { to: "/smart-retry", label: "Smart Retry", icon: <RotateCcw size={16} />, tooltip: "Retry and recovery.", match: (p) => p === "/smart-retry" },
+  /* ── 3. Optimization ── */
+  const optimizationItems: NavItem[] = [
+    {
+      to: "/smart-checkout",
+      label: "Smart Checkout",
+      icon: <CreditCard size={16} />,
+      tooltip: "3DS funnel, service-path performance, and optimal checkout configuration.",
+      match: (p) => p === "/smart-checkout",
+    },
+    {
+      to: "/smart-retry",
+      label: "Smart Retry",
+      icon: <RefreshCw size={16} />,
+      tooltip: "Retry KPIs, success rates by scenario, and recovered revenue.",
+      match: (p) => p === "/smart-retry",
+    },
+    {
+      to: "/decisioning",
+      label: "Decisioning",
+      icon: <Scale size={16} />,
+      tooltip: "Test auth, retry, and routing decisions. ML predictions and recommendations.",
+      match: (p) => p === "/decisioning",
+    },
   ];
 
-  // Platform: about, AI, rules, dev tools, profile, setup
-  const platformItems: NavItem[] = [
-    { to: "/about", label: "About", icon: <ScrollText size={16} />, tooltip: "Platform overview.", match: (p) => p === "/about" },
-    { to: "/ai-agents", label: "AI agents", icon: <Bot size={16} />, tooltip: "Agents and Genie.", match: (p) => p === "/ai-agents" },
-    { to: "/rules", label: "Rules", icon: <ScrollText size={16} />, tooltip: "Approval and routing rules.", match: (p) => p === "/rules" },
-    { to: "/notebooks", label: "Notebooks", icon: <Code2 size={16} />, tooltip: "Notebooks and ETL.", match: (p) => p === "/notebooks" },
-    { to: "/models", label: "ML models", icon: <Brain size={16} />, tooltip: "Unity Catalog models.", match: (p) => p === "/models" },
-    { to: "/experiments", label: "Experiments", icon: <FlaskConical size={16} />, tooltip: "MLflow runs.", match: (p) => p === "/experiments" },
-    { to: "/profile", label: "Profile", icon: <User size={16} />, tooltip: "User settings.", match: (p) => p === "/profile" },
-    { to: "/setup", label: "Control panel", icon: <Settings size={16} />, tooltip: "Setup and pipelines.", match: (p) => p === "/setup" },
+  /* ── 4. AI & ML ── */
+  const aiMlItems: NavItem[] = [
+    {
+      to: "/ai-agents",
+      label: "AI Agents",
+      icon: <Bot size={16} />,
+      tooltip: "Orchestrator, specialist agents, and Genie integration.",
+      match: (p) => p === "/ai-agents",
+    },
+    {
+      to: "/models",
+      label: "ML Models",
+      icon: <Brain size={16} />,
+      tooltip: "Unity Catalog model registry: versions, status, and serving endpoints.",
+      match: (p) => p === "/models",
+    },
+    {
+      to: "/experiments",
+      label: "Experiments",
+      icon: <FlaskConical size={16} />,
+      tooltip: "A/B experiments and MLflow run tracking.",
+      match: (p) => p === "/experiments",
+    },
   ];
+
+  /* ── 5. Administration ── */
+  const adminItems: NavItem[] = [
+    {
+      to: "/rules",
+      label: "Rules",
+      icon: <ShieldCheck size={16} />,
+      tooltip: "Approval and routing business rules (CRUD).",
+      match: (p) => p === "/rules",
+    },
+    {
+      to: "/notebooks",
+      label: "Notebooks",
+      icon: <Code2 size={16} />,
+      tooltip: "Browse and open workspace notebooks (ETL, ML, agents).",
+      match: (p) => p === "/notebooks",
+    },
+    {
+      to: "/setup",
+      label: "Setup & Run",
+      icon: <Settings size={16} />,
+      tooltip: "Jobs, pipelines, catalog/schema config, and connection status.",
+      match: (p) => p === "/setup",
+    },
+  ];
+
+  const renderGroup = (label: string, items: NavItem[]) => (
+    <SidebarGroup aria-label={label}>
+      <SidebarGroupLabel className="nav-group-label">{label}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {items.map((item) => (
+            <SidebarMenuItem key={item.to}>
+              <NavLink item={item} isActive={item.match(location.pathname)} />
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
 
   return (
     <SidebarLayout>
       <nav aria-label="Primary navigation" className="contents">
-        <SidebarGroup aria-label="Command Center">
-          <SidebarGroupLabel className="nav-group-label">Command Center</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {commandCenterItems.map((item) => (
-                <SidebarMenuItem key={item.to}>
-                  <NavLink item={item} isActive={item.match(location.pathname)} />
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {renderGroup("Overview", overviewItems)}
+        <SidebarSeparator className="mx-3" />
+        {renderGroup("Analytics", analyticsItems)}
+        <SidebarSeparator className="mx-3" />
+        {renderGroup("Optimization", optimizationItems)}
+        <SidebarSeparator className="mx-3" />
+        {renderGroup("AI & ML", aiMlItems)}
+        <SidebarSeparator className="mx-3" />
+        {renderGroup("Administration", adminItems)}
 
-        <SidebarGroup aria-label="Decline intelligence">
-          <SidebarGroupLabel className="nav-group-label">Decline intelligence</SidebarGroupLabel>
+        {/* About — reference link at the bottom */}
+        <SidebarGroup aria-label="Help" className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
-              {declineItems.map((item) => (
-                <SidebarMenuItem key={item.to}>
-                  <NavLink item={item} isActive={item.match(location.pathname)} />
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup aria-label="Initiatives">
-          <SidebarGroupLabel className="nav-group-label">Initiatives</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {initiativeItems.map((item) => (
-                <SidebarMenuItem key={item.to}>
-                  <NavLink item={item} isActive={item.match(location.pathname)} />
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup aria-label="Platform">
-          <SidebarGroupLabel className="nav-group-label">Platform</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {platformItems.map((item) => (
-                <SidebarMenuItem key={item.to}>
-                  <NavLink item={item} isActive={item.match(location.pathname)} />
-                </SidebarMenuItem>
-              ))}
+              <SidebarMenuItem>
+                <NavLink
+                  item={{
+                    to: "/about",
+                    label: "About this platform",
+                    icon: <Info size={16} />,
+                    tooltip: "Business purpose, capabilities, and documentation links.",
+                    match: (p) => p === "/about",
+                  }}
+                  isActive={location.pathname === "/about"}
+                />
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

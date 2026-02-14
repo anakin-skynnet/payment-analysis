@@ -560,11 +560,16 @@ function CommandCenter() {
               )}
             </CardContent>
           </Card>
-          <Card className="glass-card border border-border/80">
-            <CardHeader className="pb-2">
+        <Card className="glass-card border border-border/80">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
               <CardTitle className="text-base">Top 5 Decline Reasons</CardTitle>
-            </CardHeader>
-            <CardContent>
+              <Button variant="ghost" size="sm" asChild className="text-xs h-7 text-muted-foreground">
+                <Link to="/declines">View all <ArrowRight className="h-3 w-3 ml-1" /></Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
               {reasonCodeSummary.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No decline reason data</p>
               ) : (
@@ -577,17 +582,22 @@ function CommandCenter() {
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
 
           {/* Right column: Friction Funnel + Alerts */}
           <div className="space-y-4">
             <Card className="glass-card border border-border/80">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-primary" />
-                  3DS Friction Funnel
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-primary" />
+                    3DS Friction Funnel
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" asChild className="text-xs h-7 text-muted-foreground">
+                    <Link to="/smart-checkout">Details <ArrowRight className="h-3 w-3 ml-1" /></Link>
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {funnelSteps.length === 0 ? (
@@ -599,10 +609,15 @@ function CommandCenter() {
             </Card>
             <Card className="glass-card border border-border/80">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-orange-500" />
-                  Alerts
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-orange-500" />
+                    Alerts
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" asChild className="text-xs h-7 text-muted-foreground">
+                    <Link to="/data-quality">View all <ArrowRight className="h-3 w-3 ml-1" /></Link>
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {alertsQ.data?.data?.length ? (
@@ -624,10 +639,15 @@ function CommandCenter() {
             </Card>
             <Card className="glass-card border border-border/80">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-neon-cyan" />
-                  Data Quality
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-neon-cyan" />
+                    Data Quality
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" asChild className="text-xs h-7 text-muted-foreground">
+                    <Link to="/data-quality">Details <ArrowRight className="h-3 w-3 ml-1" /></Link>
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 {dataQualityQ.data?.data != null && (
@@ -666,10 +686,15 @@ function CommandCenter() {
         <div className="grid gap-4 md:grid-cols-2">
           <Card className="glass-card border border-border/80">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-orange-500" />
-                False Insights Tracker
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-500" />
+                  False Insights Tracker
+                </CardTitle>
+                <Button variant="ghost" size="sm" asChild className="text-xs h-7 text-muted-foreground">
+                  <Link to="/reason-codes">Reason Codes <ArrowRight className="h-3 w-3 ml-1" /></Link>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2">
@@ -681,10 +706,15 @@ function CommandCenter() {
 
           <Card className="glass-card border border-border/80">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <RotateCcw className="h-4 w-4 text-primary" />
-                Smart Retry & Recurrence
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <RotateCcw className="h-4 w-4 text-primary" />
+                  Smart Retry & Recurrence
+                </CardTitle>
+                <Button variant="ghost" size="sm" asChild className="text-xs h-7 text-muted-foreground">
+                  <Link to="/smart-retry">Details <ArrowRight className="h-3 w-3 ml-1" /></Link>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               {retryRecurrence.length === 0 ? (
