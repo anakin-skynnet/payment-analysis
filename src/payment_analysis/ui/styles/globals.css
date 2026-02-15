@@ -345,10 +345,10 @@
   }
   /* Conic gauge: set --gauge-pct (e.g. 85%) on element */
   .gauge-conic-cyan {
-    background: conic-gradient(var(--neon-cyan) 0%, var(--gauge-pct, 0%), hsl(var(--muted)) var(--gauge-pct, 0%) 100%);
+    background: conic-gradient(var(--neon-cyan) 0% var(--gauge-pct, 0%), var(--muted) var(--gauge-pct, 0%) 100%);
   }
   .gauge-conic-primary {
-    background: conic-gradient(hsl(var(--primary)) 0%, var(--gauge-pct, 0%), hsl(var(--muted)) var(--gauge-pct, 0%) 100%);
+    background: conic-gradient(var(--primary) 0% var(--gauge-pct, 0%), var(--muted) var(--gauge-pct, 0%) 100%);
   }
   /* Dynamic bar width: set --bar-width-pct (e.g. 75%) */
   .bar-fill-width {
@@ -489,14 +489,6 @@
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
-}
-
-:root {
-  --sidebar-background: 0 0% 98%;
-}
-
-.dark {
-  --sidebar-background: 240 12% 8%;
 }
 
 /* Landing page: scrollable content area (overflow via class, no inline style) */
