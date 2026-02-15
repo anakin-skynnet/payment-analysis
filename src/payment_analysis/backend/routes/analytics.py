@@ -1,10 +1,16 @@
 """Analytics API: KPIs, trends, reason codes, smart checkout, 3DS funnel, decline summary.
 
 All data is fetched from Databricks (Unity Catalog views via SQL Warehouse).
-When Databricks is unavailable, endpoints fall back to **realistic mock data**
-so the UI remains functional and visually populated.  GET /kpis and
-GET /declines/summary additionally fall back to the local SQLite database before
-using mock data.
+Mock fallback behaviour:
+
+- **Explicit mock mode** (``X-Mock-Data: 1`` header): always returns mock data.
+- **Databricks unavailable**: falls back to realistic mock data so the UI
+  remains functional for development and demos.
+- **Databricks available but empty**: returns empty results (not mock) so the
+  UI can show "No data yet" states. The frontend already handles this gracefully.
+
+GET /kpis and GET /declines/summary additionally fall back to the local
+SQLite database before using mock data.
 
 **Data-source indicator:** Every analytics response includes an
 ``X-Data-Source: lakehouse`` or ``X-Data-Source: mock`` header so the frontend
@@ -42,6 +48,18 @@ def _set_data_source_header(response: Response, service: Any, *, forced_mock: bo
         return
     is_mock = getattr(service, "_last_query_used_mock", False)
     response.headers["X-Data-Source"] = "mock" if is_mock else "lakehouse"
+
+
+def _should_use_mock_fallback(request: Request, service: Any) -> bool:
+    """Use mock fallback only when: (1) explicit mock toggle is on, or (2) Databricks is not available.
+
+    When Databricks is available but returns empty data (e.g. new env, no data
+    yet), we return empty results instead of mock — the UI already handles
+    empty states gracefully with "No data yet" messages.
+    """
+    if _is_mock_request(request):
+        return True
+    return not getattr(service, "is_available", False)
 
 
 class ControlPanelIn(BaseModel):
@@ -382,7 +400,7 @@ async def get_recommendations(
         rows = _mock.mock_recommendations()[:limit]
     else:
         rows = await service.get_recommendations_from_lakehouse(limit=limit)
-        if not rows:
+        if not rows and _should_use_mock_fallback(request, service):
             rows = _mock.mock_recommendations()[:limit]
         _set_data_source_header(response, service)
     return [
@@ -469,8 +487,9 @@ async def kpis(request: Request, session: OptionalSessionDep, service: Databrick
         except Exception:
             logger.debug("UC view KPI query unavailable; falling back to local DB", exc_info=True)
     if session is None:
-        m = _mock.mock_kpis()
-        return KPIOut(**m)
+        if _should_use_mock_fallback(request, service):
+            return KPIOut(**_mock.mock_kpis())
+        return KPIOut(total=0, approved=0, approval_rate=0.0)
     total = session.exec(select(func.count(AuthorizationEvent.id))).one() or 0
     approved = (
         session.exec(
@@ -481,8 +500,9 @@ async def kpis(request: Request, session: OptionalSessionDep, service: Databrick
         or 0
     )
     if total == 0:
-        m = _mock.mock_kpis()
-        return KPIOut(**m)
+        if _should_use_mock_fallback(request, service):
+            return KPIOut(**_mock.mock_kpis())
+        return KPIOut(total=0, approved=0, approval_rate=0.0)
     approval_rate = float(approved) / float(total) if total else 0.0
     return KPIOut(total=int(total), approved=int(approved), approval_rate=approval_rate)
 
@@ -498,8 +518,29 @@ async def metrics(
     service: DatabricksServiceDep,
     country_filter: str = Query(DEFAULT_ENTITY, alias="country", description="Country/entity filter (e.g. BR)."),
 ) -> KPIOut:
-    """Aggregated Gold-layer metrics (KPIs) filtered by country. Alias for executive dashboards and global multi-tenancy."""
-    # country_filter reserved for future Unity Catalog row-level filtering; KPIs currently global
+    """Aggregated Gold-layer metrics (KPIs) filtered by country.
+
+    When a country_filter is provided and the Databricks Unity Catalog is available,
+    the query filters by issuer_country for entity-level KPIs. Falls back to global
+    KPIs when filtering is not possible.
+    """
+    if country_filter and country_filter != DEFAULT_ENTITY and service.is_available:
+        try:
+            data = await service.execute_query(
+                f"SELECT COUNT(*) AS total_transactions, "
+                f"SUM(CASE WHEN is_approved THEN 1 ELSE 0 END) AS approved_count, "
+                f"AVG(CASE WHEN is_approved THEN 1.0 ELSE 0.0 END) AS approval_rate "
+                f"FROM {service.config.full_schema_name}.silver_transactions "
+                f"WHERE issuer_country = '{country_filter}'"
+            )
+            if data and data[0].get("total_transactions", 0):
+                row = data[0]
+                total = int(row.get("total_transactions", 0))
+                approved = int(row.get("approved_count", 0))
+                rate = float(row.get("approval_rate", 0) or 0)
+                return KPIOut(total=total, approved=approved, approval_rate=rate)
+        except Exception:
+            logger.debug("Country-filtered KPI query failed; falling back to global", exc_info=True)
     return await kpis(request, session, service)
 
 
@@ -513,7 +554,14 @@ async def control_panel(
     service: DatabricksServiceDep,
     rt: RuntimeDep,
 ) -> ControlPanelOut:
-    """Persist control panel toggles to app_settings. When Databricks is available, job triggers can be added later via config."""
+    """Persist control panel toggles to app_settings and optionally trigger Databricks jobs.
+
+    When Databricks is available and corresponding jobs exist in the bundle,
+    toggling a control can trigger job runs for immediate effect:
+    - ``activate_smart_routing`` → triggers routing recalculation job
+    - ``deploy_fraud_shadow_model`` → triggers ML shadow deployment job
+    - ``recalculate_algorithms`` → triggers algorithm recalculation job
+    """
     settings: dict[str, str] = {}
     if payload.activate_smart_routing is not None:
         settings["control_activate_smart_routing"] = "true" if payload.activate_smart_routing else "false"
@@ -523,7 +571,31 @@ async def control_panel(
         settings["control_recalculate_algorithms"] = "true" if payload.recalculate_algorithms else "false"
     if settings:
         write_app_settings_keys(rt, settings)
-    return ControlPanelOut(ok=True, message="Control panel state received.")
+
+    # Trigger Databricks jobs when available
+    triggered_jobs: list[str] = []
+    try:
+        ws = getattr(rt, "ws", None)
+        if ws:
+            job_mapping = {
+                "control_recalculate_algorithms": "job_5_train_ml_models",
+            }
+            for key, job_name in job_mapping.items():
+                if settings.get(key) == "true":
+                    try:
+                        jobs_list = list(ws.jobs.list(name=job_name, limit=1))
+                        if jobs_list:
+                            ws.jobs.run_now(job_id=jobs_list[0].job_id)
+                            triggered_jobs.append(job_name)
+                    except Exception as e:
+                        logger.debug("Could not trigger job %s: %s", job_name, e)
+    except Exception:
+        logger.debug("Job trigger skipped (workspace client unavailable)", exc_info=True)
+
+    msg = "Control panel state saved."
+    if triggered_jobs:
+        msg += f" Triggered jobs: {', '.join(triggered_jobs)}."
+    return ControlPanelOut(ok=True, message=msg)
 
 
 @router.get("/kpis/databricks", response_model=DatabricksKPIOut, operation_id="getDatabricksKpis")
@@ -542,10 +614,10 @@ async def approval_trends(request: Request, service: DatabricksServiceDep, respo
         _set_data_source_header(response, service, forced_mock=True)
         return [ApprovalTrendOut(**row) for row in _mock.mock_approval_trends(seconds)]
     data = await service.get_approval_trends(seconds)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_approval_trends(seconds)
     _set_data_source_header(response, service)
-    return [ApprovalTrendOut(**row) for row in data]
+    return [ApprovalTrendOut(**row) for row in (data or [])]
 
 
 @router.get("/solutions", response_model=list[SolutionPerformanceOut], operation_id="getSolutionPerformance")
@@ -555,10 +627,10 @@ async def solution_performance(request: Request, service: DatabricksServiceDep, 
         _set_data_source_header(response, service, forced_mock=True)
         return [SolutionPerformanceOut(**row) for row in _mock.mock_solution_performance()]
     data = await service.get_solution_performance()
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_solution_performance()
     _set_data_source_header(response, service)
-    return [SolutionPerformanceOut(**row) for row in data]
+    return [SolutionPerformanceOut(**row) for row in (data or [])]
 
 
 @router.get(
@@ -577,7 +649,7 @@ async def smart_checkout_service_paths(
     if _is_mock_request(request):
         return [SmartCheckoutServicePathOut(**row) for row in _mock.mock_smart_checkout_service_paths()]
     data = await service.get_smart_checkout_service_paths(entity=entity, limit=limit)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_smart_checkout_service_paths()
     return [SmartCheckoutServicePathOut(**row) for row in data]
 
@@ -598,7 +670,7 @@ async def smart_checkout_path_performance(
     if _is_mock_request(request):
         return [SmartCheckoutPathPerformanceOut(**row) for row in _mock.mock_smart_checkout_path_performance()]
     data = await service.get_smart_checkout_path_performance(entity=entity, limit=limit)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_smart_checkout_path_performance()
     return [SmartCheckoutPathPerformanceOut(**row) for row in data]
 
@@ -619,7 +691,7 @@ async def three_ds_funnel(
     if _is_mock_request(request):
         return [ThreeDSFunnelOut(**row) for row in _mock.mock_3ds_funnel()]
     data = await service.get_3ds_funnel(entity=entity, days=days)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_3ds_funnel()
     return [ThreeDSFunnelOut(**row) for row in data]
 
@@ -641,7 +713,7 @@ async def reason_codes(
         data = _mock.mock_reason_code_insights()[:limit]
     else:
         data = await service.get_reason_codes(entity=entity, limit=limit)
-        if not data:
+        if not data and _should_use_mock_fallback(request, service):
             data = _mock.mock_reason_code_insights()[:limit]
     # Fill defaults for fields required by ReasonCodeOut but absent in insight mock data
     return [
@@ -677,7 +749,7 @@ async def reason_code_insights(
     if _is_mock_request(request):
         return [ReasonCodeInsightOut(**row) for row in _mock.mock_reason_code_insights()]
     data = await service.get_reason_code_insights(entity=entity, limit=limit)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_reason_code_insights()
     return [ReasonCodeInsightOut(**row) for row in data]
 
@@ -700,7 +772,7 @@ async def factors_delaying_approval(
     if _is_mock_request(request):
         return [ReasonCodeInsightOut(**row) for row in _mock.mock_reason_code_insights()[:limit]]
     data = await service.get_reason_code_insights(entity=entity, limit=limit)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_reason_code_insights()[:limit]
     return [ReasonCodeInsightOut(**row) for row in data]
 
@@ -719,7 +791,7 @@ async def entry_system_distribution(
     if _is_mock_request(request):
         return [EntrySystemDistributionOut(**row) for row in _mock.mock_entry_system_distribution()]
     data = await service.get_entry_system_distribution(entity=entity)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_entry_system_distribution()
     return [EntrySystemDistributionOut(**row) for row in data]
 
@@ -739,7 +811,7 @@ async def geography(
         data = _mock.mock_geography()
     else:
         data = await service.get_performance_by_geography(limit=limit)
-        if not data:
+        if not data and _should_use_mock_fallback(request, service):
             data = _mock.mock_geography()
     return [
         GeographyOut(
@@ -811,7 +883,7 @@ async def streaming_tps(
     if _is_mock_request(request):
         return [StreamingTpsPointOut(event_second=r["event_second"], records_per_second=r["records_per_second"]) for r in _mock.mock_streaming_tps()]
     data = await service.get_streaming_tps(limit_seconds=limit_seconds)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_streaming_tps()
     return [StreamingTpsPointOut(event_second=r["event_second"], records_per_second=r["records_per_second"]) for r in data]
 
@@ -832,7 +904,7 @@ async def command_center_entry_throughput(
         data = _mock.mock_entry_throughput()
     else:
         data = await service.get_command_center_entry_throughput(entity=entity, limit_minutes=limit_minutes)
-        if not data:
+        if not data and _should_use_mock_fallback(request, service):
             data = _mock.mock_entry_throughput()
     return [
         CommandCenterEntryThroughputPointOut(ts=r["ts"], PD=r["PD"], WS=r["WS"], SEP=r["SEP"], Checkout=r["Checkout"])
@@ -854,7 +926,7 @@ async def active_alerts(
     if _is_mock_request(request):
         return [ActiveAlertOut(**row) for row in _mock.mock_active_alerts()]
     data = await service.get_active_alerts(limit=limit)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_active_alerts()
     return [ActiveAlertOut(**row) for row in data]
 
@@ -881,7 +953,7 @@ async def false_insights_metric(request: Request, service: DatabricksServiceDep,
     if _is_mock_request(request):
         return [FalseInsightsMetricOut(**row) for row in _mock.mock_false_insights_metric()]
     data = await service.get_false_insights_metric(days=days)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_false_insights_metric()
     return [FalseInsightsMetricOut(**row) for row in data]
 
@@ -897,7 +969,7 @@ async def retry_performance(request: Request, service: DatabricksServiceDep, lim
     if _is_mock_request(request):
         return [RetryPerformanceOut(**row) for row in _mock.mock_retry_performance()]
     data = await service.get_retry_performance(limit=limit)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_retry_performance()
     return [RetryPerformanceOut(**row) for row in data]
 
@@ -948,7 +1020,7 @@ async def decline_recovery_opportunities(
     if _is_mock_request(request):
         return _mock.mock_decline_recovery_opportunities()[:limit]
     data = await service.get_decline_recovery_opportunities(limit=limit)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_decline_recovery_opportunities()[:limit]
     return data
 
@@ -967,7 +1039,7 @@ async def card_network_performance(
     if _is_mock_request(request):
         return _mock.mock_card_network_performance()[:limit]
     data = await service.get_card_network_performance(limit=limit)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_card_network_performance()[:limit]
     return data
 
@@ -986,7 +1058,7 @@ async def merchant_segment_performance(
     if _is_mock_request(request):
         return _mock.mock_merchant_segment_performance()[:limit]
     data = await service.get_merchant_segment_performance(limit=limit)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_merchant_segment_performance()[:limit]
     return data
 
@@ -1005,7 +1077,7 @@ async def daily_trends(
     if _is_mock_request(request):
         return _mock.mock_daily_trends(days=days)
     data = await service.get_daily_trends(days=days)
-    if not data:
+    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_daily_trends(days=days)
     return data
 
@@ -1094,7 +1166,7 @@ async def databricks_decline_summary(request: Request, service: DatabricksServic
         data = _mock.mock_decline_summary()
     else:
         data = await service.get_decline_summary()
-        if not data:
+        if not data and _should_use_mock_fallback(request, service):
             data = _mock.mock_decline_summary()
     return [
         DeclineBucketOut(

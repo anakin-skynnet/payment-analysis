@@ -550,14 +550,36 @@ function ApprovalSimulator() {
   const [amount, setAmount] = useState(1999);
   const [deviceTrust, setDeviceTrust] = useState(0.95);
   const [is3ds, setIs3ds] = useState(true);
+  const predictApproval = usePredictApproval();
 
-  const simApprovalProb = Math.min(
+  // Call the ML model serving endpoint for a real prediction
+  const runSimulation = () => {
+    predictApproval.mutate({
+      amount: amount / 100,
+      fraud_score: riskScore,
+      device_trust_score: deviceTrust,
+      is_cross_border: false,
+      retry_count: 0,
+      uses_3ds: is3ds,
+      merchant_segment: "retail",
+      card_network: "visa",
+    });
+  };
+
+  // Use ML model result when available, otherwise compute a local heuristic as preview
+  const mlResult = predictApproval.data?.data as { approval_probability?: number; should_approve?: boolean; _source?: string } | undefined;
+  const mlProb = mlResult?.approval_probability;
+  const isFromModel = mlResult != null && mlResult._source !== "mock";
+
+  const heuristicProb = Math.min(
     0.99,
     Math.max(
       0.05,
-      0.7 + 0.15 * deviceTrust - 0.25 * riskScore - 0.05 * (amount > 50000 ? 1 : 0) + 0.08 * (is3ds ? 1 : 0)
-    )
+      0.7 + 0.15 * deviceTrust - 0.25 * riskScore - 0.05 * (amount > 50000 ? 1 : 0) + 0.08 * (is3ds ? 1 : 0),
+    ),
   );
+  const simApprovalProb = mlProb ?? heuristicProb;
+
   const riskLevel = riskScore > 0.75 ? "High" : riskScore > 0.35 ? "Medium" : "Low";
   const riskColor = riskScore > 0.75 ? "text-red-500" : riskScore > 0.35 ? "text-amber-500" : "text-green-500";
   const approvalColor = simApprovalProb > 0.7 ? "text-green-500" : simApprovalProb > 0.4 ? "text-amber-500" : "text-red-500";
@@ -568,10 +590,15 @@ function ApprovalSimulator() {
         <CardTitle className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-primary" />
           Approval Rate Simulator
+          {isFromModel ? (
+            <Badge variant="default" className="ml-auto text-[10px]">ML Model</Badge>
+          ) : mlResult ? (
+            <Badge variant="outline" className="ml-auto text-[10px] border-amber-500/60 text-amber-500">heuristic</Badge>
+          ) : null}
         </CardTitle>
         <CardDescription>
-          Adjust parameters to simulate how changes affect the predicted approval rate.
-          Use this to find optimal thresholds for your merchant segments.
+          Adjust parameters and run a prediction against the Databricks Model Serving endpoint.
+          The approval propensity model scores transactions in real time.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -612,10 +639,13 @@ function ApprovalSimulator() {
             <Label htmlFor="sim3ds" className="text-muted-foreground cursor-pointer">3D Secure enabled</Label>
           </div>
         </div>
+        <Button onClick={runSimulation} disabled={predictApproval.isPending} size="sm">
+          {predictApproval.isPending ? "Predicting…" : "Run ML prediction"}
+        </Button>
         <div className="grid grid-cols-3 gap-3 pt-2">
           <div className="text-center p-3 rounded-lg bg-muted/50">
             <p className="text-xs text-muted-foreground">Estimated Approval</p>
-            <p className={`text-2xl font-bold ${approvalColor}`}>{(simApprovalProb * 100).toFixed(1)}%</p>
+            <p className={`text-2xl font-bold tabular-nums ${approvalColor}`}>{(simApprovalProb * 100).toFixed(1)}%</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-muted/50">
             <p className="text-xs text-muted-foreground">Risk Level</p>
@@ -624,7 +654,9 @@ function ApprovalSimulator() {
           <div className="text-center p-3 rounded-lg bg-muted/50">
             <p className="text-xs text-muted-foreground">Suggested Action</p>
             <p className="text-lg font-bold text-foreground">
-              {simApprovalProb > 0.7 ? "Approve" : simApprovalProb > 0.4 ? "Review" : "Challenge"}
+              {mlResult?.should_approve != null
+                ? mlResult.should_approve ? "Approve" : "Challenge"
+                : simApprovalProb > 0.7 ? "Approve" : simApprovalProb > 0.4 ? "Review" : "Challenge"}
             </p>
           </div>
         </div>

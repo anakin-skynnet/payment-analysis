@@ -712,8 +712,10 @@ class DatabricksService:
             if not tps_list:
                 return []
 
-            # Get real entry-system shares from Databricks
-            shares: dict[str, float] = {"PD": 0.62, "WS": 0.34, "SEP": 0.03, "Checkout": 0.01}
+            # Get real entry-system shares from Databricks (no hardcoded fallback —
+            # when distribution is unavailable, use equal shares so the chart
+            # still renders with correct total TPS but without misleading proportions).
+            shares: dict[str, float] = {"PD": 0.25, "WS": 0.25, "SEP": 0.25, "Checkout": 0.25}
             try:
                 dist_data = await self.get_entry_system_distribution(entity=entity)
                 if dist_data:
@@ -899,13 +901,70 @@ class DatabricksService:
     async def vector_search_similar(
         self, description: str, num_results: int = 5
     ) -> list[dict[str, Any]]:
-        """Search for similar transactions using Vector Search on transaction_summaries_for_search.
+        """Search for similar transactions using Databricks Vector Search.
 
-        This powers the similar-case lookup in the DecisionEngine, enabling decisions
-        informed by historical outcomes of comparable transactions.
+        Uses the ``VECTOR_SEARCH()`` table-valued function (TVF) against the
+        ``similar_transactions_index`` Vector Search index — the same pattern
+        used by the UC agent tool ``search_similar_transactions``.
+
+        Falls back to a plain SQL lookup (by transaction volume) when the
+        Vector Search index is not available (e.g. index not yet created).
         """
         num_results = max(1, min(num_results, 20))
-        query = f"""
+
+        # ── Primary: Databricks Vector Search TVF ──────────────────────
+        vs_query = f"""
+            SELECT
+                merchant_segment, issuer_country, payment_solution,
+                ROUND(approval_rate_pct, 2) AS approval_rate_pct,
+                ROUND(avg_fraud_score, 4) AS avg_fraud_score,
+                ROUND(avg_amount, 2) AS avg_amount,
+                transaction_count
+            FROM VECTOR_SEARCH(
+                index => '{self.config.full_schema_name}.similar_transactions_index',
+                query_text => :description,
+                num_results => {num_results}
+            )
+        """
+        try:
+            from databricks.sdk.service.sql import StatementParameterListItem
+
+            client = self.client
+            warehouse_id = self._get_warehouse_id()
+            if client and warehouse_id:
+                params = [
+                    StatementParameterListItem(name="description", value=description, type="STRING"),
+                ]
+                result = client.statement_execution.execute_statement(
+                    statement=vs_query,
+                    warehouse_id=warehouse_id,
+                    parameters=params,
+                    wait_timeout="30s",
+                )
+                from databricks.sdk.service.sql import StatementState
+
+                if result.status and result.status.state == StatementState.SUCCEEDED and result.result:
+                    manifest_schema = getattr(result.manifest, "schema", None) if result.manifest else None
+                    columns = [col.name for col in (manifest_schema.columns or [])] if manifest_schema and manifest_schema.columns else []
+                    rows = []
+                    for chunk in result.result.data_array or []:
+                        row = dict(zip(columns, chunk))
+                        rows.append({
+                            "merchant_segment": str(row.get("merchant_segment", "")),
+                            "issuer_country": str(row.get("issuer_country", "")),
+                            "payment_solution": str(row.get("payment_solution", "")),
+                            "approval_rate_pct": float(row.get("approval_rate_pct", 0) or 0),
+                            "avg_fraud_score": float(row.get("avg_fraud_score", 0) or 0),
+                            "avg_amount": float(row.get("avg_amount", 0) or 0),
+                            "transaction_count": int(row.get("transaction_count", 0) or 0),
+                        })
+                    if rows:
+                        return rows
+        except Exception as e:
+            logger.debug("Vector Search TVF failed (index may not exist yet), falling back to SQL: %s", e)
+
+        # ── Fallback: plain SQL when Vector Search index is not available ──
+        fallback_query = f"""
             SELECT
                 merchant_segment, issuer_country, payment_solution,
                 ROUND(approval_rate_pct, 2) AS approval_rate_pct,
@@ -917,10 +976,10 @@ class DatabricksService:
             LIMIT {num_results}
         """
         try:
-            results = await self.execute_query(query)
+            results = await self.execute_query(fallback_query)
             return results or []
         except Exception as e:
-            logger.debug("vector_search_similar failed: %s", e)
+            logger.debug("vector_search_similar fallback also failed: %s", e)
             return []
 
     async def read_app_config(self) -> tuple[str, str] | None:

@@ -11,7 +11,7 @@ import json
 import logging
 from typing import Any, Optional, cast
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import desc
 from sqlmodel import select
@@ -25,7 +25,11 @@ router = APIRouter(tags=["incidents"])
 _VALID_INCIDENT_STATUSES = {"open", "mitigating", "resolved"}
 
 
-async def _sync_incident_to_lakehouse(incident: Incident) -> None:
+async def _sync_incident_to_lakehouse(
+    incident: Incident,
+    catalog: str | None = None,
+    schema: str | None = None,
+) -> None:
     """Sync an incident to the Lakehouse mirror table (incidents_lakehouse).
 
     Runs as a background task so it does not block the API response.
@@ -38,6 +42,10 @@ async def _sync_incident_to_lakehouse(incident: Incident) -> None:
     SQL injection mitigation: all user-supplied values are passed through
     Databricks SQL Statement API parameters (named :param syntax) instead
     of string interpolation.
+
+    When *catalog* and *schema* are provided (from request-scoped app_config),
+    they override the environment defaults so the sync targets the correct
+    Unity Catalog schema.
     """
     try:
         from databricks.sdk.service.sql import StatementParameterListItem, StatementState
@@ -45,6 +53,10 @@ async def _sync_incident_to_lakehouse(incident: Incident) -> None:
         from ..services.databricks_service import DatabricksService
 
         svc = DatabricksService.create()
+        # Override catalog/schema when request-scoped config is available
+        if catalog and schema and (catalog != svc.config.catalog or schema != svc.config.schema):
+            from dataclasses import replace as dc_replace
+            svc = DatabricksService(config=dc_replace(svc.config, catalog=catalog, schema=schema))
         if not svc.is_available:
             logger.warning("Databricks unavailable — skipping Lakehouse sync for incident %s", incident.id)
             return
@@ -140,9 +152,17 @@ def list_incidents(
     return list(session.exec(stmt).all())
 
 
+def _get_uc_config(request: Request) -> tuple[str | None, str | None]:
+    """Extract effective (catalog, schema) from the application's runtime state."""
+    uc_config = getattr(getattr(request.app, "state", None), "uc_config", None)
+    if uc_config and isinstance(uc_config, tuple) and len(uc_config) == 2:
+        return uc_config[0], uc_config[1]
+    return None, None
+
+
 @router.post("", response_model=Incident, operation_id="createIncident")
 def create_incident(
-    payload: IncidentIn, session: SessionDep, background_tasks: BackgroundTasks
+    payload: IncidentIn, session: SessionDep, background_tasks: BackgroundTasks, request: Request
 ) -> Incident:
     incident = Incident(
         category=payload.category,
@@ -153,8 +173,9 @@ def create_incident(
     session.add(incident)
     session.commit()
     session.refresh(incident)
-    # Sync to Lakehouse mirror for UC agent access
-    background_tasks.add_task(_sync_incident_to_lakehouse, incident)
+    # Sync to Lakehouse mirror for UC agent access — inherit catalog/schema from app state
+    catalog, schema = _get_uc_config(request)
+    background_tasks.add_task(_sync_incident_to_lakehouse, incident, catalog, schema)
     return incident
 
 
@@ -162,7 +183,7 @@ def create_incident(
     "/{incident_id}/resolve", response_model=Incident, operation_id="resolveIncident"
 )
 def resolve_incident(
-    incident_id: str, session: SessionDep, background_tasks: BackgroundTasks
+    incident_id: str, session: SessionDep, background_tasks: BackgroundTasks, request: Request
 ) -> Incident:
     incident = session.get(Incident, incident_id)
     if not incident:
@@ -171,8 +192,9 @@ def resolve_incident(
     session.add(incident)
     session.commit()
     session.refresh(incident)
-    # Sync status update to Lakehouse mirror
-    background_tasks.add_task(_sync_incident_to_lakehouse, incident)
+    # Sync status update to Lakehouse mirror — inherit catalog/schema from app state
+    catalog, schema = _get_uc_config(request)
+    background_tasks.add_task(_sync_incident_to_lakehouse, incident, catalog, schema)
     return incident
 
 
