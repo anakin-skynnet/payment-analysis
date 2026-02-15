@@ -508,6 +508,78 @@ measures:
 $$;
 
 -- ===========================================================================
--- SUMMARY: 15 standard views + 3 metric views for dashboards, Genie & agents
+-- POPULATE PREVIOUSLY-EMPTY TABLES
+-- These views feed the Vector Search, Online Features, and Recommendations
+-- tables so that the DecisionEngine and agents get real data.
+-- ===========================================================================
+
+-- transaction_summaries_for_search: Source table for Vector Search similar-case lookups.
+-- Aggregates per (merchant_segment, issuer_country, payment_solution) so the
+-- DecisionEngine can find comparable transaction cohorts in real-time.
+CREATE OR REPLACE VIEW v_transaction_summaries_for_search AS
+SELECT
+    merchant_segment,
+    issuer_country,
+    payment_solution,
+    COUNT(*) AS transaction_count,
+    ROUND(SUM(CASE WHEN is_approved THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS approval_rate_pct,
+    ROUND(AVG(fraud_score), 4) AS avg_fraud_score,
+    ROUND(AVG(amount), 2) AS avg_amount,
+    ROUND(AVG(processing_time_ms), 1) AS avg_latency_ms,
+    ROUND(AVG(device_trust_score), 4) AS avg_device_trust,
+    SUM(CASE WHEN is_cross_border THEN 1 ELSE 0 END) AS cross_border_count,
+    CONCAT(
+        merchant_segment, ' | ', issuer_country, ' | ', payment_solution,
+        ' | approval=', ROUND(SUM(CASE WHEN is_approved THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1), '%',
+        ' | fraud=', ROUND(AVG(fraud_score), 3),
+        ' | vol=', COUNT(*)
+    ) AS search_text
+FROM payments_enriched_silver
+WHERE event_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+GROUP BY merchant_segment, issuer_country, payment_solution
+HAVING COUNT(*) >= 10;
+
+-- approval_recommendations: Agent-generated recommendations from data analysis.
+-- Seeded from decline patterns; enriched by agent write-back.
+CREATE OR REPLACE VIEW v_recommendations_from_lakehouse AS
+SELECT
+    CONCAT('rec_', merchant_segment, '_', decline_reason_standard) AS id,
+    CONCAT(
+        merchant_segment, ': ', decline_reason_standard,
+        ' (', decline_count, ' declines, ', ROUND(recovery_potential_pct, 1), '% recoverable)'
+    ) AS context_summary,
+    CASE
+        WHEN decline_reason_standard = 'FUNDS_OR_LIMIT' THEN 'Schedule retries around payday (1st, 15th); use smart retry with 24h backoff'
+        WHEN decline_reason_standard = 'FRAUD_SUSPECTED' THEN 'Enable 3DS authentication; lower risk threshold to 0.3 for this segment'
+        WHEN decline_reason_standard = 'CARD_EXPIRED' THEN 'Trigger account updater; send cardholder notification for card renewal'
+        WHEN decline_reason_standard = 'ISSUER_TECHNICAL' THEN 'Configure cascade routing; retry in 15min with alternative processor'
+        WHEN decline_reason_standard = 'ISSUER_DO_NOT_HONOR' THEN 'Adjust routing to higher-approval processor for this segment'
+        ELSE 'Review decline patterns and configure segment-specific rules'
+    END AS recommended_action,
+    ROUND(recovery_potential_pct / 100.0, 3) AS score,
+    'lakehouse_analysis' AS source_type,
+    CURRENT_TIMESTAMP() AS created_at
+FROM (
+    SELECT
+        merchant_segment,
+        decline_reason_standard,
+        COUNT(*) AS decline_count,
+        ROUND(
+            SUM(CASE WHEN decline_reason_standard IN ('FUNDS_OR_LIMIT', 'ISSUER_TECHNICAL', 'ISSUER_DO_NOT_HONOR') THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+            1
+        ) AS recovery_potential_pct
+    FROM payments_enriched_silver
+    WHERE NOT is_approved
+      AND decline_reason_standard IS NOT NULL
+      AND event_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+    GROUP BY merchant_segment, decline_reason_standard
+    HAVING COUNT(*) >= 5
+) sub
+ORDER BY decline_count DESC
+LIMIT 50;
+
+-- ===========================================================================
+-- SUMMARY: 15 standard views + 3 metric views + 2 population views for
+-- dashboards, Genie, agents, Vector Search & recommendations
 -- (v_retry_performance is managed by the Lakeflow pipeline — see gold_views.py)
 -- ===========================================================================

@@ -21,7 +21,7 @@ import mlflow  # type: ignore[import-untyped]
 import mlflow.sklearn  # type: ignore[import-untyped]
 import pandas as pd  # type: ignore[import-untyped]
 import numpy as np  # type: ignore[import-untyped]
-from sklearn.ensemble import RandomForestClassifier  # type: ignore[import-untyped]
+from sklearn.ensemble import HistGradientBoostingClassifier  # type: ignore[import-untyped]
 from sklearn.model_selection import train_test_split  # type: ignore[import-untyped]
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score  # type: ignore[import-untyped]
 from sklearn.preprocessing import LabelEncoder  # type: ignore[import-untyped]
@@ -212,6 +212,44 @@ except Exception as e:
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ## Feature Engineering: Temporal, Merchant & Network Features
+
+# COMMAND ----------
+
+# Temporal features (hour, day-of-week, weekend) — powerful for fraud & approval patterns
+try:
+    if "event_timestamp" in df.columns:
+        ts = pd.to_datetime(df["event_timestamp"], errors="coerce")
+        df["hour_of_day"] = ts.dt.hour.fillna(12).astype(int)
+        df["day_of_week"] = ts.dt.dayofweek.fillna(3).astype(int)
+        df["is_weekend"] = (df["day_of_week"] >= 5).astype(int)
+    else:
+        df["hour_of_day"] = np.random.randint(0, 24, len(df))
+        df["day_of_week"] = np.random.randint(0, 7, len(df))
+        df["is_weekend"] = (df["day_of_week"] >= 5).astype(int)
+except Exception:
+    df["hour_of_day"] = 12
+    df["day_of_week"] = 3
+    df["is_weekend"] = 0
+
+# Network encoding (card_network → numeric)
+if "card_network" in df.columns:
+    network_map = {"visa": 0, "mastercard": 1, "amex": 2, "elo": 3, "hipercard": 4}
+    df["network_encoded"] = df["card_network"].str.lower().map(network_map).fillna(5).astype(int)
+else:
+    df["network_encoded"] = 0
+
+# Amount log-transform (reduces skewness for tree models)
+df["log_amount"] = np.log1p(df["amount"].fillna(0).clip(lower=0))
+
+# Interaction feature: risk × amount
+df["risk_amount_interaction"] = df["fraud_score"].fillna(0) * df["log_amount"]
+
+print(f"✓ Feature engineering complete: {len(df.columns)} total columns")
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ## Load Decision Outcomes (Feedback Loop)
 # MAGIC
 # MAGIC When Lakebase `decisionoutcome` data is available (synced to Lakehouse or read
@@ -289,7 +327,11 @@ print("TRAINING MODEL 1: Approval Propensity Model")
 print("=" * 80)
 
 try:
-    features_approval = ['amount', 'fraud_score', 'device_trust_score', 'is_cross_border', 'retry_count', 'uses_3ds']
+    features_approval = [
+        'amount', 'log_amount', 'fraud_score', 'device_trust_score', 'is_cross_border',
+        'retry_count', 'uses_3ds', 'hour_of_day', 'day_of_week', 'is_weekend',
+        'network_encoded', 'risk_amount_interaction',
+    ]
     X_approval = df[features_approval].fillna(0)
     y_approval = df['is_approved'].astype(int)
 
@@ -298,12 +340,12 @@ try:
     )
 
     with mlflow.start_run(run_name="approval_propensity_model") as run:
-        model = RandomForestClassifier(
-            n_estimators=N_ESTIMATORS,
+        model = HistGradientBoostingClassifier(
+            max_iter=N_ESTIMATORS,
             max_depth=MAX_DEPTH_APPROVAL,
-            min_samples_split=MIN_SAMPLES_SPLIT,
+            min_samples_leaf=MIN_SAMPLES_SPLIT,
+            learning_rate=0.05,
             random_state=42,
-            n_jobs=-1
         )
         model.fit(X_train, y_train)
         
@@ -319,9 +361,10 @@ try:
         }
         
         mlflow.log_params({
-            "model_type": "RandomForestClassifier",
-            "n_estimators": N_ESTIMATORS,
+            "model_type": "HistGradientBoostingClassifier",
+            "max_iter": N_ESTIMATORS,
             "max_depth": MAX_DEPTH_APPROVAL,
+            "learning_rate": 0.05,
             "features": ",".join(features_approval)
         })
         mlflow.log_metrics(metrics)
@@ -359,7 +402,11 @@ print("TRAINING MODEL 2: Risk Scoring Model")
 print("=" * 80)
 
 try:
-    features_risk = ['amount', 'fraud_score', 'aml_risk_score', 'is_cross_border', 'processing_time_ms', 'device_trust_score']
+    features_risk = [
+        'amount', 'log_amount', 'fraud_score', 'aml_risk_score', 'is_cross_border',
+        'processing_time_ms', 'device_trust_score', 'hour_of_day', 'day_of_week',
+        'is_weekend', 'network_encoded', 'risk_amount_interaction',
+    ]
     X_risk = df[features_risk].fillna(0)
     y_risk = ((df['fraud_score'] > 0.5) | (df['is_approved'] == 0)).astype(int)
 
@@ -368,12 +415,12 @@ try:
     )
 
     with mlflow.start_run(run_name="risk_scoring_model") as run:
-        model = RandomForestClassifier(
-            n_estimators=N_ESTIMATORS,
+        model = HistGradientBoostingClassifier(
+            max_iter=N_ESTIMATORS,
             max_depth=MAX_DEPTH_RISK,
-            min_samples_split=MIN_SAMPLES_SPLIT,
+            min_samples_leaf=MIN_SAMPLES_SPLIT,
+            learning_rate=0.05,
             random_state=42,
-            n_jobs=-1
         )
         model.fit(X_train, y_train)
         
@@ -389,9 +436,10 @@ try:
         }
         
         mlflow.log_params({
-            "model_type": "RandomForestClassifier",
-            "n_estimators": N_ESTIMATORS,
+            "model_type": "HistGradientBoostingClassifier",
+            "max_iter": N_ESTIMATORS,
             "max_depth": MAX_DEPTH_RISK,
+            "learning_rate": 0.05,
             "features": ",".join(features_risk)
         })
         mlflow.log_metrics(metrics)
@@ -426,7 +474,11 @@ print("TRAINING MODEL 3: Smart Routing Policy")
 print("=" * 80)
 
 try:
-    features_routing = ['amount', 'fraud_score', 'is_cross_border', 'uses_3ds', 'device_trust_score']
+    features_routing = [
+        'amount', 'log_amount', 'fraud_score', 'is_cross_border', 'uses_3ds',
+        'device_trust_score', 'hour_of_day', 'day_of_week', 'is_weekend',
+        'network_encoded', 'risk_amount_interaction',
+    ]
     df_routing = df.copy()
     df_routing = pd.get_dummies(df_routing, columns=['merchant_segment'], prefix='segment')
     segment_cols = [col for col in df_routing.columns if col.startswith('segment_')]
@@ -442,12 +494,12 @@ try:
     )
 
     with mlflow.start_run(run_name="smart_routing_policy") as run:
-        model = RandomForestClassifier(
-            n_estimators=N_ESTIMATORS,
+        model = HistGradientBoostingClassifier(
+            max_iter=N_ESTIMATORS,
             max_depth=MAX_DEPTH_ROUTING,
-            min_samples_split=MIN_SAMPLES_SPLIT,
+            min_samples_leaf=MIN_SAMPLES_SPLIT,
+            learning_rate=0.05,
             random_state=42,
-            n_jobs=-1
         )
         model.fit(X_train, y_train)
         
@@ -455,9 +507,10 @@ try:
         accuracy = accuracy_score(y_test, y_pred)
         
         mlflow.log_params({
-            "model_type": "RandomForestClassifier",
-            "n_estimators": N_ESTIMATORS,
+            "model_type": "HistGradientBoostingClassifier",
+            "max_iter": N_ESTIMATORS,
             "max_depth": MAX_DEPTH_ROUTING,
+            "learning_rate": 0.05,
             "features": ",".join(features_routing_all),
             "classes": ",".join(le.classes_)
         })
@@ -514,6 +567,7 @@ try:
             "retry_scenario_encoded",
             "retry_count",
             "amount",
+            "log_amount",
             "is_recurring",
             "fraud_score",
             "device_trust_score",
@@ -521,6 +575,11 @@ try:
             "time_since_last_attempt_seconds",
             "prior_approved_count",
             "merchant_retry_policy_max_attempts",
+            "hour_of_day",
+            "day_of_week",
+            "is_weekend",
+            "network_encoded",
+            "risk_amount_interaction",
         ]
         X_retry = df_declined[features_retry].fillna(0)
         
@@ -553,12 +612,12 @@ try:
         )
         
         with mlflow.start_run(run_name="smart_retry_policy") as run:
-            model = RandomForestClassifier(
-                n_estimators=N_ESTIMATORS,
+            model = HistGradientBoostingClassifier(
+                max_iter=N_ESTIMATORS,
                 max_depth=MAX_DEPTH_RETRY,
-                min_samples_split=MIN_SAMPLES_SPLIT,
+                min_samples_leaf=MIN_SAMPLES_SPLIT,
+                learning_rate=0.05,
                 random_state=42,
-                n_jobs=-1
             )
             model.fit(X_train, y_train)
             
@@ -572,9 +631,10 @@ try:
             }
             
             mlflow.log_params({
-                "model_type": "RandomForestClassifier",
-                "n_estimators": N_ESTIMATORS,
+                "model_type": "HistGradientBoostingClassifier",
+                "max_iter": N_ESTIMATORS,
                 "max_depth": MAX_DEPTH_RETRY,
+                "learning_rate": 0.05,
                 "features": ",".join(features_retry)
             })
             mlflow.log_metrics(metrics)

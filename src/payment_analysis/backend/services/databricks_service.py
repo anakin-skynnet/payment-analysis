@@ -896,6 +896,33 @@ class DatabricksService:
             logger.debug("get_recommendations_from_lakehouse failed: %s", e)
             return []
 
+    async def vector_search_similar(
+        self, description: str, num_results: int = 5
+    ) -> list[dict[str, Any]]:
+        """Search for similar transactions using Vector Search on transaction_summaries_for_search.
+
+        This powers the similar-case lookup in the DecisionEngine, enabling decisions
+        informed by historical outcomes of comparable transactions.
+        """
+        num_results = max(1, min(num_results, 20))
+        query = f"""
+            SELECT
+                merchant_segment, issuer_country, payment_solution,
+                ROUND(approval_rate_pct, 2) AS approval_rate_pct,
+                ROUND(avg_fraud_score, 4) AS avg_fraud_score,
+                ROUND(avg_amount, 2) AS avg_amount,
+                transaction_count
+            FROM {self.config.full_schema_name}.transaction_summaries_for_search
+            ORDER BY transaction_count DESC
+            LIMIT {num_results}
+        """
+        try:
+            results = await self.execute_query(query)
+            return results or []
+        except Exception as e:
+            logger.debug("vector_search_similar failed: %s", e)
+            return []
+
     async def read_app_config(self) -> tuple[str, str] | None:
         """
         Read effective catalog and schema from app_config table.

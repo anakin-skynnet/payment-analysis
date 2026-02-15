@@ -159,18 +159,11 @@ export function Component() {
                 <Skeleton className="h-full w-full max-w-md" />
               </div>
             ) : iframeSrc ? (
-              <>
-                <iframe
-                  title={embedDashboard?.name || "Dashboard"}
-                  src={String(iframeSrc)}
-                  className="w-full h-[78vh] border-0"
-                  allowFullScreen
-                />
-                <p className="text-xs text-muted-foreground px-2 py-1.5 border-t border-border bg-muted/20">
-                  If the dashboard shows &quot;refused to connect&quot;, the workspace must allow embedding:{" "}
-                  <span className="font-medium">Settings → Security → Embed dashboards</span> → set to <strong>Allow</strong> or add <code className="text-[11px]">*.databricksapps.com</code> to approved domains.
-                </p>
-              </>
+              <EmbedWithFallback
+                title={embedDashboard?.name || "Dashboard"}
+                src={String(iframeSrc)}
+                dashboardId={embedId!}
+              />
             ) : (
               <div className="flex flex-col items-center justify-center h-[70vh] text-muted-foreground gap-3 p-4 max-w-md">
                 <p className="text-center text-sm">
@@ -612,5 +605,71 @@ export function Component() {
         </>
       )}
     </div>
+  );
+}
+
+function EmbedWithFallback({
+  title,
+  src,
+  dashboardId,
+}: {
+  title: string;
+  src: string;
+  dashboardId: string;
+}) {
+  const [embedFailed, setEmbedFailed] = React.useState(false);
+  const iframeRef = React.useRef<HTMLIFrameElement>(null);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (iframeRef.current) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          iframeRef.current.contentDocument;
+        } catch {
+          setEmbedFailed(true);
+        }
+      }
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [src]);
+
+  if (embedFailed) {
+    const externalUrl = getLakeviewDashboardUrl(dashboardId);
+    return (
+      <div className="flex flex-col items-center justify-center h-[70vh] gap-4 text-center p-6">
+        <AlertCircle className="w-10 h-10 text-amber-500" />
+        <div className="space-y-1.5 max-w-md">
+          <p className="text-sm font-medium">Dashboard embedding is blocked by workspace security settings</p>
+          <p className="text-xs text-muted-foreground">
+            To enable embedding: <strong>Settings → Security → Embed dashboards</strong> → Allow.
+            In the meantime, the dashboard opens in a new tab.
+          </p>
+        </div>
+        {externalUrl && (
+          <Button onClick={() => window.open(externalUrl, "_blank", "noopener,noreferrer")} className="gap-2">
+            <ExternalLink className="w-4 h-4" />
+            Open dashboard in new tab
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <iframe
+        ref={iframeRef}
+        title={title}
+        src={src}
+        className="w-full h-[78vh] border-0"
+        allowFullScreen
+        onError={() => setEmbedFailed(true)}
+      />
+      <p className="text-xs text-muted-foreground px-2 py-1.5 border-t border-border bg-muted/20">
+        If the dashboard shows &quot;refused to connect&quot;, the workspace must allow embedding:{" "}
+        <span className="font-medium">Settings → Security → Embed dashboards</span> → set to <strong>Allow</strong>.
+      </p>
+    </>
   );
 }

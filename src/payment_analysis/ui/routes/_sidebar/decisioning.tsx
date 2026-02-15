@@ -355,6 +355,8 @@ function Decisioning() {
           </div>
         </CardContent>
       </Card>
+
+      <ApprovalSimulator />
     </div>
   );
 }
@@ -408,6 +410,9 @@ function DecisionCard({
   const variant = obj?.variant as string | undefined;
   const experimentId = obj?.experiment_id as string | undefined;
   const handleCardClick = () => notebookId && openNotebookInDatabricks(notebookId);
+
+  const factors = extractDecisionFactors(obj);
+
   return (
     <Card
       className={`glass-card border border-border/80 ${notebookId ? "cursor-pointer hover:shadow-md transition-shadow" : ""}`}
@@ -432,16 +437,197 @@ function DecisionCard({
           <p className="text-xs text-muted-foreground mt-1">Experiment: {experimentId}</p>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         {result ? (
-          <pre className="text-xs whitespace-pre-wrap break-words">
-            {JSON.stringify(result, null, 2)}
-          </pre>
+          <>
+            {factors.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Decision factors</p>
+                {factors.map((f, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    <div
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        f.impact === "positive" ? "bg-green-500" : f.impact === "negative" ? "bg-red-500" : "bg-amber-500"
+                      }`}
+                    />
+                    <span className="text-muted-foreground">{f.label}:</span>
+                    <span className="font-medium">{f.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Raw JSON</summary>
+              <pre className="mt-1 whitespace-pre-wrap break-words text-muted-foreground">
+                {JSON.stringify(result, null, 2)}
+              </pre>
+            </details>
+          </>
         ) : (
           <p className="text-sm text-muted-foreground">
             Run a decision to see output and an audit id.
           </p>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+type Factor = { label: string; value: string; impact: "positive" | "negative" | "neutral" };
+
+function extractDecisionFactors(obj: Record<string, unknown> | null): Factor[] {
+  if (!obj) return [];
+  const factors: Factor[] = [];
+
+  if (obj.risk_level != null) {
+    const rl = String(obj.risk_level).toLowerCase();
+    factors.push({
+      label: "Risk level",
+      value: String(obj.risk_level),
+      impact: rl === "low" ? "positive" : rl === "high" ? "negative" : "neutral",
+    });
+  }
+  if (obj.method != null) {
+    factors.push({ label: "Auth method", value: String(obj.method), impact: "neutral" });
+  }
+  if (obj.should_retry != null) {
+    factors.push({
+      label: "Should retry",
+      value: obj.should_retry ? "Yes" : "No",
+      impact: obj.should_retry ? "positive" : "negative",
+    });
+  }
+  if (obj.retry_delay_seconds != null) {
+    factors.push({ label: "Retry delay", value: `${obj.retry_delay_seconds}s`, impact: "neutral" });
+  }
+  if (obj.recommended_solution != null) {
+    factors.push({ label: "Recommended route", value: String(obj.recommended_solution), impact: "positive" });
+  }
+  if (obj.reason != null) {
+    factors.push({ label: "Reason", value: String(obj.reason), impact: "neutral" });
+  }
+  if (typeof obj.metadata === "object" && obj.metadata) {
+    const meta = obj.metadata as Record<string, unknown>;
+    if (meta.ml_risk_score != null) {
+      const score = Number(meta.ml_risk_score);
+      factors.push({
+        label: "ML risk score",
+        value: `${(score * 100).toFixed(1)}%`,
+        impact: score > 0.5 ? "negative" : score > 0.3 ? "neutral" : "positive",
+      });
+    }
+    if (meta.ml_approval_probability != null) {
+      const prob = Number(meta.ml_approval_probability);
+      factors.push({
+        label: "ML approval probability",
+        value: `${(prob * 100).toFixed(1)}%`,
+        impact: prob > 0.7 ? "positive" : prob > 0.4 ? "neutral" : "negative",
+      });
+    }
+    if (meta.agent_recommendation) {
+      factors.push({
+        label: "Agent recommendation",
+        value: String(meta.agent_recommendation),
+        impact: "positive",
+      });
+    }
+    if (meta.vs_similar_avg_approval_rate != null) {
+      factors.push({
+        label: "Similar cases approval",
+        value: `${Number(meta.vs_similar_avg_approval_rate).toFixed(1)}%`,
+        impact: Number(meta.vs_similar_avg_approval_rate) > 70 ? "positive" : "neutral",
+      });
+    }
+    if (meta.matched_rule_name) {
+      factors.push({ label: "Matched rule", value: String(meta.matched_rule_name), impact: "neutral" });
+    }
+  }
+  return factors;
+}
+
+function ApprovalSimulator() {
+  const [riskScore, setRiskScore] = useState(0.3);
+  const [amount, setAmount] = useState(1999);
+  const [deviceTrust, setDeviceTrust] = useState(0.95);
+  const [is3ds, setIs3ds] = useState(true);
+
+  const simApprovalProb = Math.min(
+    0.99,
+    Math.max(
+      0.05,
+      0.7 + 0.15 * deviceTrust - 0.25 * riskScore - 0.05 * (amount > 50000 ? 1 : 0) + 0.08 * (is3ds ? 1 : 0)
+    )
+  );
+  const riskLevel = riskScore > 0.75 ? "High" : riskScore > 0.35 ? "Medium" : "Low";
+  const riskColor = riskScore > 0.75 ? "text-red-500" : riskScore > 0.35 ? "text-amber-500" : "text-green-500";
+  const approvalColor = simApprovalProb > 0.7 ? "text-green-500" : simApprovalProb > 0.4 ? "text-amber-500" : "text-red-500";
+
+  return (
+    <Card className="glass-card border border-border/80">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-primary" />
+          Approval Rate Simulator
+        </CardTitle>
+        <CardDescription>
+          Adjust parameters to simulate how changes affect the predicted approval rate.
+          Use this to find optimal thresholds for your merchant segments.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label className="text-muted-foreground">Risk Score: <span className={`font-medium ${riskColor}`}>{riskScore.toFixed(2)}</span></Label>
+            <input
+              type="range" min="0" max="1" step="0.01"
+              value={riskScore}
+              onChange={(e) => setRiskScore(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-muted-foreground">Amount (minor): <span className="font-medium">{amount}</span></Label>
+            <input
+              type="range" min="100" max="100000" step="100"
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-muted-foreground">Device Trust: <span className="font-medium">{deviceTrust.toFixed(2)}</span></Label>
+            <input
+              type="range" min="0" max="1" step="0.01"
+              value={deviceTrust}
+              onChange={(e) => setDeviceTrust(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
+          </div>
+          <div className="flex items-center gap-2 pt-4">
+            <input
+              type="checkbox" id="sim3ds" checked={is3ds}
+              onChange={(e) => setIs3ds(e.target.checked)}
+              className="accent-primary"
+            />
+            <Label htmlFor="sim3ds" className="text-muted-foreground cursor-pointer">3D Secure enabled</Label>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-3 pt-2">
+          <div className="text-center p-3 rounded-lg bg-muted/50">
+            <p className="text-xs text-muted-foreground">Estimated Approval</p>
+            <p className={`text-2xl font-bold ${approvalColor}`}>{(simApprovalProb * 100).toFixed(1)}%</p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-muted/50">
+            <p className="text-xs text-muted-foreground">Risk Level</p>
+            <p className={`text-2xl font-bold ${riskColor}`}>{riskLevel}</p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-muted/50">
+            <p className="text-xs text-muted-foreground">Suggested Action</p>
+            <p className="text-lg font-bold text-foreground">
+              {simApprovalProb > 0.7 ? "Approve" : simApprovalProb > 0.4 ? "Review" : "Challenge"}
+            </p>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

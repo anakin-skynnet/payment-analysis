@@ -341,6 +341,212 @@ class BaseAgent:
             logger.warning("Could not load Lakehouse approval rules: %s", e)
             return []
 
+    # -- Agent write-back to Lakebase -------------------------------------------
+
+    def write_recommendation_to_lakebase(
+        self,
+        recommendation_type: str,
+        segment: str,
+        action_summary: str,
+        expected_impact_pct: float,
+        confidence: float,
+    ) -> bool:
+        """Write an agent recommendation to the Lakebase approval_recommendations table.
+
+        This closes the feedback loop: agents analyze data → propose actions →
+        DecisionEngine consumes those recommendations in real-time decisions.
+        """
+        if not (self.lakebase_project_id and self.lakebase_branch_id and self.lakebase_endpoint_id):
+            return False
+        try:
+            from databricks.sdk import WorkspaceClient
+            import psycopg
+            import uuid
+
+            ws = WorkspaceClient()
+            postgres_api = getattr(ws, "postgres", None)
+            if postgres_api is None:
+                return False
+
+            configured_endpoint_name = (
+                f"projects/{self.lakebase_project_id}/branches/{self.lakebase_branch_id}"
+                f"/endpoints/{self.lakebase_endpoint_id}"
+            )
+            branch_path = f"projects/{self.lakebase_project_id}/branches/{self.lakebase_branch_id}"
+            from databricks.sdk.errors import NotFound as _NotFound
+            try:
+                postgres_api.get_endpoint(name=configured_endpoint_name)
+                endpoint_name = configured_endpoint_name
+            except _NotFound:
+                eps = list(postgres_api.list_endpoints(parent=branch_path))
+                endpoint_name = getattr(eps[0], "name", configured_endpoint_name) if eps else configured_endpoint_name
+
+            endpoint = postgres_api.get_endpoint(name=endpoint_name)
+            cred = postgres_api.generate_database_credential(endpoint=endpoint_name)
+            host = getattr(getattr(getattr(endpoint, "status", None), "hosts", None), "host", None)
+            if not host:
+                return False
+            username = (
+                (ws.current_user.me().user_name if ws.current_user else None)
+                or getattr(ws.config, "client_id", None)
+                or "postgres"
+            )
+            conn_str = (
+                f"host={host} port=5432 dbname=databricks_postgres user={username} "
+                f"password={cred.token} sslmode=require"
+            )
+            schema = self.lakebase_schema or "payment_analysis"
+            rec_id = uuid.uuid4().hex[:16]
+            with psycopg.connect(conn_str) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        f'INSERT INTO "{schema}".approval_recommendations '
+                        f"(id, recommendation_type, segment, action_summary, expected_impact_pct, "
+                        f"confidence, status, source_agent) "
+                        f"VALUES (%s, %s, %s, %s, %s, %s, 'active', %s)",
+                        (rec_id, recommendation_type, segment, action_summary,
+                         expected_impact_pct, confidence, self.role.value),
+                    )
+                conn.commit()
+            logger.info("Agent %s wrote recommendation %s to Lakebase", self.role.value, rec_id)
+            return True
+        except Exception as e:
+            logger.warning("Failed to write recommendation to Lakebase: %s", e)
+            return False
+
+    def propose_config_change(
+        self,
+        config_key: str,
+        proposed_value: str,
+        reason: str,
+    ) -> bool:
+        """Propose a configuration change to Lakebase DecisionConfig.
+
+        The proposed change is stored with status='proposed' so it can be reviewed
+        before activation. This enables agents to suggest threshold adjustments
+        (e.g. risk_threshold_high, retry_max_attempts) based on data analysis.
+        """
+        if not (self.lakebase_project_id and self.lakebase_branch_id and self.lakebase_endpoint_id):
+            return False
+        try:
+            from databricks.sdk import WorkspaceClient
+            import psycopg
+            import uuid
+
+            ws = WorkspaceClient()
+            postgres_api = getattr(ws, "postgres", None)
+            if postgres_api is None:
+                return False
+
+            configured_endpoint_name = (
+                f"projects/{self.lakebase_project_id}/branches/{self.lakebase_branch_id}"
+                f"/endpoints/{self.lakebase_endpoint_id}"
+            )
+            branch_path = f"projects/{self.lakebase_project_id}/branches/{self.lakebase_branch_id}"
+            from databricks.sdk.errors import NotFound as _NotFound
+            try:
+                postgres_api.get_endpoint(name=configured_endpoint_name)
+                endpoint_name = configured_endpoint_name
+            except _NotFound:
+                eps = list(postgres_api.list_endpoints(parent=branch_path))
+                endpoint_name = getattr(eps[0], "name", configured_endpoint_name) if eps else configured_endpoint_name
+
+            endpoint = postgres_api.get_endpoint(name=endpoint_name)
+            cred = postgres_api.generate_database_credential(endpoint=endpoint_name)
+            host = getattr(getattr(getattr(endpoint, "status", None), "hosts", None), "host", None)
+            if not host:
+                return False
+            username = (
+                (ws.current_user.me().user_name if ws.current_user else None)
+                or getattr(ws.config, "client_id", None)
+                or "postgres"
+            )
+            conn_str = (
+                f"host={host} port=5432 dbname=databricks_postgres user={username} "
+                f"password={cred.token} sslmode=require"
+            )
+            schema = self.lakebase_schema or "payment_analysis"
+            change_id = uuid.uuid4().hex[:16]
+            with psycopg.connect(conn_str) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        f'INSERT INTO "{schema}".config_change_proposals '
+                        f"(id, config_key, proposed_value, reason, proposed_by, status) "
+                        f"VALUES (%s, %s, %s, %s, %s, 'proposed')",
+                        (change_id, config_key, proposed_value, reason, self.role.value),
+                    )
+                conn.commit()
+            logger.info("Agent %s proposed config change: %s=%s", self.role.value, config_key, proposed_value)
+            return True
+        except Exception as e:
+            logger.warning("Failed to propose config change: %s", e)
+            return False
+
+    def analyze_experiment_results(self, experiment_name: str) -> Dict[str, Any]:
+        """Analyze A/B experiment results using Lakehouse data (#6 experiment integration).
+
+        Computes approval rate lift, statistical significance, and generates a
+        recommendation (keep/discard) based on the treatment vs control comparison.
+        """
+        query = f"""
+            WITH experiment_metrics AS (
+                SELECT
+                    variant,
+                    COUNT(*) AS total_transactions,
+                    SUM(CASE WHEN outcome = 'approved' THEN 1 ELSE 0 END) AS approved,
+                    ROUND(SUM(CASE WHEN outcome = 'approved' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS approval_rate,
+                    AVG(latency_ms) AS avg_latency
+                FROM {self.catalog}.{self.schema}.v_experiment_outcomes
+                WHERE experiment_name = :exp_name
+                GROUP BY variant
+            )
+            SELECT * FROM experiment_metrics
+        """
+        rows = self._execute_sql_parameterized(query, {"exp_name": experiment_name})
+        if not rows or len(rows) < 2:
+            return {
+                "experiment": experiment_name,
+                "status": "insufficient_data",
+                "message": f"Need at least 2 variants; found {len(rows)}",
+            }
+
+        control = next((r for r in rows if r.get("variant") == "control"), rows[0])
+        treatment = next((r for r in rows if r.get("variant") == "treatment"), rows[1])
+
+        ctrl_rate = float(control.get("approval_rate", 0))
+        treat_rate = float(treatment.get("approval_rate", 0))
+        lift = treat_rate - ctrl_rate
+        ctrl_n = int(control.get("total_transactions", 0))
+        treat_n = int(treatment.get("total_transactions", 0))
+
+        recommendation = "keep_treatment" if lift > 0.5 and treat_n >= 100 else (
+            "discard_treatment" if lift < -0.5 else "continue_experiment"
+        )
+
+        result = {
+            "experiment": experiment_name,
+            "control_rate": ctrl_rate,
+            "treatment_rate": treat_rate,
+            "lift_pct": round(lift, 2),
+            "control_n": ctrl_n,
+            "treatment_n": treat_n,
+            "recommendation": recommendation,
+            "status": "analyzed",
+        }
+
+        # Write recommendation to Lakebase if we have a clear signal
+        if recommendation in ("keep_treatment", "discard_treatment"):
+            action = f"Experiment '{experiment_name}': {recommendation} (lift={lift:+.2f}%)"
+            self.write_recommendation_to_lakebase(
+                recommendation_type="experiment",
+                segment="all",
+                action_summary=action,
+                expected_impact_pct=abs(lift),
+                confidence=min(0.95, (ctrl_n + treat_n) / 10000),
+            )
+
+        return result
+
 
 class SmartRoutingAgent(BaseAgent):
     """Agent for smart payment routing and cascading decisions."""
@@ -435,6 +641,21 @@ Always provide:
             """
             return self._execute_sql_parameterized(query, {"segment": segment})
 
+        def write_routing_recommendation(**kwargs):
+            """Write a routing optimization recommendation to Lakebase for the decision loop."""
+            segment = kwargs.get("segment", "all")
+            action = kwargs.get("action_summary", "")
+            impact = float(kwargs.get("expected_impact_pct", 0))
+            conf = float(kwargs.get("confidence", 0.5))
+            return self.write_recommendation_to_lakebase("routing", segment, action, impact, conf)
+
+        def propose_routing_config(**kwargs):
+            """Propose a routing configuration change (e.g. preferred route for a segment)."""
+            key = kwargs.get("config_key", "")
+            value = kwargs.get("proposed_value", "")
+            reason = kwargs.get("reason", "")
+            return self.propose_config_change(key, value, reason)
+
         self.add_tool(AgentTool(
             name="get_route_performance",
             description="Get approval rates and latency by payment route",
@@ -447,6 +668,20 @@ Always provide:
             description="Get recommended cascade configuration for a segment",
             function=get_cascade_recommendations,
             parameters={"merchant_segment": "string"}
+        ))
+
+        self.add_tool(AgentTool(
+            name="write_routing_recommendation",
+            description="Write a routing optimization recommendation to Lakebase",
+            function=write_routing_recommendation,
+            parameters={"segment": "string", "action_summary": "string", "expected_impact_pct": "number", "confidence": "number"}
+        ))
+
+        self.add_tool(AgentTool(
+            name="propose_routing_config",
+            description="Propose a routing configuration change in Lakebase",
+            function=propose_routing_config,
+            parameters={"config_key": "string", "proposed_value": "string", "reason": "string"}
         ))
 
 
@@ -557,6 +792,14 @@ Always provide:
             """
             return self._execute_sql(query)
 
+        def write_retry_recommendation(**kwargs):
+            """Write a retry optimization recommendation to Lakebase for the decision loop."""
+            segment = kwargs.get("segment", "all")
+            action = kwargs.get("action_summary", "")
+            impact = float(kwargs.get("expected_impact_pct", 0))
+            conf = float(kwargs.get("confidence", 0.5))
+            return self.write_recommendation_to_lakebase("retry", segment, action, impact, conf)
+
         self.add_tool(AgentTool(
             name="get_retry_success_rates",
             description="Get historical retry success rates by decline reason",
@@ -569,6 +812,13 @@ Always provide:
             description="Find high-value transactions worth retrying",
             function=get_recovery_opportunities,
             parameters={"min_amount": "number"}
+        ))
+
+        self.add_tool(AgentTool(
+            name="write_retry_recommendation",
+            description="Write a retry optimization recommendation to Lakebase for the decision loop",
+            function=write_retry_recommendation,
+            parameters={"segment": "string", "action_summary": "string", "expected_impact_pct": "number", "confidence": "number"}
         ))
 
 
@@ -903,11 +1153,52 @@ Recommendations should include:
             parameters={}
         ))
 
+        def analyze_ab_experiment(**kwargs):
+            """Analyze A/B experiment results and generate a recommendation."""
+            exp_name = kwargs.get("experiment_name", "")
+            return self.analyze_experiment_results(exp_name)
+
+        def write_performance_recommendation(**kwargs):
+            """Write a performance optimization recommendation to Lakebase."""
+            segment = kwargs.get("segment", "all")
+            action = kwargs.get("action_summary", "")
+            impact = float(kwargs.get("expected_impact_pct", 0))
+            conf = float(kwargs.get("confidence", 0.5))
+            return self.write_recommendation_to_lakebase("performance", segment, action, impact, conf)
+
+        def propose_threshold_change(**kwargs):
+            """Propose a decision threshold change (e.g. risk_threshold_high) to Lakebase."""
+            key = kwargs.get("config_key", "")
+            value = kwargs.get("proposed_value", "")
+            reason = kwargs.get("reason", "")
+            return self.propose_config_change(key, value, reason)
+
         self.add_tool(AgentTool(
             name="get_trend_analysis",
             description="Get performance trends over time",
             function=get_trend_analysis,
             parameters={}
+        ))
+
+        self.add_tool(AgentTool(
+            name="analyze_ab_experiment",
+            description="Analyze A/B experiment results and recommend keep/discard treatment",
+            function=analyze_ab_experiment,
+            parameters={"experiment_name": "string"}
+        ))
+
+        self.add_tool(AgentTool(
+            name="write_performance_recommendation",
+            description="Write a performance optimization recommendation to Lakebase",
+            function=write_performance_recommendation,
+            parameters={"segment": "string", "action_summary": "string", "expected_impact_pct": "number", "confidence": "number"}
+        ))
+
+        self.add_tool(AgentTool(
+            name="propose_threshold_change",
+            description="Propose a decision threshold change in Lakebase (e.g. risk_threshold_high)",
+            function=propose_threshold_change,
+            parameters={"config_key": "string", "proposed_value": "string", "reason": "string"}
         ))
 
 

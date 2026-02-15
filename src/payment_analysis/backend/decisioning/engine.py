@@ -52,6 +52,7 @@ _config_cache = _CacheEntry()
 _decline_codes_cache = _CacheEntry()
 _routes_cache = _CacheEntry()
 _rules_cache = _CacheEntry()
+_recommendations_cache = _CacheEntry()
 
 
 # ---------------------------------------------------------------------------
@@ -273,6 +274,95 @@ class DecisionEngine:
             return [r for r in all_rules if r.get("rule_type") == rule_type]
         return all_rules
 
+    def _load_recommendations(self, decision_type: str | None = None) -> list[dict[str, Any]]:
+        """Load recent agent recommendations from Lakebase approval_recommendations (cached).
+
+        This closes the recommendation-to-decision loop: agents propose actions,
+        the engine consumes them to influence live decisions.
+        """
+        global _recommendations_cache
+        if not _recommendations_cache.is_stale and _recommendations_cache.data is not None:
+            all_recs: list[dict[str, Any]] = _recommendations_cache.data
+        else:
+            all_recs = []
+            if self._runtime:
+                try:
+                    all_recs = self._read_recommendations_from_lakebase()
+                except Exception as e:
+                    logger.debug("Could not load recommendations from Lakebase: %s", e)
+            _recommendations_cache.data = all_recs
+            _recommendations_cache.fetched_at = time.monotonic()
+
+        if decision_type:
+            return [r for r in all_recs if r.get("recommendation_type") == decision_type]
+        return all_recs
+
+    def _read_recommendations_from_lakebase(self) -> list[dict[str, Any]]:
+        """Read recent agent recommendations (last 24h) from Lakebase."""
+        if not self._runtime:
+            return []
+        from sqlalchemy import text as sa_text
+
+        schema = self._get_schema_name()
+        with self._runtime.get_session() as session:
+            q = sa_text(
+                f'SELECT id, recommendation_type, segment, action_summary, expected_impact_pct, '
+                f'confidence, status, created_at '
+                f'FROM "{schema}".approval_recommendations '
+                f"WHERE status = 'active' AND created_at >= NOW() - INTERVAL '24 hours' "
+                f'ORDER BY confidence DESC LIMIT 50'
+            )
+            try:
+                result = session.execute(q)
+                return [
+                    {
+                        "id": str(r[0]),
+                        "recommendation_type": str(r[1]),
+                        "segment": str(r[2]) if r[2] else None,
+                        "action_summary": str(r[3]),
+                        "expected_impact_pct": float(r[4]) if r[4] else 0.0,
+                        "confidence": float(r[5]) if r[5] else 0.0,
+                        "status": str(r[6]),
+                    }
+                    for r in result.fetchall()
+                ]
+            except Exception:
+                return []
+
+    async def _lookup_similar_transactions(
+        self, ctx: DecisionContext, params: DecisionParams
+    ) -> dict[str, Any]:
+        """Look up similar historical transactions via Vector Search for decision context.
+
+        Returns aggregated stats from similar transactions (approval rate, common routes,
+        risk distribution) that inform the decision. Falls back gracefully if unavailable.
+        """
+        if not self._service or not self._service.is_available:
+            return {}
+        try:
+            description = (
+                f"Payment of {ctx.amount_minor / 100:.2f} from {ctx.issuer_country or 'unknown'} "
+                f"merchant {ctx.merchant_id} network {ctx.network or 'unknown'} "
+                f"risk {ctx.risk_score or 0:.2f}"
+            )
+            timeout = params.ml_enrichment_timeout_ms / 1000.0
+            similar = await asyncio.wait_for(
+                self._service.vector_search_similar(description, num_results=5),
+                timeout=timeout,
+            )
+            if similar and isinstance(similar, list) and len(similar) > 0:
+                approval_rates = [s.get("approval_rate_pct", 50) for s in similar if s.get("approval_rate_pct") is not None]
+                avg_approval = sum(approval_rates) / len(approval_rates) if approval_rates else None
+                return {
+                    "similar_count": len(similar),
+                    "similar_avg_approval_rate": avg_approval,
+                    "similar_top_route": similar[0].get("payment_solution", ""),
+                    "similar_avg_fraud_score": sum(s.get("avg_fraud_score", 0) for s in similar) / len(similar),
+                }
+        except Exception as e:
+            logger.debug("Vector Search lookup failed (graceful): %s", e)
+        return {}
+
     # -- Lakebase readers (raw SQL via session) -------------------------------
 
     def _read_decision_config_from_lakebase(self) -> list[dict[str, str]]:
@@ -415,13 +505,31 @@ class DecisionEngine:
     async def decide_authentication(
         self, ctx: DecisionContext, variant: str | None = None
     ) -> AuthDecisionOut:
-        """Data-driven authentication decision: Lakebase config → ML enrichment → rule evaluation → policy."""
+        """Data-driven authentication decision: recommendations → Vector Search → ML enrichment → rule evaluation → policy."""
         from .policies import decide_authentication as _policy_auth, serialize_context
 
         params = self._load_config()
 
+        # Enrich with Vector Search context (similar transactions)
+        vs_context = await self._lookup_similar_transactions(ctx, params)
+        if vs_context:
+            ctx = ctx.model_copy()
+            ctx.metadata = {**ctx.metadata, **{f"vs_{k}": v for k, v in vs_context.items()}}
+
         # ML enrichment
         enriched = await self._enrich_with_ml(ctx, params)
+
+        # Agent recommendation enrichment (closes the recommendation loop)
+        recs = self._load_recommendations("authentication")
+        if recs:
+            top_rec = recs[0]
+            enriched = enriched.model_copy()
+            enriched.metadata = {
+                **enriched.metadata,
+                "agent_recommendation": top_rec["action_summary"],
+                "agent_confidence": top_rec["confidence"],
+                "agent_expected_impact": top_rec["expected_impact_pct"],
+            }
 
         # Run policy with data-driven parameters
         decision = _policy_auth(enriched, variant=variant, params=params)
@@ -452,11 +560,27 @@ class DecisionEngine:
     async def decide_retry(
         self, ctx: DecisionContext, variant: str | None = None
     ) -> RetryDecisionOut:
-        """Data-driven retry decision: Lakebase decline codes → ML enrichment → policy."""
+        """Data-driven retry decision: recommendations → Vector Search → Lakebase decline codes → ML enrichment → policy."""
         from .policies import decide_retry as _policy_retry
 
         params = self._load_config()
         decline_codes = self._load_decline_codes()
+
+        # Vector Search context
+        vs_context = await self._lookup_similar_transactions(ctx, params)
+        if vs_context:
+            ctx = ctx.model_copy()
+            ctx.metadata = {**ctx.metadata, **{f"vs_{k}": v for k, v in vs_context.items()}}
+
+        # Agent recommendation enrichment
+        recs = self._load_recommendations("retry")
+        if recs:
+            ctx = ctx.model_copy()
+            ctx.metadata = {
+                **ctx.metadata,
+                "agent_recommendation": recs[0]["action_summary"],
+                "agent_confidence": recs[0]["confidence"],
+            }
 
         # ML enrichment (retry model for recovery probability)
         enriched = ctx
@@ -518,11 +642,27 @@ class DecisionEngine:
     async def decide_routing(
         self, ctx: DecisionContext, variant: str | None = None
     ) -> RoutingDecisionOut:
-        """Data-driven routing decision: Lakebase route performance → ML enrichment → policy."""
+        """Data-driven routing decision: recommendations → Vector Search → Lakebase route performance → ML enrichment → policy."""
         from .policies import decide_routing as _policy_routing
 
         params = self._load_config()
         route_scores = self._load_routes()
+
+        # Vector Search context (similar transaction routing)
+        vs_context = await self._lookup_similar_transactions(ctx, params)
+        if vs_context:
+            ctx = ctx.model_copy()
+            ctx.metadata = {**ctx.metadata, **{f"vs_{k}": v for k, v in vs_context.items()}}
+
+        # Agent recommendation enrichment
+        recs = self._load_recommendations("routing")
+        if recs:
+            ctx = ctx.model_copy()
+            ctx.metadata = {
+                **ctx.metadata,
+                "agent_recommendation": recs[0]["action_summary"],
+                "agent_confidence": recs[0]["confidence"],
+            }
 
         # ML enrichment (routing model)
         enriched = ctx

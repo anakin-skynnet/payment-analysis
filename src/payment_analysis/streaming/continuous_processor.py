@@ -187,6 +187,66 @@ print(f"Writing aggregations to: {agg_table}")
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ## Behavioral Features Stream (Online Feature Store)
+# MAGIC
+# MAGIC Continuously compute per-merchant behavioral features and write them to the
+# MAGIC `online_features` table. These power real-time ML enrichment in the
+# MAGIC DecisionEngine (risk scoring, approval propensity, smart routing).
+
+# COMMAND ----------
+
+from pyspark.sql.functions import (  # type: ignore[import-untyped]
+    approx_count_distinct,
+    expr,
+    last,
+    lit,
+    max as spark_max,
+    stddev,
+)
+
+behavioral_stream = (
+    enriched_stream
+    .withWatermark("event_timestamp", "2 minutes")
+    .groupBy(
+        window(col("event_timestamp"), "5 minutes", "1 minute"),
+        col("merchant_segment"),
+    )
+    .agg(
+        count("*").alias("txn_count_5m"),
+        sum(when(col("is_approved"), 1).otherwise(0)).alias("approved_5m"),
+        avg("amount").alias("avg_amount_5m"),
+        stddev("amount").alias("stddev_amount_5m"),
+        avg("fraud_score").alias("avg_fraud_5m"),
+        avg("processing_time_ms").alias("avg_latency_5m"),
+        spark_max("fraud_score").alias("max_fraud_5m"),
+        approx_count_distinct("merchant_id").alias("unique_merchants_5m"),
+        sum(when(col("is_cross_border"), 1).otherwise(0)).alias("cross_border_count_5m"),
+        sum(when(col("retry_count") > 0, 1).otherwise(0)).alias("retry_count_5m"),
+    )
+    .withColumn("approval_rate_5m", col("approved_5m") / col("txn_count_5m") * 100)
+    .withColumn("cross_border_pct_5m", col("cross_border_count_5m") / col("txn_count_5m") * 100)
+    .withColumn("retry_rate_5m", col("retry_count_5m") / col("txn_count_5m") * 100)
+    .withColumn("window_start", col("window.start"))
+    .withColumn("window_end", col("window.end"))
+    .drop("window")
+)
+
+features_table = f"{CATALOG}.{SCHEMA}.online_features_stream"
+
+features_query = (
+    behavioral_stream.writeStream
+    .format("delta")
+    .outputMode("append")
+    .option("checkpointLocation", f"{CHECKPOINT_LOCATION}/behavioral_features")
+    .trigger(processingTime=TRIGGER_INTERVAL)
+    .toTable(features_table)
+)
+
+print(f"Writing behavioral features to: {features_table}")
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ## Monitor Streams
 
 # COMMAND ----------
