@@ -11,7 +11,6 @@ SDK reference:
 
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -108,18 +107,6 @@ def _extract_host(endpoint: object) -> str | None:
     return getattr(hosts_obj, "host", None) if hosts_obj else None
 
 
-def get_endpoint_state(endpoint: object) -> str:
-    """Extract ``current_state`` from an Endpoint object, falling back to ``state``."""
-    status = getattr(endpoint, "status", None)
-    if status is None:
-        return "UNKNOWN"
-    return (
-        getattr(status, "current_state", None)
-        or getattr(status, "state", None)
-        or "UNKNOWN"
-    )
-
-
 # ---------------------------------------------------------------------------
 # Postgres API guard
 # ---------------------------------------------------------------------------
@@ -133,24 +120,3 @@ def _get_postgres_api(ws: WorkspaceClient):
             "Lakebase Autoscaling requires databricks-sdk>=0.86.0 and a workspace with Lakebase enabled."
         )
     return api
-
-
-# ---------------------------------------------------------------------------
-# Schema-name validation (for raw SQL in notebooks / lakebase_config)
-# ---------------------------------------------------------------------------
-
-_SAFE_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,127}$")
-
-
-def validate_pg_identifier(name: str, label: str = "identifier") -> str:
-    """Validate *name* as a safe Postgres identifier for use in quoted SQL.
-
-    Prevents SQL injection when building ``"schema".table`` strings.
-    Raises ``ValueError`` on invalid input; returns the validated name.
-    """
-    if not name or not _SAFE_IDENTIFIER_RE.match(name):
-        raise ValueError(
-            f"Invalid Postgres {label}: {name!r}. "
-            "Must be 1-128 chars: letters, digits, underscores; must start with a letter or underscore."
-        )
-    return name

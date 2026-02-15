@@ -1,4 +1,4 @@
-"""SPA fallback and 404 handler for FastAPI when serving the React UI.
+"""Shared utilities: mock-data header check, SPA fallback, and 404 handler.
 
 StaticFiles returns a 404 Response (does not raise) for missing paths, so the exception
 handler alone is not enough. We add middleware that intercepts 404 responses and
@@ -9,6 +9,15 @@ on direct load or refresh).
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+
+
+# ---------------------------------------------------------------------------
+# Mock-data toggle (shared by analytics + decision routes)
+# ---------------------------------------------------------------------------
+
+def is_mock_request(request: Request) -> bool:
+    """True when the frontend toggle is on; backend returns mock data for all components."""
+    return request.headers.get("x-mock-data", "").lower() == "true"
 from fastapi.responses import FileResponse, JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware

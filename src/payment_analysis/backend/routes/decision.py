@@ -32,14 +32,10 @@ from ..decisioning.schemas import (
     RetryDecisionOut,
     RoutingDecisionOut,
 )
-from ..dependencies import SessionDep, OptionalSessionDep, DatabricksServiceDep, RuntimeDep
+from ..dependencies import SessionDep, DatabricksServiceDep, RuntimeDep
+from ..utils import is_mock_request as _is_mock_request
 
 router = APIRouter(tags=["decisioning"])
-
-
-def _is_mock_request(request: Request) -> bool:
-    """True when the frontend toggle is on; backend returns mock data for all components."""
-    return request.headers.get("x-mock-data", "").lower() == "true"
 
 
 def _get_or_assign_variant(

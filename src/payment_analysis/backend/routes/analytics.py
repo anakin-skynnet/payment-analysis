@@ -30,17 +30,9 @@ from ..dependencies import RuntimeDep, SessionDep, OptionalSessionDep, Databrick
 from ..lakebase_config import get_countries_from_lakebase, get_online_features_from_lakebase, write_app_settings_keys
 from .. import mock_analytics as _mock
 
+from ..utils import is_mock_request as _is_mock_request
+
 router = APIRouter(tags=["analytics"])
-
-
-def _is_mock_request(request: Request) -> bool:
-    """Check if the client explicitly requested mock data via the ``X-Mock-Data`` header.
-
-    The frontend toggle sets this header to ``"true"`` on every ``/api/`` call
-    when mock mode is enabled.  Backend endpoints check this *before* querying
-    Databricks so we skip the (potentially slow) lakehouse round-trip entirely.
-    """
-    return request.headers.get("x-mock-data", "").lower() == "true"
 
 
 def _set_data_source_header(response: Response, service: Any, *, forced_mock: bool = False) -> None:

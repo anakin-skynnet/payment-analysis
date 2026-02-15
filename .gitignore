@@ -35,6 +35,7 @@ package-lock.json
 .databricks
 *.deploy_with_deps.bak
 .databricks_job_runs.json
+state/
 
 # apx
 .apx/
