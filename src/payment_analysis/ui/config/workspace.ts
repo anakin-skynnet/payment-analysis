@@ -138,7 +138,8 @@ const LEGACY_TO_UNIFIED: Record<string, string> = {
  */
 export function getLakeviewDashboardUrl(dashboardName: string): string {
   const unifiedKey = LEGACY_TO_UNIFIED[dashboardName] ?? dashboardName;
-  const lakeviewId = LAKEVIEW_DASHBOARD_IDS[unifiedKey] ?? dashboardName;
+  const lakeviewId = LAKEVIEW_DASHBOARD_IDS[unifiedKey] || "";
+  if (!lakeviewId) return "";
   return getWorkspacePath(`/dashboardsv3/${lakeviewId}/published`);
 }
 
