@@ -315,6 +315,18 @@ export interface ExperimentIn {
   name: string;
 }
 
+export interface ExperimentResultsOut {
+  control?: VariantStats | null;
+  experiment_id: string;
+  experiment_name: string;
+  is_significant?: boolean;
+  lift_pct?: number | null;
+  p_value?: number | null;
+  recommendation?: string;
+  status: string;
+  treatment?: VariantStats | null;
+}
+
 export interface FalseInsightsMetricOut {
   event_date: string;
   false_insights: number;
@@ -519,6 +531,34 @@ export interface OrchestratorChatOut {
   run_page_url?: string | null;
 }
 
+export interface ProposalIn {
+  change_type: string;
+  confidence?: number;
+  current_value?: string | null;
+  expected_impact_pct?: number | null;
+  proposed_value: string;
+  rationale: string;
+  source_agent: string;
+  target_key: string;
+}
+
+export interface ProposedConfigChange {
+  applied_at?: string | null;
+  change_type: string;
+  confidence?: number;
+  created_at?: string;
+  current_value?: string | null;
+  expected_impact_pct?: number | null;
+  id?: string;
+  proposed_value: string;
+  rationale: string;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
+  source_agent: string;
+  status?: string;
+  target_key: string;
+}
+
 export interface ReasonCodeInsightOut {
   decline_count: number;
   decline_reason_group: string;
@@ -613,6 +653,11 @@ export interface RetryableDeclineCodeOut {
   label: string;
   max_attempts: number;
   updated_at?: string | null;
+}
+
+export interface ReviewIn {
+  action: string;
+  reviewed_by?: string | null;
 }
 
 export interface RiskPredictionOut {
@@ -797,6 +842,15 @@ export interface ValidationError {
   type: string;
 }
 
+export interface VariantStats {
+  approval_rate?: number | null;
+  avg_latency_ms?: number | null;
+  decisions: number;
+  outcomes: number;
+  subjects: number;
+  variant: string;
+}
+
 export interface VersionOut {
   version: string;
 }
@@ -927,6 +981,15 @@ export interface GetApprovalTrendsParams {
   seconds?: number;
 }
 
+export interface ListConfigProposalsParams {
+  limit?: number;
+  status?: string | null;
+}
+
+export interface ReviewConfigProposalParams {
+  proposal_id: string;
+}
+
 export interface ListDashboardsParams {
   category?: DashboardCategory | null;
   tag?: string | null;
@@ -960,6 +1023,10 @@ export interface AssignExperimentParams {
 export interface ListExperimentAssignmentsParams {
   experiment_id: string;
   limit?: number;
+}
+
+export interface GetExperimentResultsParams {
+  experiment_id: string;
 }
 
 export interface StartExperimentParams {
@@ -2104,6 +2171,64 @@ export function useGetAuthStatusSuspense<TData = { data: AuthStatusOut }>(option
   return useSuspenseQuery({ queryKey: getAuthStatusKey(), queryFn: () => getAuthStatus(), ...options?.query });
 }
 
+export const listConfigProposals = async (params?: ListConfigProposalsParams, options?: RequestInit): Promise<{ data: ProposedConfigChange[] }> => {
+  const searchParams = new URLSearchParams();
+  if (params?.limit != null) searchParams.set("limit", String(params?.limit));
+  if (params?.status != null) searchParams.set("status", String(params?.status));
+  const queryString = searchParams.toString();
+  const url = queryString ? `/api/config-proposals?${queryString}` : `/api/config-proposals`;
+  const res = await fetch(url, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const listConfigProposalsKey = (params?: ListConfigProposalsParams) => {
+  return ["/api/config-proposals", params] as const;
+};
+
+export function useListConfigProposals<TData = { data: ProposedConfigChange[] }>(options?: { params?: ListConfigProposalsParams; query?: Omit<UseQueryOptions<{ data: ProposedConfigChange[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: listConfigProposalsKey(options?.params), queryFn: () => listConfigProposals(options?.params), ...options?.query });
+}
+
+export function useListConfigProposalsSuspense<TData = { data: ProposedConfigChange[] }>(options?: { params?: ListConfigProposalsParams; query?: Omit<UseSuspenseQueryOptions<{ data: ProposedConfigChange[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: listConfigProposalsKey(options?.params), queryFn: () => listConfigProposals(options?.params), ...options?.query });
+}
+
+export const createConfigProposal = async (data: ProposalIn, options?: RequestInit): Promise<{ data: ProposedConfigChange }> => {
+  const res = await fetch("/api/config-proposals", { ...options, method: "POST", headers: { "Content-Type": "application/json", ...options?.headers }, body: JSON.stringify(data) });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export function useCreateConfigProposal(options?: { mutation?: UseMutationOptions<{ data: ProposedConfigChange }, ApiError, ProposalIn> }) {
+  return useMutation({ mutationFn: (data) => createConfigProposal(data), ...options?.mutation });
+}
+
+export const reviewConfigProposal = async (params: ReviewConfigProposalParams, data: ReviewIn, options?: RequestInit): Promise<{ data: ProposedConfigChange }> => {
+  const res = await fetch(`/api/config-proposals/${params.proposal_id}/review`, { ...options, method: "POST", headers: { "Content-Type": "application/json", ...options?.headers }, body: JSON.stringify(data) });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export function useReviewConfigProposal(options?: { mutation?: UseMutationOptions<{ data: ProposedConfigChange }, ApiError, { params: ReviewConfigProposalParams; data: ReviewIn }> }) {
+  return useMutation({ mutationFn: (vars) => reviewConfigProposal(vars.params, vars.data), ...options?.mutation });
+}
+
 export const getWorkspaceConfig = async (options?: RequestInit): Promise<{ data: WorkspaceConfigOut }> => {
   const res = await fetch("/api/config/workspace", { ...options, method: "GET" });
   if (!res.ok) {
@@ -2590,6 +2715,29 @@ export function useListExperimentAssignments<TData = { data: ExperimentAssignmen
 
 export function useListExperimentAssignmentsSuspense<TData = { data: ExperimentAssignment[] }>(options: { params: ListExperimentAssignmentsParams; query?: Omit<UseSuspenseQueryOptions<{ data: ExperimentAssignment[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: listExperimentAssignmentsKey(options.params), queryFn: () => listExperimentAssignments(options.params), ...options?.query });
+}
+
+export const getExperimentResults = async (params: GetExperimentResultsParams, options?: RequestInit): Promise<{ data: ExperimentResultsOut }> => {
+  const res = await fetch(`/api/experiments/${params.experiment_id}/results`, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getExperimentResultsKey = (params?: GetExperimentResultsParams) => {
+  return ["/api/experiments/{experiment_id}/results", params] as const;
+};
+
+export function useGetExperimentResults<TData = { data: ExperimentResultsOut }>(options: { params: GetExperimentResultsParams; query?: Omit<UseQueryOptions<{ data: ExperimentResultsOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getExperimentResultsKey(options.params), queryFn: () => getExperimentResults(options.params), ...options?.query });
+}
+
+export function useGetExperimentResultsSuspense<TData = { data: ExperimentResultsOut }>(options: { params: GetExperimentResultsParams; query?: Omit<UseSuspenseQueryOptions<{ data: ExperimentResultsOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getExperimentResultsKey(options.params), queryFn: () => getExperimentResults(options.params), ...options?.query });
 }
 
 export const startExperiment = async (params: StartExperimentParams, options?: RequestInit): Promise<{ data: Experiment }> => {

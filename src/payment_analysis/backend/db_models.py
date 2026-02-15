@@ -182,3 +182,31 @@ class DecisionOutcome(SQLModel, table=True):
         default_factory=dict, sa_column=Column(JSON, nullable=False)
     )
 
+
+class ProposedConfigChange(SQLModel, table=True):
+    """
+    Agent-proposed configuration changes for operator approval.
+
+    Agents (e.g. Performance Recommender) write proposed changes here
+    when they detect suboptimal config. An operator reviews and approves
+    or rejects them in the UI, closing the loop: data → ML → agents → config → decisions.
+    """
+
+    id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
+    created_at: datetime = Field(default_factory=utcnow, index=True)
+
+    source_agent: str = Field(index=True)  # e.g. "performance_recommender", "decline_analyst"
+    change_type: str = Field(index=True)   # e.g. "decision_config", "decline_code", "route_performance"
+    target_key: str                         # e.g. "risk_threshold_medium", route name, decline code
+    current_value: str | None = None
+    proposed_value: str
+    rationale: str                          # Agent-generated explanation
+    expected_impact_pct: float | None = None  # Expected approval rate improvement (%)
+    confidence: float = Field(default=0.5)    # Agent confidence in the proposal
+
+    # pending | approved | rejected | applied
+    status: str = Field(default="pending", index=True)
+    reviewed_by: str | None = None
+    reviewed_at: datetime | None = None
+    applied_at: datetime | None = None
+

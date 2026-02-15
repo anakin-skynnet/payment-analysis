@@ -17,6 +17,7 @@ from .dependencies import ConfigDep, EffectiveWorkspaceUrlDep, get_workspace_cli
 from .models import AuthStatusOut, VersionOut, WorkspaceConfigOut
 from .routes.agents import router as agents_router
 from .routes.analytics import router as analytics_router
+from .routes.config_proposals import router as config_proposals_router
 from .routes.dashboards import router as dashboards_router
 from .routes.decision import router as decision_router
 from .routes.decision_admin import router as decision_admin_router
@@ -39,6 +40,7 @@ api = APIRouter(prefix=_api_prefix)
 # Feature routes (alphabetical by path prefix)
 api.include_router(agents_router, prefix="/agents")
 api.include_router(analytics_router, prefix="/analytics")
+api.include_router(config_proposals_router, prefix="/config-proposals")
 api.include_router(dashboards_router, prefix="/dashboards")
 api.include_router(decision_router, prefix="/decision")
 api.include_router(decision_admin_router, prefix="/decision/admin")

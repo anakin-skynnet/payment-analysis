@@ -456,6 +456,53 @@ function DecisionCard({
                 ))}
               </div>
             )}
+            {/* Decision Explainability: Why this decision? */}
+            {obj?.reason && (
+              <div className="rounded-lg bg-primary/5 border border-primary/20 p-2.5 space-y-1">
+                <p className="text-xs font-medium text-primary uppercase tracking-wider">Why this decision</p>
+                <p className="text-xs text-foreground">{String(obj.reason)}</p>
+              </div>
+            )}
+            {(obj?.agent_recommendation || obj?.vs_similar_count || obj?.matched_rule_name || obj?.ml_approval_probability != null) && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Decision context</p>
+                {obj?.ml_approval_probability != null && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                    <span className="text-muted-foreground">ML approval:</span>
+                    <span className="font-medium">{(Number(obj.ml_approval_probability) * 100).toFixed(1)}%</span>
+                  </div>
+                )}
+                {obj?.ml_risk_score != null && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+                    <span className="text-muted-foreground">ML risk:</span>
+                    <span className="font-medium">{(Number(obj.ml_risk_score) * 100).toFixed(1)}%</span>
+                  </div>
+                )}
+                {obj?.matched_rule_name != null && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
+                    <span className="text-muted-foreground">Rule:</span>
+                    <span className="font-medium">{String(obj.matched_rule_name)}</span>
+                  </div>
+                )}
+                {obj?.vs_similar_count != null && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className="w-2 h-2 rounded-full bg-cyan-500 shrink-0" />
+                    <span className="text-muted-foreground">Similar cases:</span>
+                    <span className="font-medium">{String(obj.vs_similar_count)} found {obj.vs_similar_avg_approval_rate != null ? `(${Number(obj.vs_similar_avg_approval_rate).toFixed(1)}% avg approval)` : ""}</span>
+                  </div>
+                )}
+                {obj?.agent_recommendation != null && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                    <span className="text-muted-foreground">Agent:</span>
+                    <span className="font-medium">{String(obj.agent_recommendation)}</span>
+                  </div>
+                )}
+              </div>
+            )}
             <details className="text-xs">
               <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Raw JSON</summary>
               <pre className="mt-1 whitespace-pre-wrap break-words text-muted-foreground">
