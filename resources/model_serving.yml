@@ -132,6 +132,7 @@ resources:
             workload_size: "Small"
             scale_to_zero_enabled: true
             workload_type: "CPU"
+            environment_vars: { ENABLE_MLFLOW_TRACING: "true" }
         traffic_config:
           routes: [{ served_model_name: "smart_routing_policy-${var.ml_model_version}", traffic_percentage: 100 }]
       ai_gateway:
@@ -148,6 +149,7 @@ resources:
             workload_size: "Small"
             scale_to_zero_enabled: true
             workload_type: "CPU"
+            environment_vars: { ENABLE_MLFLOW_TRACING: "true" }
         traffic_config:
           routes: [{ served_model_name: "smart_retry_policy-${var.ml_model_version}", traffic_percentage: 100 }]
       ai_gateway:

@@ -34,46 +34,73 @@ async def _sync_incident_to_lakehouse(incident: Incident) -> None:
 
     Uses MERGE for idempotent upsert: creates on first sync, updates on
     subsequent status changes (e.g. resolve).
+
+    SQL injection mitigation: all user-supplied values are passed through
+    Databricks SQL Statement API parameters (named :param syntax) instead
+    of string interpolation.
     """
     try:
+        from databricks.sdk.service.sql import StatementParameterListItem, StatementState
+
         from ..services.databricks_service import DatabricksService
 
         svc = DatabricksService.create()
+        if not svc.is_available:
+            logger.warning("Databricks unavailable — skipping Lakehouse sync for incident %s", incident.id)
+            return
+
         full_schema = svc.config.full_schema_name
-
-        # Escape all user-supplied strings to prevent SQL injection.
-        # Handles: backslash, single quote, null byte (rejected).
-        def _esc(val: str) -> str:
-            s = (val or "").replace("\x00", "")  # strip null bytes
-            return s.replace("\\", "\\\\").replace("'", "''")
-
         details_str = json.dumps(incident.details) if incident.details else "{}"
 
+        # Parameterized MERGE — no string interpolation for user-supplied values.
+        # Schema name is validated by DatabricksConfig.__post_init__ (alphanumeric + underscore only).
         query = f"""
             MERGE INTO {full_schema}.incidents_lakehouse AS target
-            USING (SELECT '{_esc(incident.id)}' AS id) AS source
+            USING (SELECT :incident_id AS id) AS source
             ON target.id = source.id
             WHEN MATCHED THEN UPDATE SET
-                status = '{_esc(incident.status)}',
-                severity = '{_esc(incident.severity)}',
-                details = '{_esc(details_str)}'
+                status = :status,
+                severity = :severity,
+                details = :details
             WHEN NOT MATCHED THEN INSERT
                 (id, created_at, category, incident_key, severity, status, details)
             VALUES (
-                '{_esc(incident.id)}',
+                :incident_id,
                 CURRENT_TIMESTAMP(),
-                '{_esc(incident.category)}',
-                '{_esc(incident.key)}',
-                '{_esc(incident.severity)}',
-                '{_esc(incident.status)}',
-                '{_esc(details_str)}'
+                :category,
+                :incident_key,
+                :severity,
+                :status,
+                :details
             )
         """
-        await svc.execute_query(query)
-        logger.debug("Synced incident %s to Lakehouse mirror", incident.id)
+        params = [
+            StatementParameterListItem(name="incident_id", value=incident.id, type="STRING"),
+            StatementParameterListItem(name="status", value=incident.status, type="STRING"),
+            StatementParameterListItem(name="severity", value=incident.severity, type="STRING"),
+            StatementParameterListItem(name="details", value=details_str, type="STRING"),
+            StatementParameterListItem(name="category", value=incident.category, type="STRING"),
+            StatementParameterListItem(name="incident_key", value=incident.key, type="STRING"),
+        ]
+
+        client = svc.client
+        if client is None:
+            logger.warning("Databricks client not initialized — skipping Lakehouse sync for incident %s", incident.id)
+            return
+
+        result = client.statement_execution.execute_statement(
+            statement=query,
+            warehouse_id=svc.config.warehouse_id,
+            parameters=params,
+        )
+        if result.status and result.status.state == StatementState.SUCCEEDED:
+            logger.debug("Synced incident %s to Lakehouse mirror", incident.id)
+        else:
+            msg = result.status.error.message if result.status and result.status.error else "unknown"
+            logger.warning("Lakehouse sync for incident %s returned non-success: %s", incident.id, msg)
     except Exception:
         # Non-critical: Lakehouse sync failure must not affect API response
-        logger.debug("Failed to sync incident %s to Lakehouse", incident.id, exc_info=True)
+        logger.warning("Failed to sync incident %s to Lakehouse", incident.id, exc_info=True)
 
 
 class IncidentIn(BaseModel):

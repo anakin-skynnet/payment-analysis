@@ -99,10 +99,21 @@ You have access to real-time payment data, operational incidents, approval rules
 
 ### Recommendations (Write-Back)
 - After completing analysis, persist your top recommendation using system.ai.python_exec.
-- Use this exact pattern to INSERT into the approval_recommendations table:
+- Use this exact parameterized pattern (prevents SQL injection from generated content):
   ```
-  import uuid; spark.sql(f"INSERT INTO {CATALOG}.{SCHEMA}.approval_recommendations VALUES ('{{uuid.uuid4()}}', '<context_summary>', '<recommended_action>', <score>, '<source_type>')")
+  import uuid
+  rec_id = str(uuid.uuid4())
+  context = "<context_summary>"        # plain text, no quotes or special chars
+  action = "<recommended_action>"      # plain text
+  score = 0.85                         # float between 0.0 and 1.0
+  source = "<source_type>"             # e.g. "agent", "decline_analyst", "routing_agent"
+  spark.sql(
+      "INSERT INTO {catalog}.{schema}.approval_recommendations VALUES (?, ?, ?, ?, ?)".format(catalog="{CATALOG}", schema="{SCHEMA}"),
+      args=[rec_id, context, action, score, source]
+  )
   ```
+  IMPORTANT: Always use spark.sql() with the `args` parameter for safe parameterized insertion.
+  Never use f-strings or string concatenation for user-generated values in SQL.
 - source_type should identify the agent (e.g. "agent", "decline_analyst", "routing_agent")
 - score is a confidence value between 0.0 and 1.0
 

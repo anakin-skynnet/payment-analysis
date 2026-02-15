@@ -189,9 +189,18 @@ class BaseAgent:
 
     def _execute_sql(self, query: str) -> List[Dict]:
         """Execute SQL query and return results."""
+        return self._execute_sql_parameterized(query, {})
+
+    def _execute_sql_parameterized(self, query: str, params: Dict[str, str]) -> List[Dict]:
+        """Execute SQL query with named parameters and return results.
+
+        Parameters use the ``:name`` syntax in the query and are passed to the
+        Databricks SQL Statement API as ``StatementParameterListItem`` objects,
+        which safely bind values without string interpolation.
+        """
         try:
             from databricks.sdk import WorkspaceClient
-            from databricks.sdk.service.sql import StatementState
+            from databricks.sdk.service.sql import StatementParameterListItem, StatementState
 
             w = WorkspaceClient()
             warehouses = list(w.warehouses.list())
@@ -203,9 +212,15 @@ class BaseAgent:
             if not warehouse_id:
                 return []
 
+            stmt_params = [
+                StatementParameterListItem(name=k, value=str(v), type="STRING")
+                for k, v in params.items()
+            ] if params else None
+
             response = w.statement_execution.execute_statement(
                 warehouse_id=warehouse_id,
                 statement=query,
+                parameters=stmt_params,
                 wait_timeout="30s"
             )
 
@@ -312,15 +327,23 @@ class BaseAgent:
             allowed = ("authentication", "retry", "routing")
             if rule_type and rule_type not in allowed:
                 rule_type = None
-            where = f"WHERE rule_type = '{rule_type}'" if rule_type else ""
-            query = f"""
-                SELECT name, rule_type, action_summary, condition_expression, priority
-                FROM {self.catalog}.{self.schema}.v_approval_rules_active
-                {where}
-                ORDER BY priority ASC
-                LIMIT 50
-            """
-            return self._execute_sql(query)
+            if rule_type:
+                query = f"""
+                    SELECT name, rule_type, action_summary, condition_expression, priority
+                    FROM {self.catalog}.{self.schema}.v_approval_rules_active
+                    WHERE rule_type = :rule_type
+                    ORDER BY priority ASC
+                    LIMIT 50
+                """
+                return self._execute_sql_parameterized(query, {"rule_type": rule_type})
+            else:
+                query = f"""
+                    SELECT name, rule_type, action_summary, condition_expression, priority
+                    FROM {self.catalog}.{self.schema}.v_approval_rules_active
+                    ORDER BY priority ASC
+                    LIMIT 50
+                """
+                return self._execute_sql(query)
         except Exception as e:
             logger.warning("Could not load Lakehouse approval rules: %s", e)
             return []
@@ -411,13 +434,13 @@ Always provide:
                 AVG(processing_time_ms) as latency,
                 COUNT(*) as volume
             FROM {self.catalog}.{self.schema}.payments_enriched_silver
-            WHERE merchant_segment = '{segment}'
+            WHERE merchant_segment = :segment
               AND event_date >= CURRENT_DATE - 30
             GROUP BY payment_solution
             ORDER BY approval_rate DESC
             LIMIT 3
             """
-            return self._execute_sql(query)
+            return self._execute_sql_parameterized(query, {"segment": segment})
 
         self.add_tool(AgentTool(
             name="get_route_performance",

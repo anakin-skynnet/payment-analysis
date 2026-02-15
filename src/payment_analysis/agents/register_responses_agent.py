@@ -299,13 +299,22 @@ except Exception as e:
 # COMMAND ----------
 
 try:
+    # Try uv first (fastest), fall back to virtualenv for environments without uv
+    _env_manager = "uv"
+    try:
+        import shutil
+        if not shutil.which("uv"):
+            _env_manager = "virtualenv"
+            print(f"uv not found on PATH, falling back to env_manager='{_env_manager}'")
+    except Exception:
+        pass
     mlflow.models.predict(
         model_uri=f"runs:/{logged_agent_info.run_id}/agent",
         input_data={
             "input": [{"role": "user", "content": "What is the overall approval rate?"}],
             "custom_inputs": {"session_id": "validation-session"},
         },
-        env_manager="uv",
+        env_manager=_env_manager,
     )
     print("Pre-deployment validation passed")
 except Exception as e:

@@ -264,6 +264,49 @@ class DatabricksService:
             self._last_query_used_mock = True
             return []
     
+    async def _execute_query_parameterized(
+        self,
+        query: str,
+        params: dict[str, str | int | float | bool],
+    ) -> list[dict[str, Any]]:
+        """Execute a SQL query with named :param parameters and return row dicts.
+
+        Uses ``StatementParameterListItem`` for safe value binding.
+        """
+        from databricks.sdk.service.sql import StatementParameterListItem
+
+        client = self.client
+        if client is None or not self.is_available:
+            return []
+
+        warehouse_id = self._get_warehouse_id()
+        if not warehouse_id:
+            return []
+
+        stmt_params = [
+            StatementParameterListItem(name=k, value=str(v), type="STRING")
+            for k, v in params.items()
+        ] or None
+
+        response = client.statement_execution.execute_statement(
+            warehouse_id=warehouse_id,
+            statement=query,
+            parameters=stmt_params,
+            wait_timeout="30s",
+        )
+        from databricks.sdk.service.sql import StatementState
+
+        if not response.status or response.status.state != StatementState.SUCCEEDED:
+            return []
+        if not response.manifest or not response.manifest.schema or not response.result:
+            return []
+        columns_info = response.manifest.schema.columns
+        if not columns_info:
+            return []
+        columns = [col.name for col in columns_info]
+        rows = response.result.data_array or []
+        return [dict(zip(columns, row)) for row in rows]
+
     async def _execute_query_internal(self, query: str) -> list[dict[str, Any]]:
         """Internal query execution with full error handling."""
         from databricks.sdk.service.sql import StatementState
@@ -299,6 +342,48 @@ class DatabricksService:
         rows = response.result.data_array or []
         
         return [dict(zip(columns, row)) for row in rows]
+
+    async def execute_non_query_parameterized(
+        self,
+        statement: str,
+        params: dict[str, str | int | float | bool] | None = None,
+    ) -> bool:
+        """Execute a SQL statement with named parameters (INSERT/UPDATE/DDL).
+
+        Uses :name syntax in the statement and StatementParameterListItem for
+        safe value binding — prevents SQL injection for user-supplied data.
+
+        Returns True on success; raises RuntimeError on failure.
+        """
+        if not self.is_available:
+            raise RuntimeError("Databricks connection is not available")
+        client = self.client
+        if client is None:
+            raise RuntimeError("Databricks client could not be initialized")
+
+        from databricks.sdk.service.sql import StatementParameterListItem, StatementState
+
+        warehouse_id = self._get_warehouse_id()
+        if not warehouse_id:
+            raise RuntimeError("No SQL Warehouse available")
+
+        stmt_params = [
+            StatementParameterListItem(name=k, value=str(v), type="STRING")
+            for k, v in (params or {}).items()
+        ] or None
+
+        response = client.statement_execution.execute_statement(
+            warehouse_id=warehouse_id,
+            statement=statement,
+            parameters=stmt_params,
+            wait_timeout="30s",
+        )
+        if not response.status or response.status.state != StatementState.SUCCEEDED:
+            error_msg = ""
+            if response.status and response.status.error:
+                error_msg = str(response.status.error.message or "")
+            raise RuntimeError(f"Non-query execution failed: {error_msg}")
+        return True
 
     async def execute_non_query(self, statement: str) -> bool:
         """
@@ -862,28 +947,29 @@ class DatabricksService:
         await self.execute_non_query(create_sql)
         seed_sql = f"""
             INSERT INTO {table} (id, catalog, schema)
-            SELECT 1, '{self._escape_sql_string(self.config.catalog)}', '{self._escape_sql_string(self.config.schema)}'
+            SELECT 1, :seed_catalog, :seed_schema
             WHERE (SELECT COUNT(*) FROM {table}) = 0
         """
-        await self.execute_non_query(seed_sql)
+        await self.execute_non_query_parameterized(
+            seed_sql, {"seed_catalog": self.config.catalog, "seed_schema": self.config.schema}
+        )
         return True
 
     async def write_app_config(self, catalog: str, schema: str) -> bool:
         """
-        Write catalog and schema to app_config table (single row id=1).
+        Write catalog and schema to app_config table (single row id=1, parameterized).
         Table lives at self.config.full_schema_name (bootstrap from env).
         Creates the table and seed row if they do not exist (so Save works before Lakehouse Bootstrap).
         """
         await self._ensure_app_config_table()
         table = self.config.full_schema_name + ".app_config"
-        c, s = self._escape_sql_string(catalog), self._escape_sql_string(schema)
         stmt = f"""
             MERGE INTO {table} AS t
-            USING (SELECT 1 AS id, '{c}' AS catalog, '{s}' AS schema) AS s ON t.id = s.id
+            USING (SELECT 1 AS id, :p_catalog AS catalog, :p_schema AS schema) AS s ON t.id = s.id
             WHEN MATCHED THEN UPDATE SET t.catalog = s.catalog, t.schema = s.schema, t.updated_at = current_timestamp()
             WHEN NOT MATCHED THEN INSERT (id, catalog, schema, updated_at) VALUES (1, s.catalog, s.schema, current_timestamp())
         """
-        await self.execute_non_query(stmt)
+        await self.execute_non_query_parameterized(stmt, {"p_catalog": catalog, "p_schema": schema})
         return True
 
     async def get_approval_rules(
@@ -893,12 +979,14 @@ class DatabricksService:
         active_only: bool = False,
         limit: int = 200,
     ) -> list[dict[str, Any]]:
-        """Fetch approval rules from Lakehouse. Used by app and by ML/Agents to accelerate approval rates."""
+        """Fetch approval rules from Lakehouse (parameterized). Used by app and by ML/Agents to accelerate approval rates."""
         limit = max(1, min(limit, 500))
         table = self.config.full_schema_name + ".approval_rules"
-        where_clauses = []
+        where_clauses: list[str] = []
+        params: dict[str, str | int | float | bool] = {}
         if rule_type:
-            where_clauses.append(f"rule_type = '{self._escape_sql_string(rule_type)}'")
+            where_clauses.append("rule_type = :rule_type")
+            params["rule_type"] = rule_type
         if active_only:
             where_clauses.append("is_active = true")
         where_sql = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
@@ -910,6 +998,8 @@ class DatabricksService:
             LIMIT {limit}
             """
         try:
+            if params:
+                return await self._execute_query_parameterized(query, params) or []
             return await self.execute_query(query) or []
         except Exception:
             return []
@@ -925,23 +1015,30 @@ class DatabricksService:
         priority: int = 100,
         is_active: bool = True,
     ) -> bool:
-        """Insert one approval rule into the Lakehouse table."""
+        """Insert one approval rule into the Lakehouse table (parameterized)."""
         table = self.config.full_schema_name + ".approval_rules"
-        cond = f"'{self._escape_sql_string(condition_expression)}'" if condition_expression else "NULL"
+        cond_col = ":condition_expression" if condition_expression else "NULL"
         stmt = f"""
             INSERT INTO {table} (id, name, rule_type, condition_expression, action_summary, priority, is_active, updated_at)
             VALUES (
-                '{self._escape_sql_string(id)}',
-                '{self._escape_sql_string(name)}',
-                '{self._escape_sql_string(rule_type)}',
-                {cond},
-                '{self._escape_sql_string(action_summary)}',
-                {priority},
-                {str(is_active).upper()},
+                :rule_id, :name, :rule_type,
+                {cond_col},
+                :action_summary, :priority,
+                :is_active,
                 current_timestamp()
             )
         """
-        return await self.execute_non_query(stmt)
+        params: dict[str, str | int | float | bool] = {
+            "rule_id": id,
+            "name": name,
+            "rule_type": rule_type,
+            "action_summary": action_summary,
+            "priority": priority,
+            "is_active": str(is_active).upper(),
+        }
+        if condition_expression:
+            params["condition_expression"] = condition_expression
+        return await self.execute_non_query_parameterized(stmt, params)
 
     async def update_approval_rule(
         self,
@@ -954,29 +1051,36 @@ class DatabricksService:
         priority: int | None = None,
         is_active: bool | None = None,
     ) -> bool:
-        """Update an approval rule by id."""
+        """Update an approval rule by id (parameterized)."""
         table = self.config.full_schema_name + ".approval_rules"
         updates = ["updated_at = current_timestamp()"]
+        params: dict[str, str | int | float | bool] = {"rule_id": id}
         if name is not None:
-            updates.append(f"name = '{self._escape_sql_string(name)}'")
+            updates.append("name = :p_name")
+            params["p_name"] = name
         if rule_type is not None:
-            updates.append(f"rule_type = '{self._escape_sql_string(rule_type)}'")
+            updates.append("rule_type = :p_rule_type")
+            params["p_rule_type"] = rule_type
         if condition_expression is not None:
-            updates.append(f"condition_expression = '{self._escape_sql_string(condition_expression)}'")
+            updates.append("condition_expression = :p_condition")
+            params["p_condition"] = condition_expression
         if action_summary is not None:
-            updates.append(f"action_summary = '{self._escape_sql_string(action_summary)}'")
+            updates.append("action_summary = :p_action")
+            params["p_action"] = action_summary
         if priority is not None:
-            updates.append(f"priority = {priority}")
+            updates.append("priority = :p_priority")
+            params["p_priority"] = priority
         if is_active is not None:
-            updates.append(f"is_active = {str(is_active).upper()}")
-        stmt = f"UPDATE {table} SET {', '.join(updates)} WHERE id = '{self._escape_sql_string(id)}'"
-        return await self.execute_non_query(stmt)
+            updates.append("is_active = :p_active")
+            params["p_active"] = str(is_active).upper()
+        stmt = f"UPDATE {table} SET {', '.join(updates)} WHERE id = :rule_id"
+        return await self.execute_non_query_parameterized(stmt, params)
 
     async def delete_approval_rule(self, id: str) -> bool:
-        """Delete an approval rule by id."""
+        """Delete an approval rule by id (parameterized)."""
         table = self.config.full_schema_name + ".approval_rules"
-        stmt = f"DELETE FROM {table} WHERE id = '{self._escape_sql_string(id)}'"
-        return await self.execute_non_query(stmt)
+        stmt = f"DELETE FROM {table} WHERE id = :rule_id"
+        return await self.execute_non_query_parameterized(stmt, {"rule_id": id})
 
     async def get_online_features(
         self,
@@ -984,24 +1088,36 @@ class DatabricksService:
         source: str | None = None,
         limit: int = 100,
     ) -> list[dict[str, Any]]:
-        """Fetch online features from Lakehouse (ML and AI processes) for UI."""
+        """Fetch online features from Lakehouse (ML and AI processes) for UI (parameterized)."""
         limit = max(1, min(limit, 500))
         table = self.config.full_schema_name + ".online_features"
-        where = "WHERE created_at >= current_timestamp() - INTERVAL 24 HOURS"
         if source and source.lower() in ("ml", "agent"):
-            where += f" AND source = '{self._escape_sql_string(source.lower())}'"
-        query = f"""
-            SELECT id, source, feature_set, feature_name, feature_value, feature_value_str, entity_id, created_at
-            FROM {table}
-            {where}
-            ORDER BY created_at DESC
-            LIMIT {limit}
-        """
-        try:
-            return await self.execute_query(query) or []
-        except Exception as e:
-            logger.debug("get_online_features failed: %s", e)
-            return []
+            query = f"""
+                SELECT id, source, feature_set, feature_name, feature_value, feature_value_str, entity_id, created_at
+                FROM {table}
+                WHERE created_at >= current_timestamp() - INTERVAL 24 HOURS
+                  AND source = :source
+                ORDER BY created_at DESC
+                LIMIT {limit}
+            """
+            try:
+                return await self._execute_query_parameterized(query, {"source": source.lower()}) or []
+            except Exception as e:
+                logger.debug("get_online_features failed: %s", e)
+                return []
+        else:
+            query = f"""
+                SELECT id, source, feature_set, feature_name, feature_value, feature_value_str, entity_id, created_at
+                FROM {table}
+                WHERE created_at >= current_timestamp() - INTERVAL 24 HOURS
+                ORDER BY created_at DESC
+                LIMIT {limit}
+            """
+            try:
+                return await self.execute_query(query) or []
+            except Exception as e:
+                logger.debug("get_online_features failed: %s", e)
+                return []
 
     async def get_ml_models(self, entity: str = DEFAULT_ENTITY) -> list[dict[str, Any]]:
         """Return ML model metadata enriched with live metrics from Unity Catalog model registry.
@@ -1088,25 +1204,33 @@ class DatabricksService:
         prompt_version: str | None,
     ) -> bool:
         """
-        Submit domain feedback for an insight to the UC feedback table.
+        Submit domain feedback for an insight to the UC feedback table (parameterized).
 
         Note: in some environments, Lakeflow-managed tables may disallow direct INSERTs.
         This is intended as a scaffold for the learning loop.
         """
-
-        def esc(v: str | None) -> str:
-            if v is None:
-                return "NULL"
-            return "'" + v.replace("'", "''") + "'"
+        # Build columns/params dynamically to handle NULLs correctly
+        cols = ["insight_id", "insight_type", "verdict", "reviewed_at"]
+        placeholders = [":insight_id", ":insight_type", ":verdict", "current_timestamp()"]
+        params: dict[str, str | int | float | bool] = {
+            "insight_id": insight_id,
+            "insight_type": insight_type,
+            "verdict": verdict,
+        }
+        for col_name, val in [("reviewer", reviewer), ("reason", reason), ("model_version", model_version), ("prompt_version", prompt_version)]:
+            if val is not None:
+                cols.append(col_name)
+                placeholders.append(f":{col_name}")
+                params[col_name] = val
 
         statement = f"""
         INSERT INTO {self.config.full_schema_name}.insight_feedback_silver
-        (insight_id, insight_type, reviewer, verdict, reason, model_version, prompt_version, reviewed_at)
+        ({', '.join(cols)})
         VALUES
-        ({esc(insight_id)}, {esc(insight_type)}, {esc(reviewer)}, {esc(verdict)}, {esc(reason)}, {esc(model_version)}, {esc(prompt_version)}, current_timestamp())
+        ({', '.join(placeholders)})
         """
 
-        return await self.execute_non_query(statement)
+        return await self.execute_non_query_parameterized(statement, params)
     
     # =========================================================================
     # Additional analytics views
