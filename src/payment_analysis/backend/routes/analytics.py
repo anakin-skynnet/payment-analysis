@@ -909,7 +909,13 @@ async def command_center_entry_throughput(
         if not data and _should_use_mock_fallback(request, service):
             data = _mock.mock_entry_throughput()
     return [
-        CommandCenterEntryThroughputPointOut(ts=r["ts"], PD=r["PD"], WS=r["WS"], SEP=r["SEP"], Checkout=r["Checkout"])
+        CommandCenterEntryThroughputPointOut(
+            ts=r.get("ts", ""),
+            PD=r.get("PD", 0),
+            WS=r.get("WS", 0),
+            SEP=r.get("SEP", 0),
+            Checkout=r.get("Checkout", 0),
+        )
         for r in data
     ]
 

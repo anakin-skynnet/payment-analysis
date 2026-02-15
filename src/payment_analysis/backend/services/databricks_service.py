@@ -729,7 +729,16 @@ class DatabricksService:
                             key = es if es in ("PD", "WS", "SEP", "Checkout") else es[:10]
                             real_shares[key] = cnt / total
                         if real_shares:
-                            shares = real_shares
+                            # Merge into defaults so all 4 keys always exist
+                            shares = {k: real_shares.get(k, 0.0) for k in shares}
+                            # Redistribute any unaccounted share equally
+                            accounted = sum(shares.values())
+                            if accounted < 0.99:
+                                missing = [k for k, v in shares.items() if v == 0.0]
+                                if missing:
+                                    leftover = (1.0 - accounted) / len(missing)
+                                    for k in missing:
+                                        shares[k] = leftover
             except Exception:
                 pass  # Use default shares if distribution view unavailable
 
