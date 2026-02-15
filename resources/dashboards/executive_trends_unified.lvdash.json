@@ -673,24 +673,8 @@
                       "expression": "`event_date`"
                     },
                     {
-                      "name": "transactions",
-                      "expression": "`transactions`"
-                    },
-                    {
-                      "name": "approval_rate",
-                      "expression": "`approval_rate`"
-                    },
-                    {
-                      "name": "avg_fraud_score",
-                      "expression": "`avg_fraud_score`"
-                    },
-                    {
-                      "name": "total_value",
-                      "expression": "`total_value`"
-                    },
-                    {
-                      "name": "dod_volume_change",
-                      "expression": "`dod_volume_change`"
+                      "name": "sum(transactions)",
+                      "expression": "SUM(`transactions`)"
                     }
                   ],
                   "disaggregated": false
@@ -698,183 +682,33 @@
               }
             ],
             "spec": {
-              "version": 1,
-              "widgetType": "table",
+              "version": 3,
+              "widgetType": "line",
               "encodings": {
-                "columns": [
-                  {
-                    "name": "event_date",
-                    "fieldName": "event_date",
-                    "displayName": "Event Date",
-                    "title": "Event Date",
-                    "order": 0,
-                    "visible": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "allowSearch": true,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true
+                "x": {
+                  "fieldName": "event_date",
+                  "scale": {
+                    "type": "temporal"
                   },
-                  {
-                    "name": "transactions",
-                    "fieldName": "transactions",
-                    "displayName": "Transactions",
-                    "title": "Transactions",
-                    "order": 1,
-                    "visible": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "allowSearch": true,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true
-                  },
-                  {
-                    "name": "approval_rate",
-                    "fieldName": "approval_rate",
-                    "displayName": "Approval Rate",
-                    "title": "Approval Rate",
-                    "order": 2,
-                    "visible": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "allowSearch": true,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true
-                  },
-                  {
-                    "name": "avg_fraud_score",
-                    "fieldName": "avg_fraud_score",
-                    "displayName": "Avg Fraud Score",
-                    "title": "Avg Fraud Score",
-                    "order": 3,
-                    "visible": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "allowSearch": true,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true
-                  },
-                  {
-                    "name": "total_value",
-                    "fieldName": "total_value",
-                    "displayName": "Total Value",
-                    "title": "Total Value",
-                    "order": 4,
-                    "visible": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "allowSearch": true,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true
-                  },
-                  {
-                    "name": "dod_volume_change",
-                    "fieldName": "dod_volume_change",
-                    "displayName": "Dod Volume Change",
-                    "title": "Dod Volume Change",
-                    "order": 5,
-                    "visible": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "allowSearch": true,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true
+                  "displayName": "Date",
+                  "axis": {
+                    "title": "Date"
                   }
-                ]
+                },
+                "y": {
+                  "fieldName": "sum(transactions)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Transactions",
+                  "axis": {
+                    "title": "Transactions"
+                  }
+                }
               },
               "frame": {
                 "showTitle": true,
-                "title": "Daily Trends",
+                "title": "Daily Transaction Trends",
                 "showDescription": false
               }
             }
@@ -882,7 +716,7 @@
           "position": {
             "x": 0,
             "y": 0,
-            "width": 6,
+            "width": 8,
             "height": 4
           }
         },
@@ -1053,32 +887,29 @@
             ],
             "spec": {
               "version": 3,
-              "widgetType": "pie",
+              "widgetType": "bar",
               "encodings": {
-                "angle": {
+                "x": {
+                  "fieldName": "payment_solution",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  },
+                  "displayName": "Payment Solution",
+                  "axis": {
+                    "title": "Payment Solution"
+                  }
+                },
+                "y": {
                   "fieldName": "sum(avg_latency_ms)",
                   "scale": {
                     "type": "quantitative"
                   },
-                  "displayName": "Avg Latency Ms"
-                },
-                "color": {
-                  "fieldName": "payment_solution",
-                  "scale": {
-                    "type": "categorical",
-                    "range": [
-                      "#EC0000",
-                      "#00E5FF",
-                      "#22C55E",
-                      "#6366F1",
-                      "#F59E0B",
-                      "#8B5CF6"
-                    ]
-                  },
-                  "displayName": "Payment Solution",
-                  "legend": {
-                    "position": "bottom",
-                    "hideTitle": false
+                  "displayName": "Avg Latency (ms)",
+                  "axis": {
+                    "title": "Avg Latency (ms)"
                   }
                 }
               },
@@ -1120,32 +951,29 @@
             ],
             "spec": {
               "version": 3,
-              "widgetType": "pie",
+              "widgetType": "bar",
               "encodings": {
-                "angle": {
+                "x": {
+                  "fieldName": "card_network",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  },
+                  "displayName": "Card Network",
+                  "axis": {
+                    "title": "Card Network"
+                  }
+                },
+                "y": {
                   "fieldName": "sum(avg_latency_ms)",
                   "scale": {
                     "type": "quantitative"
                   },
-                  "displayName": "Avg Latency Ms"
-                },
-                "color": {
-                  "fieldName": "card_network",
-                  "scale": {
-                    "type": "categorical",
-                    "range": [
-                      "#EC0000",
-                      "#00E5FF",
-                      "#22C55E",
-                      "#6366F1",
-                      "#F59E0B",
-                      "#8B5CF6"
-                    ]
-                  },
-                  "displayName": "Card Network",
-                  "legend": {
-                    "position": "bottom",
-                    "hideTitle": false
+                  "displayName": "Avg Latency (ms)",
+                  "axis": {
+                    "title": "Avg Latency (ms)"
                   }
                 }
               },
