@@ -1219,12 +1219,12 @@ class DatabricksService:
     # =========================================================================
 
     async def get_decline_recovery_opportunities(self, *, limit: int = 20) -> list[dict[str, Any]]:
-        """Decline recovery opportunities ranked by estimated recoverable value."""
+        """Decline recovery opportunities ranked by potential recovery value."""
         limit = max(1, min(limit, 100))
         query = f"""
             SELECT *
             FROM {self.config.full_schema_name}.v_decline_recovery_opportunities
-            ORDER BY estimated_recoverable_value DESC
+            ORDER BY potential_recovery_value DESC
             LIMIT {limit}
         """
         results = await self.execute_query(query)
