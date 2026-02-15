@@ -21,6 +21,12 @@ import {
   CheckCircle2,
   DollarSign,
   Bot,
+  AlertTriangle,
+  Beaker,
+  BookOpen,
+  Gauge,
+  FileBarChart,
+  Settings,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_sidebar/about")({
@@ -36,11 +42,11 @@ export const Route = createFileRoute("/_sidebar/about")({
 const HERO = {
   headline: "Payment Approval Rate Optimization",
   subline:
-    "A unified, AI-powered platform that accelerates payment approval rates, recovers lost revenue from false declines, and optimizes routing and retry strategies across all channels.",
+    "A unified, AI-powered platform built entirely on Databricks that accelerates payment approval rates, recovers lost revenue from false declines, and optimizes routing and retry strategies across all channels for Getnet.",
   kpis: [
-    { label: "AI Agents", value: "7", detail: "Orchestrator + 5 specialists" },
-    { label: "ML Models", value: "7", detail: "Real-time serving endpoints" },
-    { label: "Dashboards", value: "3", detail: "Unified AI/BI analytics" },
+    { label: "AI Agents", value: "6", detail: "Orchestrator + 5 specialists" },
+    { label: "ML Models", value: "4", detail: "Real-time serving endpoints" },
+    { label: "Dashboards", value: "3", detail: "Unified AI/BI Lakeview" },
     { label: "Compute", value: "100%", detail: "Serverless infrastructure" },
   ],
 };
@@ -48,31 +54,31 @@ const HERO = {
 const CHALLENGE = {
   title: "The Business Challenge",
   intro:
-    "Every declined transaction that should have been approved is lost revenue. Every suboptimal route increases friction. Every missed retry is a recovery opportunity left on the table.",
+    "Getnet processes millions of payment transactions daily. Every declined transaction that should have been approved is lost revenue. Every suboptimal route increases friction. Every missed retry is a recovery opportunity left on the table.",
   points: [
     {
       icon: DollarSign,
       title: "False declines cost revenue",
       description:
-        "Conservative fraud rules and fragmented data lead to legitimate transactions being declined. With millions of monthly transactions, even a 1% improvement in approval rate translates to significant recovered revenue.",
+        "Conservative fraud rules and fragmented data lead to legitimate transactions being declined. With millions of monthly transactions, even a 1% improvement in approval rate translates to significant recovered revenue for Getnet and its merchants.",
     },
     {
       icon: Globe,
       title: "Complexity across channels and regions",
       description:
-        "Multiple entry systems (Checkout, PD, WS, SEP), multiple services (Antifraud, 3DS, Network Token, IdPay, Passkey), and region-specific behaviors (Brazil accounts for over 70% of volume) make optimization challenging without unified visibility.",
+        "Multiple entry systems (Checkout, PD, WS, SEP), multiple services (Antifraud, 3DS, Network Token, IdPay, Passkey), and region-specific behaviors make optimization challenging without unified visibility across all payment flows.",
     },
     {
       icon: RotateCcw,
       title: "Missed retry and recurrence opportunities",
       description:
-        "Millions of transactions fail each month that could be successfully retried. Without intelligent retry logic and timing, recoverable revenue is left on the table.",
+        "Millions of transactions fail each month that could be successfully retried with the right timing and strategy. Without intelligent retry logic, recoverable revenue is permanently lost.",
     },
     {
       icon: ListChecks,
-      title: "Fragmented decline data",
+      title: "Fragmented decline data across systems",
       description:
-        "Decline reasons come from different systems with different codes. Without standardization, it is impossible to see the full picture and prioritize the highest-impact improvements.",
+        "Decline reasons come from different acquirers, networks, and issuers with inconsistent codes. Without standardization and unified taxonomy, it is impossible to see the full picture and prioritize the highest-impact improvements.",
     },
   ],
 };
@@ -80,39 +86,39 @@ const CHALLENGE = {
 const SOLUTION_OVERVIEW = {
   title: "What We Built",
   intro:
-    "An end-to-end platform on Databricks that unifies data, intelligence, and decision-making into a single control center. Every component is designed around one goal: accelerate approval rates.",
+    "An end-to-end platform on Databricks that unifies data, intelligence, and decision-making into a single control center. Every component is purpose-built around one goal: accelerate payment approval rates for Getnet.",
   layers: [
     {
       icon: Database,
       label: "Data Foundation",
-      title: "Real-time medallion architecture",
+      title: "Real-time medallion architecture (Bronze \u2192 Silver \u2192 Gold)",
       description:
-        "All payment data flows through Bronze, Silver, and Gold layers in under 5 seconds. Continuous serverless pipelines ensure every dashboard, model, and agent sees the same clean, up-to-date data.",
-      tech: ["Lakeflow", "Unity Catalog", "Delta Lake", "Serverless"],
+        "All payment transaction data flows through Bronze (raw ingestion), Silver (enriched and validated), and Gold (business-ready views and aggregates) layers in under 5 seconds. Continuous serverless Lakeflow pipelines and Delta Live Tables ensure every dashboard, model, and agent sees the same clean, governed, up-to-date data through Unity Catalog.",
+      tech: ["Lakeflow", "Delta Live Tables", "Unity Catalog", "Delta Lake", "Serverless SQL"],
     },
     {
       icon: Brain,
       label: "Intelligence Layer",
-      title: "ML models + AI agents + Vector Search",
+      title: "4 ML models + 6 AI agents + Vector Search",
       description:
-        "Four ML models predict approval probability, fraud risk, optimal routing, and retry success in real time. Seven AI agents analyze patterns and recommend actions. Vector Search finds similar historical transactions to inform decisions.",
-      tech: ["MLflow", "Model Serving", "LangGraph", "Vector Search", "Lakebase"],
+        "Four gradient-boosted ML models (HistGradientBoosting) predict approval probability, fraud risk, optimal routing, and retry success in real time via serverless Model Serving endpoints. Six AI agents (Orchestrator + 5 specialists) analyze patterns and recommend specific actions using Unity Catalog functions. Vector Search finds similar historical transactions to inform every decision with experience replay.",
+      tech: ["MLflow", "Model Serving", "Responses Agent", "UC Functions", "Vector Search", "Lakebase"],
     },
     {
       icon: Zap,
       label: "Decision Layer",
-      title: "Real-time decisioning API",
+      title: "Real-time decisioning engine with feedback loop",
       description:
-        "A unified API combines ML scores, business rules, and AI recommendations into a single decision for each transaction: authenticate, route, retry, or escalate. Rules can be adjusted without code.",
-      tech: ["FastAPI", "Rules Engine", "Lakebase", "A/B Experiments"],
+        "A unified API combines ML predictions, configurable business rules, agent recommendations, and Vector Search similarity lookups into a single decision for each transaction: authenticate, route, retry, or escalate. Rules are stored in Lakebase and adjustable without code. Outcomes feed back into the system via A/B experiments to continuously improve decisions.",
+      tech: ["FastAPI", "Rules Engine", "Lakebase", "A/B Experiments", "Config Proposals"],
     },
     {
       icon: BarChart3,
       label: "Analytics & Control",
-      title: "Dashboards, agents, and control panel",
+      title: "AI/BI dashboards, Genie, and full-stack control panel",
       description:
-        "Three unified AI/BI dashboards provide executive KPIs, ML performance metrics, and data quality monitoring. The control panel lets teams run jobs, manage rules, view recommendations, and interact with AI agents, all from one place.",
-      tech: ["AI/BI Dashboards", "React App", "Genie", "Orchestrator Chat"],
+        "Three unified AI/BI Lakeview dashboards (Executive & Trends, ML & Optimization, Data & Quality) provide embeddable analytics. The Databricks App serves as the control center: 16 pages for KPIs, declines, routing, retry, decisioning, experiments, incidents, rules, AI agent chat, ML model management, and infrastructure setup \u2014 all from one place.",
+      tech: ["AI/BI Dashboards", "Databricks App", "Genie Space", "React + FastAPI"],
     },
   ],
 };
@@ -121,89 +127,131 @@ const CAPABILITIES: { icon: typeof Target; title: string; description: string; l
   {
     icon: Target,
     title: "Command Center",
-    description: "Real-time KPIs, approval rates, entry system throughput, top declines, alerts, and AI recommendations. The executive view of platform health.",
+    description: "Real-time KPIs, approval rates by entry system, live throughput, top decline reasons, active alerts, and AI-powered recommendations. The executive view of the entire platform.",
     link: "/command-center",
     linkLabel: "Open Command Center",
   },
   {
     icon: ListChecks,
     title: "Reason Codes & Declines",
-    description: "Unified decline taxonomy across all entry systems. See top reasons, recoverable segments, and where routing or rule changes have the highest impact.",
-    link: "/declines",
-    linkLabel: "View Declines",
+    description: "Unified decline taxonomy across all entry systems and networks. Top decline reasons, recoverable segments, decline recovery value, and where routing or rule changes have the highest impact.",
+    link: "/reason-codes",
+    linkLabel: "View Reason Codes",
   },
   {
     icon: CreditCard,
     title: "Smart Checkout",
-    description: "Performance by solution path (Antifraud, 3DS, Network Token, Passkey). 3DS funnel analysis. Optimize the mix of security services to maximize approval with minimum friction.",
+    description: "Performance by solution path (Antifraud, 3DS, Network Token, Passkey). 3DS funnel analysis. Optimize the mix of security services to maximize approval rate with minimum friction.",
     link: "/smart-checkout",
     linkLabel: "View Smart Checkout",
   },
   {
     icon: RotateCcw,
     title: "Smart Retry",
-    description: "Identify which declined transactions are worth retrying, when to retry, and the expected recovery. Covers both payment recurrence and cardholder reattempts.",
+    description: "Identify which declined transactions are worth retrying, the best timing, expected recovery rate, and recurrence patterns. ML model predicts retry success probability per transaction.",
     link: "/smart-retry",
     linkLabel: "View Smart Retry",
   },
   {
     icon: Shield,
     title: "Decisioning & Rules",
-    description: "Real-time authentication, routing, and retry decisions combining ML predictions, business rules, and risk scores. Rules are configurable without code. A/B experiments measure impact.",
+    description: "Real-time authentication, routing, and retry decisions combining ML predictions, business rules, agent recommendations, and risk scores. Approval simulator, decision explainability, and configurable rules without code.",
     link: "/decisioning",
     linkLabel: "Open Decisioning",
   },
   {
     icon: Bot,
     title: "AI Agents",
-    description: "Ask questions in natural language. The orchestrator coordinates five specialist agents (Routing, Retry, Decline, Risk, Performance) that analyze data and recommend specific actions.",
+    description: "Ask questions in natural language. The orchestrator coordinates five specialist agents (Routing, Retry, Decline, Risk, Performance) that query Unity Catalog functions and recommend specific actions.",
     link: "/ai-agents",
     linkLabel: "Open AI Agents",
+  },
+  {
+    icon: Beaker,
+    title: "A/B Experiments",
+    description: "Create and manage experiments to measure the impact of policy changes. Statistical analysis (lift, p-value, significance) with automated recommendations to graduate, stop, or extend experiments.",
+    link: "/experiments",
+    linkLabel: "View Experiments",
+  },
+  {
+    icon: AlertTriangle,
+    title: "Incidents & Alerts",
+    description: "Track incidents when approval rates drop or anomalies are detected. Create, resolve, and sync incidents to the Lakehouse for historical analysis and audit trail.",
+    link: "/incidents",
+    linkLabel: "View Incidents",
+  },
+  {
+    icon: Gauge,
+    title: "Data Quality & Monitoring",
+    description: "Monitor Bronze and Silver data volumes, retention rates, streaming throughput, and pipeline health. Ensure the data foundation is healthy before trusting analytics and decisions.",
+    link: "/data-quality",
+    linkLabel: "View Data Quality",
+  },
+  {
+    icon: FileBarChart,
+    title: "AI/BI Dashboards",
+    description: "Three unified Lakeview dashboards published with embed credentials: Executive & Trends, ML & Optimization, and Data & Quality. Real-time views powered by Gold layer views.",
+    link: "/dashboards",
+    linkLabel: "Open Dashboards",
+  },
+  {
+    icon: BookOpen,
+    title: "ML Models & Notebooks",
+    description: "View registered ML models in Unity Catalog, their versions, and serving status. Browse and launch Databricks notebooks for ad-hoc analysis, model training, and data exploration.",
+    link: "/models",
+    linkLabel: "View Models",
+  },
+  {
+    icon: Settings,
+    title: "Setup & Administration",
+    description: "Run Databricks jobs (data repos, streaming, gold views, model training, agent deployment, Genie sync), manage pipelines, configure the SQL warehouse, and control the full infrastructure lifecycle.",
+    link: "/setup",
+    linkLabel: "Open Setup",
   },
 ];
 
 const OUTCOMES: { metric: string; description: string; icon: typeof TrendingUp }[] = [
   {
     metric: "Higher approval rates",
-    description: "Reduce false declines by using ML-predicted approval probability and risk-based authentication. Every percentage point recovered translates to significant revenue.",
+    description: "Reduce false declines using ML-predicted approval probability, risk-based authentication, and experience replay from Vector Search. Every percentage point recovered translates directly to revenue for Getnet merchants.",
     icon: TrendingUp,
   },
   {
-    metric: "Recovered revenue from retries",
-    description: "Intelligent retry timing and targeting recovers transactions that would otherwise be lost. The platform identifies the best candidates, optimal timing, and expected success rate.",
+    metric: "Recovered revenue from intelligent retries",
+    description: "ML-powered retry logic identifies the best candidates, optimal timing, and expected success rate. Transactions that would otherwise be permanently lost are recovered systematically.",
     icon: DollarSign,
   },
   {
-    metric: "Optimized routing decisions",
-    description: "ML-driven routing selects the best path (standard, 3DS, Network Token, Passkey) for each transaction segment, maximizing approval while controlling fraud exposure.",
+    metric: "Optimized routing per transaction segment",
+    description: "ML-driven routing selects the best path (standard, 3DS, Network Token, Passkey) for each transaction based on merchant segment, card network, and risk profile, maximizing approval while controlling fraud exposure.",
     icon: Zap,
   },
   {
-    metric: "Faster time to insight",
-    description: "Real-time data processing (under 5 seconds) and AI agents replace manual analysis. Teams get actionable recommendations instead of raw reports.",
+    metric: "Real-time insight, not stale reports",
+    description: "Data processing in under 5 seconds, AI agents that answer questions in natural language, and decision explainability that tells operators exactly why each decision was made and what to do about it.",
     icon: Activity,
   },
   {
-    metric: "Consistent, data-driven decisions",
-    description: "One decision layer, one set of rules, one source of truth. No more conflicting signals from different systems or teams operating on different data.",
+    metric: "Measurable, data-driven improvements",
+    description: "A/B experiments quantify the impact of every policy change. Config proposals from AI agents are reviewed before applying. Outcome feedback loops ensure the system continuously improves over time.",
     icon: CheckCircle2,
   },
   {
-    metric: "Reduced operational overhead",
-    description: "Fully serverless, self-managing infrastructure. No clusters to size, no jobs to babysit. Teams focus on business logic and strategy, not operations.",
+    metric: "Zero infrastructure overhead",
+    description: "100% serverless: compute, SQL, pipelines, model serving, and the application itself. No clusters to size, no jobs to babysit. Databricks Asset Bundles manage the entire stack as code.",
     icon: Server,
   },
 ];
 
 const TECH_SUMMARY = [
-  { label: "Data Platform", value: "Databricks (Lakeflow, Unity Catalog, Delta Lake)" },
-  { label: "AI & ML", value: "MLflow, Model Serving, LangGraph agents, Vector Search" },
-  { label: "Database", value: "Lakebase (Postgres) for rules, experiments, incidents, features" },
-  { label: "Application", value: "FastAPI + React (deployed as Databricks App)" },
-  { label: "Dashboards", value: "3 unified AI/BI Lakeview dashboards (embeddable)" },
-  { label: "Model Serving", value: "7 serverless endpoints (3 agents + 4 ML models)" },
-  { label: "Infrastructure", value: "100% serverless compute (jobs, pipelines, SQL, serving)" },
-  { label: "Deployment", value: "Databricks Asset Bundles (Infrastructure as Code)" },
+  { label: "Data Platform", value: "Databricks (Lakeflow, Delta Live Tables, Unity Catalog, Delta Lake)" },
+  { label: "AI & ML", value: "MLflow, Model Serving (4 endpoints), Responses Agent, UC Functions, Vector Search" },
+  { label: "AI Agents", value: "6 agents (Orchestrator + Routing, Retry, Decline, Risk, Performance)" },
+  { label: "Database", value: "Lakebase (managed PostgreSQL) for rules, experiments, incidents, features, proposals" },
+  { label: "Application", value: "Databricks App: FastAPI backend + React frontend (16 pages)" },
+  { label: "Dashboards", value: "3 unified AI/BI Lakeview dashboards (embeddable, published)" },
+  { label: "Automation", value: "7 Databricks jobs (data, streaming, gold views, models, agents, dashboards, Genie)" },
+  { label: "Infrastructure", value: "100% serverless compute \u2014 deployed via Databricks Asset Bundles (IaC)" },
 ];
 
 /* ---------- Component ---------- */
@@ -321,9 +369,9 @@ function About() {
       {/* Platform Capabilities */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">How to Use the Platform</h2>
+          <h2 className="text-xl font-semibold tracking-tight">Platform Capabilities</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Six areas, each designed to help teams find and act on approval rate improvements.
+            Twelve key areas across analytics, optimization, AI, experimentation, and operations &mdash; each designed to help teams find and act on approval rate improvements.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -421,44 +469,49 @@ function About() {
                 <tbody>
                   {[
                     {
-                      need: "One trusted data source for all initiatives",
-                      solution: "Real-time medallion pipelines + Unity Catalog",
-                      impact: "Everyone works from the same numbers. Smart Checkout, Reason Codes, and Smart Retry share one clean, up-to-date picture.",
+                      need: "Single source of truth for all payment data",
+                      solution: "Real-time medallion pipelines (Bronze \u2192 Silver \u2192 Gold) + Unity Catalog governance",
+                      impact: "Every team works from the same governed data. Smart Checkout, Reason Codes, Smart Retry, and all dashboards share one clean, up-to-date picture refreshed in under 5 seconds.",
                     },
                     {
-                      need: "See why payments fail and where to act",
-                      solution: "Unified decline taxonomy + Decline Analyst agent",
-                      impact: "Declines from all channels in one place, with clear reasons and recovery priorities.",
+                      need: "Understand why payments fail and where to act first",
+                      solution: "Unified decline taxonomy + Decline Analyst AI agent + Reason Codes page",
+                      impact: "Declines from all entry systems and networks in one place, with standardized reasons, recovery value estimates, and AI-prioritized improvement actions.",
                     },
                     {
-                      need: "Optimize payment-link performance (Brazil)",
-                      solution: "Smart Checkout analytics + Smart Routing ML model",
-                      impact: "See how each path (Antifraud, 3DS, Token, Passkey) performs. ML picks the route that maximizes approval.",
+                      need: "Optimize payment-link and checkout performance",
+                      solution: "Smart Checkout analytics + Smart Routing ML model + 3DS funnel analysis",
+                      impact: "See how each path (Antifraud, 3DS, Network Token, Passkey) performs by segment. ML picks the route that maximizes approval while controlling fraud.",
                     },
                     {
-                      need: "Recover more from retries and recurrence",
-                      solution: "Smart Retry analytics + ML retry model + AI agent",
-                      impact: "Identify which declines are worth retrying, the best timing, and expected recovery rate.",
+                      need: "Recover more revenue from retries and recurrence",
+                      solution: "Smart Retry analytics + ML retry model + Retry AI agent",
+                      impact: "ML predicts which declines are worth retrying, the optimal timing window, and the expected recovery rate. Tracks both payment recurrence and cardholder reattempts.",
                     },
                     {
                       need: "Get actionable recommendations, not just reports",
-                      solution: "7 AI agents + Decisioning API + Vector Search",
-                      impact: "AI recommends specific actions with expected impact. Similar historical cases inform decisions.",
+                      solution: "6 AI agents + Vector Search + config proposals workflow",
+                      impact: "AI agents analyze data using UC functions, recommend specific actions with expected impact, and propose configuration changes that operators can review and apply from the UI.",
                     },
                     {
-                      need: "Consistent decisions across the organization",
-                      solution: "Rules engine + ML models + unified decision API",
-                      impact: "One decision layer for auth, routing, and retry. Rules and models work together so decisions are consistent with policy.",
+                      need: "Make consistent, explainable decisions at scale",
+                      solution: "Decision engine + rules (Lakebase) + ML models + agent recommendations",
+                      impact: "One decision layer for authentication, routing, and retry. Each decision is explainable: ML score, matched rule, similar cases, and agent recommendation are all visible.",
                     },
                     {
-                      need: "Measure impact of changes",
-                      solution: "A/B experiments + incident tracking + feedback loop",
-                      impact: "Every policy change is measured. Experiments quantify what works. The system learns and improves over time.",
+                      need: "Measure and validate the impact of every change",
+                      solution: "A/B experiments with statistical analysis + incident tracking + outcome feedback loop",
+                      impact: "Every policy change is measured via control/treatment groups. Lift, p-value, and significance are computed automatically. The system learns from outcomes and improves over time.",
                     },
                     {
-                      need: "One place to run and control everything",
-                      solution: "This application (Setup, Dashboards, Rules, AI, Decisioning)",
-                      impact: "Teams operate the full stack from a single control panel. No switching between tools.",
+                      need: "Monitor data pipeline health and quality",
+                      solution: "Data Quality page + streaming TPS monitors + Gold view validation + active alerts",
+                      impact: "Teams can verify that Bronze ingestion, Silver enrichment, and Gold aggregates are healthy before trusting any analytics or model predictions.",
+                    },
+                    {
+                      need: "One place to operate and control everything",
+                      solution: "Databricks App with 16 pages (Setup, Dashboards, Rules, AI, Decisioning, Experiments, Incidents, Notebooks)",
+                      impact: "Teams operate the full stack from a single application. Run jobs, manage rules, chat with AI, view dashboards, and track experiments without switching tools.",
                     },
                   ].map((row, i) => (
                     <tr key={i} className="border-b border-border/50 last:border-0">
@@ -504,18 +557,26 @@ function About() {
       {/* Quick Navigation */}
       <section className="space-y-3">
         <h2 className="text-lg font-semibold tracking-tight">Explore the Platform</h2>
+        <p className="text-sm text-muted-foreground">
+          Navigate to any section of the application. All 16 pages are accessible from the sidebar.
+        </p>
         <div className="flex flex-wrap gap-2">
           {[
             { to: "/command-center", label: "Command Center" },
-            { to: "/dashboards", label: "Dashboards" },
+            { to: "/dashboards", label: "AI/BI Dashboards" },
             { to: "/declines", label: "Declines" },
+            { to: "/reason-codes", label: "Reason Codes" },
+            { to: "/data-quality", label: "Data Quality" },
             { to: "/smart-checkout", label: "Smart Checkout" },
             { to: "/smart-retry", label: "Smart Retry" },
             { to: "/decisioning", label: "Decisioning" },
+            { to: "/rules", label: "Rules" },
             { to: "/ai-agents", label: "AI Agents" },
             { to: "/models", label: "ML Models" },
+            { to: "/notebooks", label: "Notebooks" },
             { to: "/experiments", label: "Experiments" },
             { to: "/incidents", label: "Incidents" },
+            { to: "/setup", label: "Setup & Jobs" },
           ].map((link) => (
             <Link
               key={link.to}
