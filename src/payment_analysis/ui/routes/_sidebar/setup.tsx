@@ -762,8 +762,8 @@ function SetupRun() {
           { step: 2, title: "Simulate Transaction Events", desc: "Generate test payment events (e.g. 1000/sec). Uses catalog and schema above.", jobKey: "transaction_stream_simulator", icon: Database },
           { step: 3, title: "Initialize Ingestion", desc: "Gold views and sync for dashboards and Vector Search. Uses warehouse and schema.", jobKey: "create_gold_views", icon: LayoutDashboard },
           { step: 4, title: "Deploy Dashboards", desc: "Publish dashboards with embed credentials so the app can embed AI/BI dashboards.", jobKey: "publish_dashboards", icon: LayoutDashboard },
-          { step: 5, title: "Train Models & Serving", desc: "Train approval propensity, risk scoring, routing, and retry models. Uses catalog and schema.", jobKey: "train_ml_models", icon: Brain },
-          { step: 6, title: "Deploy Agents", desc: "Run agent framework (orchestrator + Smart Routing, Retry, Decline Analyst, Risk, Performance). One task runs full analysis.", jobKey: "orchestrator_agent", icon: Bot },
+          { step: 5, title: "Train Models & Serving", desc: "Train approval propensity, risk scoring, routing, and retry models. Uses catalog and schema.", jobKey: "train_models", icon: Brain },
+          { step: 6, title: "Deploy Agents", desc: "Run agent framework (orchestrator + Smart Routing, Retry, Decline Analyst, Risk, Performance). One task runs full analysis.", jobKey: "run_agent_framework", icon: Bot },
           { step: 7, title: "Genie Space Sync", desc: "Sync Genie space and sample questions for natural language analytics over payment data.", jobKey: "genie_sync", icon: LayoutDashboard },
         ].map(({ step, title, desc, jobKey, icon: Icon }) => (
           <Card
@@ -940,14 +940,14 @@ function SetupRun() {
           >
             Stream processor job <ExternalLink className="ml-1 h-3 w-3" />
           </Button>
-          {isJobConfigured("test_agent_framework") && (
+          {isJobConfigured("register_agentbricks") && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => openJobPage("test_agent_framework")}
+              onClick={() => openJobPage("register_agentbricks")}
               disabled={!host}
             >
-              Test Agent Framework <ExternalLink className="ml-1 h-3 w-3" />
+              Register AgentBricks <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           )}
         </CardContent>

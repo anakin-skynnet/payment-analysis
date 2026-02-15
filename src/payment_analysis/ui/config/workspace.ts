@@ -120,13 +120,14 @@ const LEGACY_TO_UNIFIED: Record<string, string> = {
   routing_optimization: "ml_optimization_unified",
   authentication_security: "ml_optimization_unified",
   fraud_risk_analysis: "ml_optimization_unified",
-  merchant_performance: "ml_optimization_unified",
-  // Data & Quality — streaming, monitoring, data quality
+  // Data & Quality — streaming, monitoring, global coverage
   realtime_monitoring: "data_quality_unified",
   streaming_data_quality: "data_quality_unified",
-  daily_trends: "data_quality_unified",
-  // Executive
+  // Executive & Trends — KPIs, daily trends, merchant perf, technical perf
   executive_overview: "executive_trends_unified",
+  daily_trends: "executive_trends_unified",
+  merchant_performance: "executive_trends_unified",
+  performance_latency: "executive_trends_unified",
 };
 
 /**

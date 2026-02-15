@@ -9,13 +9,13 @@
 # MAGIC 2. **Resource declarations**: UC functions declared for automatic auth passthrough
 # MAGIC 3. **Pre-deployment validation**: `mlflow.models.predict()` before registration
 # MAGIC 4. **Agent Evaluation**: `mlflow.genai.evaluate()` with domain-specific test cases
-# MAGIC 5. **Deployment**: `databricks.agents.deploy()` to Model Serving
+# MAGIC 5. **Deployment**: Idempotent create-or-update to Model Serving via SDK
 # MAGIC
 # MAGIC **Prerequisites:**
 # MAGIC - UC agent tool functions exist (Job 3: create_uc_agent_tools)
 # MAGIC - Schema `agents` exists in the catalog
 # MAGIC
-# MAGIC **Outcome:** Model registered as `{catalog}.agents.payment_analysis_agent`, deployed to endpoint **payment-response-agent**.
+# MAGIC **Outcome:** Model registered as `{catalog}.agents.response_agent`, deployed to endpoint **payment-response-agent**.
 
 # COMMAND ----------
 
@@ -234,7 +234,7 @@ resources = [
     *[DatabricksFunction(function_name=name) for name in UC_TOOL_NAMES],
 ]
 
-with mlflow.start_run(run_name="register_payment_analysis_agent"):
+with mlflow.start_run(run_name="register_response_agent"):
     logged_agent_info = mlflow.pyfunc.log_model(
         name="agent",
         python_model=str(agent_path),
@@ -321,7 +321,7 @@ except Exception as e:
 
 mlflow.set_registry_uri("databricks-uc")
 
-UC_MODEL_NAME = f"{CATALOG}.{MODEL_SCHEMA}.payment_analysis_agent"
+UC_MODEL_NAME = f"{CATALOG}.{MODEL_SCHEMA}.response_agent"
 
 uc_registered_model_info = mlflow.register_model(
     model_uri=logged_agent_info.model_uri,
@@ -335,7 +335,7 @@ print(f"Registered: {UC_MODEL_NAME} (version {uc_registered_model_info.version})
 # MAGIC %md
 # MAGIC ## Deploy the agent to Model Serving
 # MAGIC
-# MAGIC Creates a Model Serving endpoint named **payment-response-agent** with automatic auth passthrough.
+# MAGIC Idempotent create-or-update for endpoint **payment-response-agent**.
 
 # COMMAND ----------
 
@@ -388,7 +388,7 @@ def _ensure_serving_endpoint(
         else:
             raise
 
-ENDPOINT_NAME = "payment-analysis-orchestrator"
+ENDPOINT_NAME = "payment-response-agent"
 print(f"\nDeploying endpoint '{ENDPOINT_NAME}' with {UC_MODEL_NAME} v{uc_registered_model_info.version}...")
 try:
     _ensure_serving_endpoint(

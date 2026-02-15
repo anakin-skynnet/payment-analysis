@@ -85,11 +85,11 @@ DEFAULT_IDS: _DefaultIds = {
         "lakebase_data_init": os.getenv(_job_id_env_key("lakebase_data_init"), "0") or "0",
         "lakehouse_bootstrap": os.getenv(_job_id_env_key("lakehouse_bootstrap"), "0") or "0",
         "vector_search_index": os.getenv(_job_id_env_key("vector_search_index"), "0") or "0",
-        "train_ml_models": os.getenv(_job_id_env_key("train_ml_models"), "0") or "0",
+        "train_models": os.getenv(_job_id_env_key("train_models"), "0") or "0",
         "genie_sync": os.getenv(_job_id_env_key("genie_sync"), "0") or "0",
         "run_agent_framework": os.getenv(_job_id_env_key("run_agent_framework"), "0") or "0",
-        "orchestrator_agent": os.getenv(_job_id_env_key("orchestrator_agent"), "0") or "0",
-        "test_agent_framework": os.getenv(_job_id_env_key("test_agent_framework"), "0") or "0",
+        "register_responses_agent": os.getenv(_job_id_env_key("register_responses_agent"), "0") or "0",
+        "register_agentbricks": os.getenv(_job_id_env_key("register_agentbricks"), "0") or "0",
         "continuous_stream_processor": os.getenv(_job_id_env_key("continuous_stream_processor"), "0") or "0",
         "prepare_dashboards": os.getenv(_job_id_env_key("prepare_dashboards"), "0") or "0",
         "publish_dashboards": os.getenv(_job_id_env_key("publish_dashboards"), "0") or "0",
@@ -187,11 +187,11 @@ _STEP_JOB_SUBSTRINGS: dict[str, list[str]] = {
     "2. Simulate Transaction Events": ["transaction_stream_simulator"],
     "3. Initialize Ingestion": ["create_gold_views", "continuous_stream_processor"],
     "4. Deploy Dashboards": ["prepare_dashboards", "publish_dashboards"],
-    "5. Train Models & Publish to Model Serving": ["train_ml_models"],
+    "5. Train Models & Publish to Model Serving": ["train_models"],
     "6. Deploy Agents": [
         "run_agent_framework",
-        "orchestrator_agent",
-        "test_agent_framework",
+        "register_responses_agent",
+        "register_agentbricks",
     ],
     "7. Genie Space Sync": ["genie_sync"],
 }
@@ -243,9 +243,9 @@ def _merge_resolved_ids(
 
 
 def resolve_orchestrator_job_id(ws: WorkspaceClient) -> str:
-    """Return the Job 6 (Deploy Agents) job ID from the workspace, or '0' if not found. Used by the orchestrator chat so it works without DATABRICKS_JOB_ID_ORCHESTRATOR_AGENT set."""
+    """Return the Job 6 (Deploy Agents) job ID from the workspace, or '0' if not found. Used by the orchestrator chat so it works without DATABRICKS_JOB_ID_RUN_AGENT_FRAMEWORK set."""
     resolved_jobs, _ = _resolve_job_and_pipeline_ids(ws)
-    return resolved_jobs.get("orchestrator_agent", "0") or "0"
+    return resolved_jobs.get("run_agent_framework", "0") or "0"
 
 
 # =============================================================================

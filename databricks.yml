@@ -121,6 +121,9 @@ variables:
   orchestrator_model_version:
     description: "UC model version for orchestrator agent (set after Job 6 runs)"
     default: "1"
+  response_agent_model_version:
+    description: "UC model version for response_agent (set after Job 6 runs)"
+    default: "1"
   decline_analyst_model_version:
     description: "UC model version for decline_analyst agent (set after Job 6 runs)"
     default: "1"
