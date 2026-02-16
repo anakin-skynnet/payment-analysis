@@ -245,6 +245,24 @@ df["log_amount"] = np.log1p(df["amount"].fillna(0).clip(lower=0))
 # Interaction feature: risk × amount
 df["risk_amount_interaction"] = df["fraud_score"].fillna(0) * df["log_amount"]
 
+# P3 #15: Merchant-level and issuer-level approval rates as features
+try:
+    if "merchant_segment" in df.columns:
+        merchant_approval = df.groupby("merchant_segment")["is_approved"].transform("mean")
+        df["merchant_approval_rate"] = merchant_approval.fillna(df["is_approved"].mean())
+    else:
+        df["merchant_approval_rate"] = df["is_approved"].mean()
+
+    if "payment_solution" in df.columns:
+        solution_approval = df.groupby("payment_solution")["is_approved"].transform("mean")
+        df["solution_approval_rate"] = solution_approval.fillna(df["is_approved"].mean())
+    else:
+        df["solution_approval_rate"] = df["is_approved"].mean()
+    print("✓ Added merchant-level and solution-level approval rate features")
+except Exception:
+    df["merchant_approval_rate"] = df["is_approved"].mean()
+    df["solution_approval_rate"] = df["is_approved"].mean()
+
 print(f"✓ Feature engineering complete: {len(df.columns)} total columns")
 
 # COMMAND ----------

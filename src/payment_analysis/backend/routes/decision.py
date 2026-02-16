@@ -211,6 +211,102 @@ async def routing(
     return result  # type: ignore[return-value]
 
 
+# -- P3 #17: Read decision config thresholds ---
+
+
+class DecisionConfigOut(BaseModel):
+    """Current decision configuration thresholds (from Lakebase or defaults)."""
+    risk_threshold_high: float
+    risk_threshold_medium: float
+    retry_max_attempts_control: int
+    retry_max_attempts_treatment: int
+    ml_enrichment_enabled: bool
+    rule_engine_enabled: bool
+    routing_domestic_country: str
+
+
+@router.get(
+    "/config",
+    response_model=DecisionConfigOut,
+    operation_id="getDecisionConfigThresholds",
+)
+async def get_decision_config(
+    session: SessionDep,
+    service: DatabricksServiceDep,
+    runtime: RuntimeDep,
+) -> DecisionConfigOut:
+    """Get current decision engine configuration (thresholds and flags)."""
+    try:
+        engine = DecisionEngine(session=session, service=service, runtime=runtime)
+        params = engine._load_config()
+        return DecisionConfigOut(
+            risk_threshold_high=params.risk_threshold_high,
+            risk_threshold_medium=params.risk_threshold_medium,
+            retry_max_attempts_control=params.retry_max_attempts_control,
+            retry_max_attempts_treatment=params.retry_max_attempts_treatment,
+            ml_enrichment_enabled=params.ml_enrichment_enabled,
+            rule_engine_enabled=params.rule_engine_enabled,
+            routing_domestic_country=params.routing_domestic_country,
+        )
+    except Exception as exc:
+        logger.warning("Failed to load decision config: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+# -- P0 #2: Feedback loop – record decision outcomes ---
+
+
+class DecisionOutcomeIn(BaseModel):
+    """Record the actual outcome of a previous decision (closes the feedback loop)."""
+    audit_id: str
+    decision_type: str
+    outcome: str  # "approved", "declined", "timeout", etc.
+    outcome_code: str | None = None
+    outcome_reason: str | None = None
+    latency_ms: int | None = None
+    metadata: dict | None = None
+
+
+class DecisionOutcomeOut(BaseModel):
+    accepted: bool
+    message: str
+
+
+@router.post(
+    "/outcome",
+    response_model=DecisionOutcomeOut,
+    operation_id="recordDecisionOutcome",
+)
+async def record_outcome(
+    body: DecisionOutcomeIn,
+    session: SessionDep,
+    service: DatabricksServiceDep,
+    runtime: RuntimeDep,
+) -> DecisionOutcomeOut:
+    """Record the actual outcome of a previous decision for the learning loop.
+
+    This closes the feedback loop: Decision → Outcome → Retrain → Better Decisions.
+    Without this, A/B experiments can't compute lift and models can't improve.
+    """
+    try:
+        engine = DecisionEngine(session=session, service=service, runtime=runtime)
+        ok = engine.record_outcome(
+            audit_id=body.audit_id,
+            decision_type=body.decision_type,
+            outcome=body.outcome,
+            outcome_code=body.outcome_code,
+            outcome_reason=body.outcome_reason,
+            latency_ms=body.latency_ms,
+            metadata=body.metadata,
+        )
+        if ok:
+            return DecisionOutcomeOut(accepted=True, message="Outcome recorded for learning loop.")
+        return DecisionOutcomeOut(accepted=False, message="Engine could not persist outcome (session unavailable).")
+    except Exception as exc:
+        logger.warning("Failed to record decision outcome: %s", exc)
+        return DecisionOutcomeOut(accepted=False, message=f"Error: {exc}")
+
+
 # ML Model Serving Endpoints
 
 

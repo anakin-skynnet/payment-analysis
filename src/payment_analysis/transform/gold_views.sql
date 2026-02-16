@@ -579,7 +579,30 @@ ORDER BY decline_count DESC
 LIMIT 50;
 
 -- ===========================================================================
--- SUMMARY: 15 standard views + 3 metric views + 2 population views for
+-- P3 #18: Retry success by decline reason — targeted retry optimization
+-- ===========================================================================
+CREATE OR REPLACE VIEW v_retry_success_by_reason AS
+SELECT
+    decline_reason_standard,
+    decline_reason_group,
+    retry_scenario,
+    COUNT(*)                                                   AS total_retries,
+    SUM(CASE WHEN is_approved THEN 1 ELSE 0 END)              AS successful_retries,
+    ROUND(SUM(CASE WHEN is_approved THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS success_rate_pct,
+    ROUND(SUM(CASE WHEN is_approved THEN amount ELSE 0 END), 2) AS recovered_value,
+    ROUND(SUM(amount), 2)                                      AS total_declined_value,
+    ROUND(AVG(time_since_last_attempt_seconds), 0)             AS avg_retry_delay_s,
+    ROUND(AVG(fraud_score), 4)                                 AS avg_fraud_score
+FROM payments_enriched_silver
+WHERE retry_count > 0
+  AND decline_reason_standard IS NOT NULL
+  AND event_date >= CURRENT_DATE() - INTERVAL 30 DAYS
+GROUP BY decline_reason_standard, decline_reason_group, retry_scenario
+HAVING COUNT(*) >= 3
+ORDER BY total_retries DESC;
+
+-- ===========================================================================
+-- SUMMARY: 15 standard views + 3 metric views + 2 population views + 1 retry view for
 -- dashboards, Genie, agents, Vector Search & recommendations
 -- (v_retry_performance is managed by the Lakeflow pipeline — see gold_views.py)
 -- ===========================================================================

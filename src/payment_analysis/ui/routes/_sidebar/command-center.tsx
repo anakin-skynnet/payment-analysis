@@ -78,7 +78,10 @@ import {
   ArrowRight,
   Store,
   BarChart3,
+  Lightbulb,
+  Clock,
 } from "lucide-react";
+import { ReferenceLine } from "recharts";
 
 /** Refresh interval for KPIs and data-quality metrics (30s — fast enough for executive dashboard). */
 const REFRESH_MS = 30_000;
@@ -284,6 +287,112 @@ function EntryGateTelemetry({
         </span>
       ))}
     </div>
+  );
+}
+
+/** P1 #5: Top 3 executive actions derived from real data */
+function TopActionsCard({
+  reasonCodes,
+  funnelSteps,
+  retryRecurrence,
+  approvalPct,
+}: {
+  reasonCodes: { category: string; count: number; pct: number }[];
+  funnelSteps: FrictionFunnelStep[];
+  retryRecurrence: RetryRecurrenceRow[];
+  approvalPct: number;
+}) {
+  const actions = useMemo(() => {
+    const result: { text: string; link: string; impact: string }[] = [];
+    // Action from top decline reason
+    if (reasonCodes.length > 0) {
+      const top = reasonCodes[0];
+      result.push({
+        text: `Fix "${top.category}" declines (${top.pct}% of total)`,
+        link: "/reason-codes",
+        impact: `~${top.count.toLocaleString()} recoverable`,
+      });
+    }
+    // Action from 3DS friction
+    if (funnelSteps.length >= 3) {
+      const frictionPct = funnelSteps[1]?.pct ?? 0;
+      if (frictionPct > 15) {
+        result.push({
+          text: `Reduce 3DS friction (${frictionPct}%) — enable frictionless for low-risk`,
+          link: "/smart-checkout",
+          impact: `${frictionPct}% friction rate`,
+        });
+      }
+    }
+    // Action from retry recovery
+    if (retryRecurrence.length > 0) {
+      const totalRetries = retryRecurrence.reduce((s, r) => s + r.volume, 0);
+      if (totalRetries > 0) {
+        result.push({
+          text: "Optimize retry timing for soft declines",
+          link: "/smart-retry",
+          impact: `${totalRetries.toLocaleString()} retries to optimize`,
+        });
+      }
+    }
+    // If approval rate is below target
+    if (approvalPct > 0 && approvalPct < 0.9) {
+      result.push({
+        text: `Approval rate ${(approvalPct * 100).toFixed(1)}% — below 90% target`,
+        link: "/decisioning",
+        impact: `${((0.9 - approvalPct) * 100).toFixed(1)}pp gap to close`,
+      });
+    }
+    return result.slice(0, 3);
+  }, [reasonCodes, funnelSteps, retryRecurrence, approvalPct]);
+
+  if (actions.length === 0) return null;
+
+  return (
+    <Card className="glass-card border-2 border-primary/30 bg-gradient-to-r from-primary/5 to-transparent">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Lightbulb className="h-4 w-4 text-primary" />
+          Top Actions to Accelerate Approvals
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {actions.map((action, i) => (
+          <Link key={i} to={action.link} className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/80 px-3 py-2.5 hover:bg-muted/40 transition-colors group">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold shrink-0">{i + 1}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground">{action.text}</p>
+              <p className="text-xs text-muted-foreground">{action.impact}</p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+          </Link>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** P2 #14: Last-updated timestamp indicator */
+function LastUpdated({ query }: { query: { dataUpdatedAt?: number } }) {
+  const [, setTick] = useState(0);
+  const updatedAt = query.dataUpdatedAt;
+
+  // Re-render every 5s to keep "Xs ago" fresh
+  const intervalRef = useCallback(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 5000);
+    return () => clearInterval(id);
+  }, []);
+  useState(intervalRef);
+
+  if (!updatedAt) return null;
+  const ago = Math.max(0, Math.round((Date.now() - updatedAt) / 1000));
+  const label = ago < 5 ? "just now" : ago < 60 ? `${ago}s ago` : `${Math.round(ago / 60)}m ago`;
+
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70" title={new Date(updatedAt).toLocaleTimeString()}>
+      <Clock className="h-3 w-3" />
+      Updated {label}
+    </span>
   );
 }
 
@@ -537,13 +646,24 @@ function CommandCenter() {
           />
         </section>
 
+        {/* P1 #5: Top 3 Actions — executive summary of highest-impact actions */}
+        <TopActionsCard
+          reasonCodes={reasonCodeSummary}
+          funnelSteps={funnelSteps}
+          retryRecurrence={retryRecurrence}
+          approvalPct={kpis?.approval_rate ?? 0}
+        />
+
         {/* Approval Rate Trend — last hour from Databricks */}
         <Card className="glass-card border border-border/80">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Activity className="h-4 w-4 text-primary" />
-              Approval Rate Trend (Last Hour)
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                Approval Rate Trend (Last Hour)
+              </CardTitle>
+              <LastUpdated query={approvalTrendsQ} />
+            </div>
           </CardHeader>
           <CardContent>
             {approvalTrendsQ.isLoading ? (
@@ -565,6 +685,8 @@ function CommandCenter() {
                   <XAxis dataKey="time" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
                   <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} />
                   <ChartTooltip content={<ChartTooltipContent />} />
+                  {/* P2 #8: Configurable target line at 90% */}
+                  <ReferenceLine y={90} stroke="var(--destructive)" strokeDasharray="6 3" strokeWidth={1.5} label={{ value: "Target 90%", position: "right", fill: "var(--destructive)", fontSize: 10 }} />
                   <Area
                     type="monotone"
                     dataKey="approval_rate"
@@ -585,10 +707,13 @@ function CommandCenter() {
           <div className="space-y-4">
             <Card className="glass-card overflow-hidden border border-border/80">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-neon-cyan" />
-                  Entry Systems Throughput
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-neon-cyan" />
+                    Entry Systems Throughput
+                  </CardTitle>
+                  <LastUpdated query={entryThroughputQ} />
+                </div>
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 <EntrySystemsChart points={entryPoints} />
@@ -851,6 +976,7 @@ function CommandCenter() {
                       tickFormatter={(v: number) => `${v}%`}
                     />
                     <ChartTooltip content={<ChartTooltipContent />} />
+                    <ReferenceLine y={90} stroke="var(--destructive)" strokeDasharray="6 3" strokeWidth={1.5} label={{ value: "90%", position: "right", fill: "var(--destructive)", fontSize: 10 }} />
                     <Line
                       type="monotone"
                       dataKey="approval_rate"

@@ -902,6 +902,21 @@ Provide actionable insights:
             """
             return self._execute_sql(query)
 
+        def write_decline_recommendation(**kwargs):
+            """Write a decline analysis recommendation to Lakebase for the decision loop."""
+            segment = kwargs.get("segment", "all")
+            action = kwargs.get("action_summary", "")
+            impact = float(kwargs.get("expected_impact_pct", 0))
+            conf = float(kwargs.get("confidence", 0.5))
+            return self.write_recommendation_to_lakebase("decline_analysis", segment, action, impact, conf)
+
+        def propose_decline_config(**kwargs):
+            """Propose a configuration change based on decline analysis (e.g. adjust risk thresholds)."""
+            key = kwargs.get("config_key", "")
+            value = kwargs.get("proposed_value", "")
+            reason = kwargs.get("reason", "")
+            return self.propose_config_change(key, value, reason)
+
         self.add_tool(AgentTool(
             name="get_decline_trends",
             description="Get top decline reasons and their characteristics",
@@ -914,6 +929,20 @@ Provide actionable insights:
             description="Get decline breakdown by merchant segment",
             function=get_decline_by_segment,
             parameters={}
+        ))
+
+        self.add_tool(AgentTool(
+            name="write_decline_recommendation",
+            description="Write a decline analysis recommendation to Lakebase for the decision loop",
+            function=write_decline_recommendation,
+            parameters={"segment": "string", "action_summary": "string", "expected_impact_pct": "number", "confidence": "number"}
+        ))
+
+        self.add_tool(AgentTool(
+            name="propose_decline_config",
+            description="Propose a configuration change based on decline analysis",
+            function=propose_decline_config,
+            parameters={"config_key": "string", "proposed_value": "string", "reason": "string"}
         ))
 
 
@@ -1006,6 +1035,21 @@ while protecting against actual fraud."""
             """
             return self._execute_sql(query)
 
+        def write_risk_recommendation(**kwargs):
+            """Write a risk assessment recommendation to Lakebase for the decision loop."""
+            segment = kwargs.get("segment", "all")
+            action = kwargs.get("action_summary", "")
+            impact = float(kwargs.get("expected_impact_pct", 0))
+            conf = float(kwargs.get("confidence", 0.5))
+            return self.write_recommendation_to_lakebase("risk_assessment", segment, action, impact, conf)
+
+        def propose_risk_config(**kwargs):
+            """Propose a risk threshold change based on risk assessment analysis."""
+            key = kwargs.get("config_key", "")
+            value = kwargs.get("proposed_value", "")
+            reason = kwargs.get("reason", "")
+            return self.propose_config_change(key, value, reason)
+
         self.add_tool(AgentTool(
             name="get_high_risk_transactions",
             description="Get high-risk transactions requiring review",
@@ -1018,6 +1062,20 @@ while protecting against actual fraud."""
             description="Get risk score distribution across tiers",
             function=get_risk_distribution,
             parameters={}
+        ))
+
+        self.add_tool(AgentTool(
+            name="write_risk_recommendation",
+            description="Write a risk assessment recommendation to Lakebase for the decision loop",
+            function=write_risk_recommendation,
+            parameters={"segment": "string", "action_summary": "string", "expected_impact_pct": "number", "confidence": "number"}
+        ))
+
+        self.add_tool(AgentTool(
+            name="propose_risk_config",
+            description="Propose a risk threshold change based on risk analysis",
+            function=propose_risk_config,
+            parameters={"config_key": "string", "proposed_value": "string", "reason": "string"}
         ))
 
 

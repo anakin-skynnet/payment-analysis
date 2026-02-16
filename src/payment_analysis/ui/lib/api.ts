@@ -229,13 +229,6 @@ export interface DatabricksKPIOut {
   total_value: number;
 }
 
-export interface DecisionConfigOut {
-  description?: string | null;
-  key: string;
-  updated_at?: string | null;
-  value: string;
-}
-
 export interface DecisionConfigUpdateIn {
   value: string;
 }
@@ -267,6 +260,21 @@ export interface DecisionLog {
   id?: number | null;
   request?: Record<string, unknown>;
   response?: Record<string, unknown>;
+}
+
+export interface DecisionOutcomeIn {
+  audit_id: string;
+  decision_type: string;
+  latency_ms?: number | null;
+  metadata?: Record<string, unknown> | null;
+  outcome: string;
+  outcome_code?: string | null;
+  outcome_reason?: string | null;
+}
+
+export interface DecisionOutcomeOut {
+  accepted: boolean;
+  message: string;
 }
 
 export interface DeclineBucketOut {
@@ -857,6 +865,23 @@ export interface VersionOut {
 
 export interface WorkspaceConfigOut {
   workspace_url: string;
+}
+
+export interface payment_analysis__backend__routes__decision__DecisionConfigOut {
+  ml_enrichment_enabled: boolean;
+  retry_max_attempts_control: number;
+  retry_max_attempts_treatment: number;
+  risk_threshold_high: number;
+  risk_threshold_medium: number;
+  routing_domestic_country: string;
+  rule_engine_enabled: boolean;
+}
+
+export interface payment_analysis__backend__routes__decision_admin__DecisionConfigOut {
+  description?: string | null;
+  key: string;
+  updated_at?: string | null;
+  value: string;
 }
 
 export interface ListAgentsParams {
@@ -2399,7 +2424,7 @@ export function useGetDashboardUrlSuspense<TData = { data: Record<string, unknow
   return useSuspenseQuery({ queryKey: getDashboardUrlKey(options.params), queryFn: () => getDashboardUrl(options.params), ...options?.query });
 }
 
-export const getDecisionConfig = async (options?: RequestInit): Promise<{ data: DecisionConfigOut[] }> => {
+export const getDecisionConfig = async (options?: RequestInit): Promise<{ data: payment_analysis__backend__routes__decision_admin__DecisionConfigOut[] }> => {
   const res = await fetch("/api/decision/admin/config", { ...options, method: "GET" });
   if (!res.ok) {
     const body = await res.text();
@@ -2414,15 +2439,15 @@ export const getDecisionConfigKey = () => {
   return ["/api/decision/admin/config"] as const;
 };
 
-export function useGetDecisionConfig<TData = { data: DecisionConfigOut[] }>(options?: { query?: Omit<UseQueryOptions<{ data: DecisionConfigOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetDecisionConfig<TData = { data: payment_analysis__backend__routes__decision_admin__DecisionConfigOut[] }>(options?: { query?: Omit<UseQueryOptions<{ data: payment_analysis__backend__routes__decision_admin__DecisionConfigOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useQuery({ queryKey: getDecisionConfigKey(), queryFn: () => getDecisionConfig(), ...options?.query });
 }
 
-export function useGetDecisionConfigSuspense<TData = { data: DecisionConfigOut[] }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: DecisionConfigOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetDecisionConfigSuspense<TData = { data: payment_analysis__backend__routes__decision_admin__DecisionConfigOut[] }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: payment_analysis__backend__routes__decision_admin__DecisionConfigOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getDecisionConfigKey(), queryFn: () => getDecisionConfig(), ...options?.query });
 }
 
-export const updateDecisionConfig = async (params: UpdateDecisionConfigParams, data: DecisionConfigUpdateIn, options?: RequestInit): Promise<{ data: DecisionConfigOut }> => {
+export const updateDecisionConfig = async (params: UpdateDecisionConfigParams, data: DecisionConfigUpdateIn, options?: RequestInit): Promise<{ data: payment_analysis__backend__routes__decision_admin__DecisionConfigOut }> => {
   const res = await fetch(`/api/decision/admin/config/${params.key}`, { ...options, method: "PUT", headers: { "Content-Type": "application/json", ...options?.headers }, body: JSON.stringify(data) });
   if (!res.ok) {
     const body = await res.text();
@@ -2433,7 +2458,7 @@ export const updateDecisionConfig = async (params: UpdateDecisionConfigParams, d
   return { data: await res.json() };
 };
 
-export function useUpdateDecisionConfig(options?: { mutation?: UseMutationOptions<{ data: DecisionConfigOut }, ApiError, { params: UpdateDecisionConfigParams; data: DecisionConfigUpdateIn }> }) {
+export function useUpdateDecisionConfig(options?: { mutation?: UseMutationOptions<{ data: payment_analysis__backend__routes__decision_admin__DecisionConfigOut }, ApiError, { params: UpdateDecisionConfigParams; data: DecisionConfigUpdateIn }> }) {
   return useMutation({ mutationFn: (vars) => updateDecisionConfig(vars.params, vars.data), ...options?.mutation });
 }
 
@@ -2543,6 +2568,29 @@ export function useDecideAuthentication(options?: { mutation?: UseMutationOption
   return useMutation({ mutationFn: (data) => decideAuthentication(data), ...options?.mutation });
 }
 
+export const getDecisionConfigThresholds = async (options?: RequestInit): Promise<{ data: payment_analysis__backend__routes__decision__DecisionConfigOut }> => {
+  const res = await fetch("/api/decision/config", { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getDecisionConfigThresholdsKey = () => {
+  return ["/api/decision/config"] as const;
+};
+
+export function useGetDecisionConfigThresholds<TData = { data: payment_analysis__backend__routes__decision__DecisionConfigOut }>(options?: { query?: Omit<UseQueryOptions<{ data: payment_analysis__backend__routes__decision__DecisionConfigOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getDecisionConfigThresholdsKey(), queryFn: () => getDecisionConfigThresholds(), ...options?.query });
+}
+
+export function useGetDecisionConfigThresholdsSuspense<TData = { data: payment_analysis__backend__routes__decision__DecisionConfigOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: payment_analysis__backend__routes__decision__DecisionConfigOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getDecisionConfigThresholdsKey(), queryFn: () => getDecisionConfigThresholds(), ...options?.query });
+}
+
 export const predictApproval = async (data: MLPredictionInput, options?: RequestInit): Promise<{ data: ApprovalPredictionOut }> => {
   const res = await fetch("/api/decision/ml/approval", { ...options, method: "POST", headers: { "Content-Type": "application/json", ...options?.headers }, body: JSON.stringify(data) });
   if (!res.ok) {
@@ -2601,6 +2649,21 @@ export const predictRouting = async (data: MLPredictionInput, options?: RequestI
 
 export function usePredictRouting(options?: { mutation?: UseMutationOptions<{ data: RoutingPredictionOut }, ApiError, MLPredictionInput> }) {
   return useMutation({ mutationFn: (data) => predictRouting(data), ...options?.mutation });
+}
+
+export const recordDecisionOutcome = async (data: DecisionOutcomeIn, options?: RequestInit): Promise<{ data: DecisionOutcomeOut }> => {
+  const res = await fetch("/api/decision/outcome", { ...options, method: "POST", headers: { "Content-Type": "application/json", ...options?.headers }, body: JSON.stringify(data) });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export function useRecordDecisionOutcome(options?: { mutation?: UseMutationOptions<{ data: DecisionOutcomeOut }, ApiError, DecisionOutcomeIn> }) {
+  return useMutation({ mutationFn: (data) => recordDecisionOutcome(data), ...options?.mutation });
 }
 
 export const decideRetry = async (data: DecisionContext, options?: RequestInit): Promise<{ data: RetryDecisionOut }> => {

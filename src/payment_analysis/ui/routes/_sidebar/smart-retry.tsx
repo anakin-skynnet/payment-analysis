@@ -288,6 +288,20 @@ function RetryCohorts() {
               <span>Prior approvals {r.avg_prior_approvals.toFixed(1)}</span>
             )}
           </div>
+          {/* P2 #10: Recovery gap — estimated vs actual */}
+          {r.retry_attempts > 0 && (
+            <div className="flex items-center gap-3 rounded bg-muted/30 px-2 py-1.5 text-xs">
+              <span className="text-muted-foreground">Est. recoverable:</span>
+              <span className="font-medium tabular-nums text-foreground">
+                ${(r.recovered_value / Math.max(0.01, r.success_rate_pct / 100)).toFixed(0)}
+              </span>
+              <span className="text-muted-foreground">Actual:</span>
+              <span className="font-medium tabular-nums text-foreground">${r.recovered_value.toFixed(0)}</span>
+              <Badge variant={r.success_rate_pct >= 50 ? "default" : "destructive"} className="text-[10px] ml-auto">
+                Gap: ${((r.recovered_value / Math.max(0.01, r.success_rate_pct / 100)) - r.recovered_value).toFixed(0)}
+              </Badge>
+            </div>
+          )}
           <div className="flex justify-end">
             <Badge variant="secondary">{r.retry_attempts} retries</Badge>
           </div>

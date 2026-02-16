@@ -21,7 +21,12 @@ def _audit_id() -> str:
 
 
 def _risk_tier(ctx: DecisionContext, *, params: Optional[Any] = None) -> RiskTier:
-    """Risk tier from score with data-driven thresholds (from DecisionConfig via Lakebase)."""
+    """Risk tier from score with data-driven thresholds (from DecisionConfig via Lakebase).
+
+    P0 #3: Also considers Vector Search similar-case approval rate and agent confidence
+    to adjust tier when borderline. If similar transactions have >85% approval and agent
+    recommends approval with high confidence, a borderline-medium may become low.
+    """
 
     score = ctx.risk_score
     # Use Lakebase thresholds when available; fall back to sensible defaults.
@@ -30,15 +35,22 @@ def _risk_tier(ctx: DecisionContext, *, params: Optional[Any] = None) -> RiskTie
     trust_floor = getattr(params, "device_trust_low_risk", None) or 0.90
 
     if score is None:
-        # Prefer device trust if present; otherwise assume medium.
         if ctx.device_trust_score is not None and ctx.device_trust_score >= trust_floor:
             return RiskTier.low
         return RiskTier.medium
-    if score >= high_threshold:
+
+    raw_tier = RiskTier.high if score >= high_threshold else (RiskTier.medium if score >= med_threshold else RiskTier.low)
+
+    # P0 #3: Use VS + agent signals to adjust borderline decisions
+    vs_approval = ctx.metadata.get("vs_similar_avg_approval_rate")
+    agent_confidence = ctx.metadata.get("agent_confidence")
+    if raw_tier == RiskTier.medium and vs_approval is not None and float(vs_approval) >= 85:
+        if agent_confidence is not None and float(agent_confidence) >= 0.8:
+            return RiskTier.low
+    if raw_tier == RiskTier.medium and vs_approval is not None and float(vs_approval) < 40:
         return RiskTier.high
-    if score >= med_threshold:
-        return RiskTier.medium
-    return RiskTier.low
+
+    return raw_tier
 
 
 def decide_authentication(
@@ -176,22 +188,36 @@ def decide_retry(
         )
 
     # ML override: if model predicts high retry success, allow one retry
-    # Use ML-suggested delay when available; otherwise estimate from probability
     ml_retry_prob = ctx.metadata.get("ml_retry_probability")
     if ml_retry_prob is not None and float(ml_retry_prob) >= 0.65 and ctx.attempt_number < max_attempts:
         ml_delay = ctx.metadata.get("ml_retry_delay_seconds")
         if ml_delay is not None:
             backoff = int(float(ml_delay))
         else:
-            # Estimate backoff from probability: higher confidence -> shorter delay
             prob = float(ml_retry_prob)
-            backoff = max(60, int(600 * (1 - prob)))  # 65% -> 210s, 90% -> 60s
+            backoff = max(60, int(600 * (1 - prob)))
         return RetryDecisionOut(
             audit_id=_audit_id(),
             should_retry=True,
             retry_after_seconds=backoff,
             max_attempts=max_attempts,
             reason=f"ML model predicts {float(ml_retry_prob):.0%} retry success; retry in {backoff}s.",
+        )
+
+    # P0 #3: Use Vector Search similar-case data and agent recommendations
+    vs_approval = ctx.metadata.get("vs_similar_avg_approval_rate")
+    agent_recommendation = ctx.metadata.get("agent_recommendation", "")
+    agent_confidence = ctx.metadata.get("agent_confidence")
+    if vs_approval is not None and float(vs_approval) >= 70 and ctx.attempt_number < max_attempts:
+        reason_parts = [f"Similar transactions have {float(vs_approval):.0f}% approval rate"]
+        if agent_confidence and float(agent_confidence) >= 0.7:
+            reason_parts.append(f"agent recommends: {agent_recommendation}")
+        return RetryDecisionOut(
+            audit_id=_audit_id(),
+            should_retry=True,
+            retry_after_seconds=300,
+            max_attempts=max_attempts,
+            reason=f"[VS+Agent] {'; '.join(reason_parts)}. Retry recommended.",
         )
 
     return RetryDecisionOut(
@@ -258,12 +284,27 @@ def decide_routing(
     ml_route = ctx.metadata.get("ml_recommended_route")
     ml_conf = ctx.metadata.get("ml_route_confidence", 0.0)
     if ml_route and float(ml_conf) >= 0.7:
-        # Move ML-recommended route to front
         ml_candidates = [c for c in candidates if c.name == ml_route]
         other_candidates = [c for c in candidates if c.name != ml_route]
         if ml_candidates:
             candidates = ml_candidates + other_candidates
             reason_suffix = f"ML-optimised routing (confidence {float(ml_conf):.0%}). " + reason_suffix
+
+    # P0 #3: Use Vector Search similar-case top route to boost a candidate
+    vs_top_route = ctx.metadata.get("vs_similar_top_route")
+    vs_approval = ctx.metadata.get("vs_similar_avg_approval_rate")
+    if vs_top_route and vs_approval and float(vs_approval) >= 75:
+        vs_candidates = [c for c in candidates if c.name == vs_top_route]
+        if vs_candidates:
+            other_candidates = [c for c in candidates if c.name != vs_top_route]
+            candidates = vs_candidates + other_candidates
+            reason_suffix = f"VS similar-case route ({vs_top_route}, {float(vs_approval):.0f}% approval). " + reason_suffix
+
+    # P0 #3: Agent recommendation routing override
+    agent_recommendation = ctx.metadata.get("agent_recommendation", "")
+    agent_confidence = ctx.metadata.get("agent_confidence")
+    if agent_confidence and float(agent_confidence) >= 0.85 and agent_recommendation:
+        reason_suffix = f"[Agent: {agent_recommendation}] " + reason_suffix
 
     sorted_candidates = sorted(candidates, key=lambda c: c.score, reverse=True)
     primary = sorted_candidates[0].name

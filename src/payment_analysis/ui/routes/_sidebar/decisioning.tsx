@@ -169,6 +169,31 @@ function Decisioning() {
         </CardContent>
       </Card>
 
+      {/* P2 #11: Preset scenarios for quick testing */}
+      <Card className="glass-card border border-border/80">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Quick presets</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          {([
+            { label: "High-risk cross-border", ctx: { merchant_id: "m_intl_travel", amount_minor: 250000, currency: "EUR", issuer_country: "NG", risk_score: 0.82, device_trust_score: 0.45, is_recurring: false, attempt_number: 0, supports_passkey: false, network: "mastercard" } },
+            { label: "Subscription retry", ctx: { merchant_id: "m_streaming", amount_minor: 1499, currency: "BRL", issuer_country: "BR", risk_score: 0.1, device_trust_score: 0.92, is_recurring: true, attempt_number: 2, supports_passkey: true, previous_decline_code: "51", previous_decline_reason: "insufficient funds", network: "visa" } },
+            { label: "Low-value retail", ctx: { merchant_id: "m_retail_br", amount_minor: 599, currency: "BRL", issuer_country: "BR", risk_score: 0.05, device_trust_score: 0.98, is_recurring: false, attempt_number: 0, supports_passkey: true, network: "elo" } },
+            { label: "Fraud-suspected", ctx: { merchant_id: "m_gaming", amount_minor: 50000, currency: "USD", issuer_country: "RU", risk_score: 0.91, device_trust_score: 0.2, is_recurring: false, attempt_number: 0, supports_passkey: false, network: "visa" } },
+          ] as const).map((preset) => (
+            <Button
+              key={preset.label}
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => setCtx({ ...ctx, ...preset.ctx, metadata: {} })}
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </CardContent>
+      </Card>
+
       <Card className="glass-card border border-border/80">
         <CardHeader>
           <CardTitle>Context</CardTitle>
@@ -291,17 +316,42 @@ function Decisioning() {
           {!recommendationsLoading && !recommendationsError && recommendations.length > 0 && (
             <ul className="space-y-3">
               {recommendations.map((r) => (
-                <li key={r.id} className="flex items-start gap-3 rounded-lg border p-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{r.context_summary}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{r.recommended_action}</p>
+                <li key={r.id} className="rounded-lg border p-3 space-y-2">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{r.context_summary}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{r.recommended_action}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant={r.source_type === "vector_search" ? "default" : "secondary"} className="gap-1">
+                        {r.source_type === "vector_search" ? <Sparkles className="w-3 h-3" /> : null}
+                        {r.source_type}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{(r.score * 100).toFixed(0)}%</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant={r.source_type === "vector_search" ? "default" : "secondary"} className="gap-1">
-                      {r.source_type === "vector_search" ? <Sparkles className="w-3 h-3" /> : null}
-                      {r.source_type}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">{(r.score * 100).toFixed(0)}%</span>
+                  {/* P1 #7: Actionable buttons — bridge data-to-action gap */}
+                  <div className="flex gap-2 pt-1">
+                    <Button variant="outline" size="sm" className="h-7 text-xs" asChild>
+                      <Link to="/rules">
+                        Create Rule
+                        <ArrowRight className="w-3 h-3 ml-1" />
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        setCtx({
+                          ...ctx,
+                          risk_score: r.score ?? ctx.risk_score,
+                          metadata: { ...ctx.metadata, agent_recommendation: r.recommended_action },
+                        });
+                      }}
+                    >
+                      Apply to Context
+                    </Button>
                   </div>
                 </li>
               ))}

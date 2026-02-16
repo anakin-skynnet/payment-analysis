@@ -156,10 +156,28 @@ function SmartCheckout() {
         )}
         <div className="grid gap-4 md:grid-cols-3">
           {[
-            { label: "3DS friction rate", value: latest?.three_ds_friction_rate_pct, suffix: "%" },
-            { label: "3DS authentication rate", value: latest?.three_ds_authentication_rate_pct, suffix: "%" },
-            { label: "Issuer approval (post-auth)", value: latest?.issuer_approval_post_auth_rate_pct, suffix: "%" },
-          ].map(({ label, value, suffix }) => (
+            {
+              label: "3DS friction rate",
+              value: latest?.three_ds_friction_rate_pct,
+              suffix: "%",
+              guidance: (v: number | null | undefined) =>
+                v == null ? null : v > 20 ? "High friction: consider frictionless 3DS flow for low-risk segments to reduce cart abandonment." : v > 10 ? "Moderate friction: review authentication exemptions for trusted cardholders." : "Good — friction is within acceptable range.",
+            },
+            {
+              label: "3DS authentication rate",
+              value: latest?.three_ds_authentication_rate_pct,
+              suffix: "%",
+              guidance: (v: number | null | undefined) =>
+                v == null ? null : v < 80 ? "Low auth rate: investigate issuer ACS failures and consider network token fallback." : v < 90 ? "Auth rate could improve: check device/browser compatibility and SDK version." : "Strong authentication rate — issuers are accepting challenges.",
+            },
+            {
+              label: "Issuer approval (post-auth)",
+              value: latest?.issuer_approval_post_auth_rate_pct,
+              suffix: "%",
+              guidance: (v: number | null | undefined) =>
+                v == null ? null : v < 85 ? "Low post-auth approval: issuers still declining after 3DS success. Review BIN-level patterns and contact issuer." : v < 92 ? "Room to improve: consider data-only 3DS for high-trust segments." : "Excellent post-auth approval rate.",
+            },
+          ].map(({ label, value, suffix, guidance }) => (
             <Card
               key={label}
               className="glass-card border border-border/80 cursor-pointer hover:border-primary/40 hover:shadow-md transition-all"
@@ -171,10 +189,15 @@ function SmartCheckout() {
               <CardHeader>
                 <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-2">
                 <p className="text-2xl font-semibold tabular-nums">
                   {value != null ? `${value}${suffix}` : "—"}
                 </p>
+                {guidance(value) && (
+                  <p className="text-xs text-muted-foreground leading-relaxed border-t border-border/40 pt-2">
+                    {guidance(value)}
+                  </p>
+                )}
               </CardContent>
             </Card>
           ))}

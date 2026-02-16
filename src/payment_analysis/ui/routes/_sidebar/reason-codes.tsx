@@ -206,7 +206,7 @@ function ReasonCodes() {
             ) : rows.length === 0 ? (
               <p className="text-sm text-muted-foreground">No data yet. Run the simulator and ETL to populate views.</p>
             ) : (
-              rows.map((r) => (
+              rows.map((r, idx) => (
                 <div
                   key={`${r.entry_system}-${r.flow_type}-${r.decline_reason_standard}-${r.priority}`}
                   className="rounded-lg border border-border/60 p-3 space-y-2"
@@ -226,7 +226,35 @@ function ReasonCodes() {
                   <p className="text-xs text-muted-foreground">
                     Est. recoverable: {r.estimated_recoverable_declines} declines · ${(r.estimated_recoverable_value ?? 0).toFixed(2)}
                   </p>
-                  <div className="flex justify-end">
+                  <div className="flex items-center justify-between">
+                    {/* P2 #9: Inline expert review — quick verdict directly on insight cards */}
+                    <div className="flex gap-1.5">
+                      {(["valid", "invalid", "non_actionable"] as const).map((v) => (
+                        <Button
+                          key={v}
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-[10px]"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const id = `ins-${r.decline_reason_standard}-${idx}`;
+                            try {
+                              await submitFeedback.mutateAsync({
+                                insight_id: id,
+                                insight_type: "reason_code_insight",
+                                verdict: v,
+                                reviewer: null,
+                                reason: null,
+                                model_version: null,
+                                prompt_version: null,
+                              });
+                            } catch { /* best-effort */ }
+                          }}
+                        >
+                          {v === "valid" ? "Valid" : v === "invalid" ? "Invalid" : "N/A"}
+                        </Button>
+                      ))}
+                    </div>
                     <Badge variant="secondary">{r.decline_count} declines</Badge>
                   </div>
                 </div>

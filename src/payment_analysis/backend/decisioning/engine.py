@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -53,6 +54,9 @@ _decline_codes_cache = _CacheEntry()
 _routes_cache = _CacheEntry()
 _rules_cache = _CacheEntry()
 _recommendations_cache = _CacheEntry()
+
+# P3 #20: Cache lock to prevent race conditions on concurrent requests
+_cache_lock = threading.Lock()
 
 
 # ---------------------------------------------------------------------------
@@ -197,22 +201,27 @@ class DecisionEngine:
     # -- Cache loaders -------------------------------------------------------
 
     def _load_config(self) -> DecisionParams:
-        """Load DecisionConfig from Lakebase (cached)."""
+        """Load DecisionConfig from Lakebase (cached, thread-safe)."""
         global _config_cache
         if not _config_cache.is_stale and _config_cache.data is not None:
             return _config_cache.data
 
-        rows: list[dict[str, str]] = []
-        if self._runtime:
-            try:
-                rows = self._read_decision_config_from_lakebase()
-            except Exception as e:
-                logger.debug("Could not load decision_config from Lakebase: %s", e)
+        with _cache_lock:
+            # Double-check after acquiring lock
+            if not _config_cache.is_stale and _config_cache.data is not None:
+                return _config_cache.data
 
-        params = _params_from_config(rows) if rows else DecisionParams()
-        _config_cache.data = params
-        _config_cache.fetched_at = time.monotonic()
-        return params
+            rows: list[dict[str, str]] = []
+            if self._runtime:
+                try:
+                    rows = self._read_decision_config_from_lakebase()
+                except Exception as e:
+                    logger.debug("Could not load decision_config from Lakebase: %s", e)
+
+            params = _params_from_config(rows) if rows else DecisionParams()
+            _config_cache.data = params
+            _config_cache.fetched_at = time.monotonic()
+            return params
 
     def _load_decline_codes(self) -> dict[str, RetryableCode]:
         """Load RetryableDeclineCode from Lakebase (cached)."""
@@ -429,54 +438,84 @@ class DecisionEngine:
 
     # -- ML enrichment -------------------------------------------------------
 
+    def _build_ml_features(self, ctx: DecisionContext, params: DecisionParams) -> dict:
+        """Build feature dict matching training features exactly (P0 fix: training/inference parity).
+
+        The ML models are trained with: amount, fraud_score, device_trust_score, is_cross_border,
+        retry_count, uses_3ds, merchant_segment, card_network, log_amount, hour_of_day, day_of_week,
+        is_weekend, network_encoded, risk_amount_interaction. All must be present at inference.
+        """
+        import math
+        from datetime import datetime
+
+        amount = ctx.amount_minor / 100.0
+        fraud_score = ctx.risk_score or 0.1
+        log_amount = math.log1p(max(0, amount))
+        now = datetime.utcnow()
+        network_str = (ctx.network or "visa").lower()
+        network_map = {"visa": 0, "mastercard": 1, "amex": 2, "elo": 3, "hipercard": 4}
+
+        return {
+            "amount": amount,
+            "fraud_score": fraud_score,
+            "device_trust_score": ctx.device_trust_score or 0.8,
+            "is_cross_border": bool(ctx.issuer_country and ctx.issuer_country.upper() != params.routing_domestic_country),
+            "retry_count": ctx.attempt_number,
+            "uses_3ds": ctx.supports_passkey,
+            "merchant_segment": ctx.metadata.get("merchant_segment", "retail"),
+            "card_network": network_str,
+            # Temporal features (match training)
+            "log_amount": log_amount,
+            "hour_of_day": now.hour,
+            "day_of_week": now.weekday(),
+            "is_weekend": int(now.weekday() >= 5),
+            # Encoded features
+            "network_encoded": network_map.get(network_str, 5),
+            "risk_amount_interaction": fraud_score * log_amount,
+        }
+
     async def _enrich_with_ml(
         self, ctx: DecisionContext, params: DecisionParams
     ) -> DecisionContext:
         """Enrich DecisionContext with ML model scores (risk, approval) when available.
 
-        Calls ML serving endpoints in parallel with a timeout. If any call fails,
-        the original context values are preserved (graceful degradation).
+        Calls ML serving endpoints in parallel with a timeout (P2 #13: parallelized).
+        Feature dict matches training features exactly (P0 #1).
         """
         if not params.ml_enrichment_enabled or not self._service or not self._service.is_available:
             return ctx
 
         timeout = params.ml_enrichment_timeout_ms / 1000.0
-        features = {
-            "amount": ctx.amount_minor / 100.0,  # Convert to major units for ML
-            "fraud_score": ctx.risk_score or 0.1,
-            "device_trust_score": ctx.device_trust_score or 0.8,
-            "is_cross_border": bool(ctx.issuer_country and ctx.issuer_country.upper() != params.routing_domestic_country),
-            "retry_count": ctx.attempt_number,
-            "uses_3ds": ctx.supports_passkey,  # Simplified: passkey support implies modern auth
-            "merchant_segment": ctx.metadata.get("merchant_segment", "retail"),
-            "card_network": ctx.network or "visa",
-        }
+        features = self._build_ml_features(ctx, params)
 
         enriched = ctx.model_copy()
-        try:
-            # Call risk model to get ML-based risk score
-            risk_result = await asyncio.wait_for(
-                self._service.call_risk_model(features),
-                timeout=timeout,
-            )
+
+        async def _call_risk() -> dict | None:
+            try:
+                return await asyncio.wait_for(self._service.call_risk_model(features), timeout=timeout)
+            except Exception as e:
+                logger.debug("ML risk enrichment failed (graceful): %s", e)
+                return None
+
+        async def _call_approval() -> dict | None:
+            try:
+                return await asyncio.wait_for(self._service.call_approval_model(features), timeout=timeout)
+            except Exception as e:
+                logger.debug("ML approval enrichment failed (graceful): %s", e)
+                return None
+
+        risk_result, approval_result = await asyncio.gather(_call_risk(), _call_approval())
+
+        if risk_result:
             ml_risk = risk_result.get("risk_score")
             if ml_risk is not None and enriched.risk_score is None:
                 enriched.risk_score = float(ml_risk)
-                enriched.metadata = {**enriched.metadata, "ml_risk_score": float(ml_risk), "ml_risk_tier": risk_result.get("risk_tier", "")}
-        except Exception as e:
-            logger.debug("ML risk enrichment failed (graceful): %s", e)
+            enriched.metadata = {**enriched.metadata, "ml_risk_score": float(ml_risk) if ml_risk else None, "ml_risk_tier": risk_result.get("risk_tier", "")}
 
-        try:
-            # Call approval model to get approval probability
-            approval_result = await asyncio.wait_for(
-                self._service.call_approval_model(features),
-                timeout=timeout,
-            )
+        if approval_result:
             approval_prob = approval_result.get("approval_probability")
             if approval_prob is not None:
                 enriched.metadata = {**enriched.metadata, "ml_approval_probability": float(approval_prob), "ml_model_version": approval_result.get("model_version", "")}
-        except Exception as e:
-            logger.debug("ML approval enrichment failed (graceful): %s", e)
 
         return enriched
 
@@ -505,19 +544,19 @@ class DecisionEngine:
     async def decide_authentication(
         self, ctx: DecisionContext, variant: str | None = None
     ) -> AuthDecisionOut:
-        """Data-driven authentication decision: recommendations → Vector Search → ML enrichment → rule evaluation → policy."""
+        """Data-driven authentication decision: VS + ML (parallel) → recommendations → rule evaluation → policy."""
         from .policies import decide_authentication as _policy_auth, serialize_context
 
         params = self._load_config()
 
-        # Enrich with Vector Search context (similar transactions)
-        vs_context = await self._lookup_similar_transactions(ctx, params)
-        if vs_context:
-            ctx = ctx.model_copy()
-            ctx.metadata = {**ctx.metadata, **{f"vs_{k}": v for k, v in vs_context.items()}}
+        # P2 #13: Run Vector Search and ML enrichment in parallel
+        vs_task = self._lookup_similar_transactions(ctx, params)
+        ml_task = self._enrich_with_ml(ctx, params)
+        vs_context, enriched = await asyncio.gather(vs_task, ml_task)
 
-        # ML enrichment
-        enriched = await self._enrich_with_ml(ctx, params)
+        if vs_context:
+            enriched = enriched.model_copy()
+            enriched.metadata = {**enriched.metadata, **{f"vs_{k}": v for k, v in vs_context.items()}}
 
         # Agent recommendation enrichment (closes the recommendation loop)
         recs = self._load_recommendations("authentication")
@@ -530,6 +569,12 @@ class DecisionEngine:
                 "agent_confidence": top_rec["confidence"],
                 "agent_expected_impact": top_rec["expected_impact_pct"],
             }
+
+        # P1 #4: Enrich with streaming real-time features (approval_rate_5m, etc.)
+        streaming = self._read_streaming_features(enriched)
+        if streaming:
+            enriched = enriched.model_copy()
+            enriched.metadata = {**enriched.metadata, **{f"stream_{k}": v for k, v in streaming.items()}}
 
         # Run policy with data-driven parameters
         decision = _policy_auth(enriched, variant=variant, params=params)
@@ -560,63 +605,57 @@ class DecisionEngine:
     async def decide_retry(
         self, ctx: DecisionContext, variant: str | None = None
     ) -> RetryDecisionOut:
-        """Data-driven retry decision: recommendations → Vector Search → Lakebase decline codes → ML enrichment → policy."""
+        """Data-driven retry decision: VS + retry ML (parallel) → recommendations → Lakebase codes → policy."""
         from .policies import decide_retry as _policy_retry
 
         params = self._load_config()
         decline_codes = self._load_decline_codes()
 
-        # Vector Search context
-        vs_context = await self._lookup_similar_transactions(ctx, params)
+        # P2 #13: Run VS and retry ML in parallel
+        async def _retry_ml() -> dict | None:
+            if not params.ml_enrichment_enabled or not self._service or not self._service.is_available:
+                return None
+            try:
+                features = self._build_ml_features(ctx, params)
+                timeout = params.ml_enrichment_timeout_ms / 1000.0
+                return await asyncio.wait_for(self._service.call_retry_model(features), timeout=timeout)
+            except Exception as e:
+                logger.debug("ML retry enrichment failed (graceful): %s", e)
+                return None
+
+        vs_context, retry_result = await asyncio.gather(
+            self._lookup_similar_transactions(ctx, params), _retry_ml()
+        )
+
+        enriched = ctx.model_copy() if vs_context else ctx
         if vs_context:
-            ctx = ctx.model_copy()
-            ctx.metadata = {**ctx.metadata, **{f"vs_{k}": v for k, v in vs_context.items()}}
+            enriched.metadata = {**enriched.metadata, **{f"vs_{k}": v for k, v in vs_context.items()}}
 
         # Agent recommendation enrichment
         recs = self._load_recommendations("retry")
         if recs:
-            ctx = ctx.model_copy()
-            ctx.metadata = {
-                **ctx.metadata,
+            enriched = enriched.model_copy()
+            enriched.metadata = {
+                **enriched.metadata,
                 "agent_recommendation": recs[0]["action_summary"],
                 "agent_confidence": recs[0]["confidence"],
             }
 
-        # ML enrichment (retry model for recovery probability)
-        enriched = ctx
-        if params.ml_enrichment_enabled and self._service and self._service.is_available:
-            try:
-                features = {
-                    "amount": ctx.amount_minor / 100.0,
-                    "fraud_score": ctx.risk_score or 0.1,
-                    "device_trust_score": ctx.device_trust_score or 0.8,
-                    "is_cross_border": bool(ctx.issuer_country and ctx.issuer_country.upper() != params.routing_domestic_country),
-                    "retry_count": ctx.attempt_number,
-                    "uses_3ds": ctx.supports_passkey,
-                    "merchant_segment": ctx.metadata.get("merchant_segment", "retail"),
-                    "card_network": ctx.network or "visa",
+        # ML retry enrichment
+        if retry_result:
+            retry_prob = retry_result.get("retry_success_probability")
+            if retry_prob is not None:
+                enriched = enriched.model_copy()
+                retry_meta: dict[str, Any] = {
+                    **enriched.metadata,
+                    "ml_retry_probability": float(retry_prob),
+                    "ml_should_retry": retry_result.get("should_retry", False),
+                    "ml_model_version": retry_result.get("model_version", ""),
                 }
-                timeout = params.ml_enrichment_timeout_ms / 1000.0
-                retry_result = await asyncio.wait_for(
-                    self._service.call_retry_model(features),
-                    timeout=timeout,
-                )
-                retry_prob = retry_result.get("retry_success_probability")
-                if retry_prob is not None:
-                    enriched = ctx.model_copy()
-                    retry_meta: dict[str, Any] = {
-                        **enriched.metadata,
-                        "ml_retry_probability": float(retry_prob),
-                        "ml_should_retry": retry_result.get("should_retry", False),
-                        "ml_model_version": retry_result.get("model_version", ""),
-                    }
-                    # Capture ML-suggested delay when the model provides it
-                    ml_delay = retry_result.get("retry_delay_seconds") or retry_result.get("suggested_delay_s")
-                    if ml_delay is not None:
-                        retry_meta["ml_retry_delay_seconds"] = float(ml_delay)
-                    enriched.metadata = retry_meta
-            except Exception as e:
-                logger.debug("ML retry enrichment failed (graceful): %s", e)
+                ml_delay = retry_result.get("retry_delay_seconds") or retry_result.get("suggested_delay_s")
+                if ml_delay is not None:
+                    retry_meta["ml_retry_delay_seconds"] = float(ml_delay)
+                enriched.metadata = retry_meta
 
         decision = _policy_retry(enriched, variant=variant, params=params, decline_codes=decline_codes)
 
@@ -642,58 +681,53 @@ class DecisionEngine:
     async def decide_routing(
         self, ctx: DecisionContext, variant: str | None = None
     ) -> RoutingDecisionOut:
-        """Data-driven routing decision: recommendations → Vector Search → Lakebase route performance → ML enrichment → policy."""
+        """Data-driven routing decision: VS + routing ML (parallel) → recommendations → Lakebase routes → policy."""
         from .policies import decide_routing as _policy_routing
 
         params = self._load_config()
         route_scores = self._load_routes()
 
-        # Vector Search context (similar transaction routing)
-        vs_context = await self._lookup_similar_transactions(ctx, params)
+        # P2 #13: Run VS and routing ML in parallel
+        async def _routing_ml() -> dict | None:
+            if not params.ml_enrichment_enabled or not self._service or not self._service.is_available:
+                return None
+            try:
+                features = self._build_ml_features(ctx, params)
+                timeout = params.ml_enrichment_timeout_ms / 1000.0
+                return await asyncio.wait_for(self._service.call_routing_model(features), timeout=timeout)
+            except Exception as e:
+                logger.debug("ML routing enrichment failed (graceful): %s", e)
+                return None
+
+        vs_context, routing_result = await asyncio.gather(
+            self._lookup_similar_transactions(ctx, params), _routing_ml()
+        )
+
+        enriched = ctx.model_copy() if vs_context else ctx
         if vs_context:
-            ctx = ctx.model_copy()
-            ctx.metadata = {**ctx.metadata, **{f"vs_{k}": v for k, v in vs_context.items()}}
+            enriched.metadata = {**enriched.metadata, **{f"vs_{k}": v for k, v in vs_context.items()}}
 
         # Agent recommendation enrichment
         recs = self._load_recommendations("routing")
         if recs:
-            ctx = ctx.model_copy()
-            ctx.metadata = {
-                **ctx.metadata,
+            enriched = enriched.model_copy()
+            enriched.metadata = {
+                **enriched.metadata,
                 "agent_recommendation": recs[0]["action_summary"],
                 "agent_confidence": recs[0]["confidence"],
             }
 
-        # ML enrichment (routing model)
-        enriched = ctx
-        if params.ml_enrichment_enabled and self._service and self._service.is_available:
-            try:
-                features = {
-                    "amount": ctx.amount_minor / 100.0,
-                    "fraud_score": ctx.risk_score or 0.1,
-                    "device_trust_score": ctx.device_trust_score or 0.8,
-                    "is_cross_border": bool(ctx.issuer_country and ctx.issuer_country.upper() != params.routing_domestic_country),
-                    "retry_count": ctx.attempt_number,
-                    "uses_3ds": ctx.supports_passkey,
-                    "merchant_segment": ctx.metadata.get("merchant_segment", "retail"),
-                    "card_network": ctx.network or "visa",
+        # ML routing enrichment
+        if routing_result:
+            ml_route = routing_result.get("recommended_solution")
+            if ml_route:
+                enriched = enriched.model_copy()
+                enriched.metadata = {
+                    **enriched.metadata,
+                    "ml_recommended_route": ml_route,
+                    "ml_route_confidence": routing_result.get("confidence", 0.0),
+                    "ml_route_alternatives": routing_result.get("alternatives", []),
                 }
-                timeout = params.ml_enrichment_timeout_ms / 1000.0
-                routing_result = await asyncio.wait_for(
-                    self._service.call_routing_model(features),
-                    timeout=timeout,
-                )
-                ml_route = routing_result.get("recommended_solution")
-                if ml_route:
-                    enriched = ctx.model_copy()
-                    enriched.metadata = {
-                        **enriched.metadata,
-                        "ml_recommended_route": ml_route,
-                        "ml_route_confidence": routing_result.get("confidence", 0.0),
-                        "ml_route_alternatives": routing_result.get("alternatives", []),
-                    }
-            except Exception as e:
-                logger.debug("ML routing enrichment failed (graceful): %s", e)
 
         decision = _policy_routing(
             enriched, variant=variant, params=params, route_scores=route_scores
@@ -717,6 +751,34 @@ class DecisionEngine:
                 decision.reason = f"[Rule: {top_rule['name']}] {top_rule['action_summary']}"
 
         return decision
+
+    # -- P1 #4: Streaming features reader ------------------------------------
+
+    def _read_streaming_features(self, ctx: DecisionContext) -> dict[str, Any]:
+        """Read real-time behavioral features from online_features_stream (computed by continuous_processor).
+
+        These include approval_rate_5m, retry_rate_5m, avg_fraud_5m for the card/merchant.
+        """
+        if not self._runtime or not self._runtime._db_configured():
+            return {}
+        try:
+            from sqlalchemy import text as sa_text
+            schema = self._get_schema_name()
+            merchant = ctx.merchant_id
+            with self._runtime.get_session() as session:
+                q = sa_text(
+                    f'SELECT feature_name, feature_value FROM "{schema}".online_features '
+                    f"WHERE entity_id = :entity_id AND source = 'streaming' "
+                    f"ORDER BY id DESC LIMIT 10"
+                )
+                result = session.execute(q, {"entity_id": merchant})
+                features = {}
+                for row in result.fetchall():
+                    features[str(row[0])] = float(row[1]) if row[1] is not None else None
+                return features
+        except Exception as e:
+            logger.debug("Could not read streaming features: %s", e)
+            return {}
 
     # -- Online features writer -----------------------------------------------
 
