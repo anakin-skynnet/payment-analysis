@@ -12,7 +12,7 @@ This file is the **single source of truth** for the AI agent working on this rep
 
 **Goal:** Accelerate approval rates and reduce lost revenue from false declines, suboptimal routing, and missed retry opportunities.
 
-**Stack:** Real-time ML (4 HistGradientBoosting models with 14 engineered features), ResponsesAgent (MLflow, 10 UC tools + python_exec), rules engine, Vector Search, streaming features, Lakebase (Postgres). Data flow: simulator → Lakeflow (Bronze → Silver → Gold) → Unity Catalog → FastAPI + React app. 4 ML model serving endpoints + 1 agent endpoint (`payment-response-agent`, managed by Job 6). 17 individual + 5 consolidated UC functions. Dual-write sync for approval rules. Closed-loop DecisionEngine: parallel ML + VS enrichment (`asyncio.gather`), streaming features, thread-safe caching, outcome recording (POST /outcome), policies that use VS approval rates and agent confidence for borderline decisions.
+**Stack:** Real-time ML (4 HistGradientBoosting models with 14 engineered features), ResponsesAgent (MLflow, 10 UC tools + python_exec), rules engine, Vector Search, streaming features, Lakebase (Postgres). Data flow: simulator → Lakeflow (Bronze → Silver → Gold) → Unity Catalog → FastAPI + React app. 4 ML model serving endpoints + 1 agent endpoint (`payment-response-agent`, managed by Job 6). 3 unified dashboards (merged from 10 source dashboards). 24 gold SQL views + 9 gold DLT tables. 17 individual + 5 consolidated UC functions. Dual-write sync for approval rules. Closed-loop DecisionEngine: parallel ML + VS enrichment (`asyncio.gather`), streaming features, thread-safe caching, outcome recording (POST /outcome), policies that use VS approval rates and agent confidence for borderline decisions. 100 merchant dimension entries with 8 segments matching the simulator.
 
 **Use cases:** Smart Retry (with recovery gap analysis), Smart Checkout (contextual 3DS guidance), Reason codes & declines (inline expert review), Risk & fraud, Routing optimization, Decisioning (closed-loop auth/retry/routing with preset scenarios).
 
@@ -60,6 +60,7 @@ This file is the **single source of truth** for the AI agent working on this rep
 
 - **Data fetching:** Use `useXSuspense` hooks with `Suspense` and `Skeleton`. Render static content immediately; fetch API data with Suspense.
 - **Data access:** Use `selector()` for clean destructuring (e.g. `const { data: profile } = useProfileSuspense(selector())`).
+- **Error resilience:** All routes must have `ErrorBoundary` wrappers with `resetErrorBoundary` + "Try again" buttons. Root `<Outlet />` is wrapped in `<Suspense>` for lazy-loaded routes. Guard auth loading states (e.g. `isLoading` from `useGetAuthStatus()`) to prevent layout shifts.
 
 ---
 
@@ -80,9 +81,9 @@ This file is the **single source of truth** for the AI agent working on this rep
 
 ## 7b. Version alignment (from unified chats)
 
-- **Exact versions everywhere:** All dependency references use the **same** versions (no `^` or `~`). Python: `pyproject.toml` (`==`) → `uv.lock` → `requirements.txt` via `scripts/sync_requirements_from_lock.py`. Frontend: `package.json` exact versions only → `bun.lock`. See `docs/DEPLOYMENT.md#version-alignment`.
+- **Exact versions everywhere:** All dependency references use the **same** versions (no `^` or `~`). Python: `pyproject.toml` (`==`) → `uv.lock` → `requirements.txt` via `scripts/sync_requirements_from_lock.py`. Frontend: `package.json` exact versions only → `bun.lock`. See `docs/REFERENCE_GUIDE.md#4-version-alignment`.
 - **Do not change dependency versions** unless the user explicitly instructs.
-- **Databricks App compatibility:** Runtime Python 3.11, Node 22.16; versions in docs/DEPLOYMENT.md (Version alignment) are tested compatible.
+- **Databricks App compatibility:** Runtime Python 3.11, Node 22.16; versions in docs/REFERENCE_GUIDE.md (Version alignment) are tested compatible.
 - **After changing deps:** Python: `uv lock` then `uv run python scripts/sync_requirements_from_lock.py`. Frontend: `uv run apx bun install`.
 
 ---
@@ -139,7 +140,7 @@ When the user asks to:
 - **Work with agents** — Backend: `backend/routes/agents.py` and `AGENTS`; framework: `agents/agent_framework.py` and `resources/agents.yml`.
 - **Change catalog/schema** — Bundle uses `var.catalog` / `var.schema`; app uses Lakebase `app_config`; set via Setup & Run → Save catalog & schema.
 - **Run jobs or pipelines** — From app Setup & Run; jobs 1–6 in order; pipelines (ETL, Real-Time) when needed.
-- **Verify / version alignment / deploy** — Run `uv run apx dev check` and `./scripts/bundle.sh verify dev`; ensure exact dependency versions (see docs/DEPLOYMENT.md#version-alignment); commit and push to main; deploy with `./scripts/bundle.sh deploy dev` to overwrite existing resources.
+- **Verify / version alignment / deploy** — Run `uv run apx dev check` and `./scripts/bundle.sh verify dev`; ensure exact dependency versions (see docs/REFERENCE_GUIDE.md#4-version-alignment); commit and push to main; deploy with `./scripts/bundle.sh deploy dev` to overwrite existing resources.
 
 ---
 
@@ -148,11 +149,10 @@ When the user asks to:
 | Doc | Purpose |
 |-----|---------|
 | `databricks.yml` | [Databricks Asset Bundles (DAB)](https://docs.databricks.com/aws/en/dev-tools/bundles/) root config; workspace, resources, sync, targets |
-| `docs/INDEX.md` | Document map and quick reference |
-| `docs/GUIDE.md` | Business overview, architecture, project structure, control panel & UI, best practices alignment |
-| `docs/DEPLOYMENT.md` | Deploy steps, env vars, version alignment, troubleshooting |
-| `docs/REFERENCE.md` | Databricks alignment, agent architecture, model serving, UC functions (17 individual + 5 consolidated), Vector Search |
-| `docs/SCHEMA_TABLES_VIEWS.md` | Tables and views reference (required vs optional, where used, why empty) |
+| `docs/OVERVIEW.md` | Executive summary, key metrics, quick reference |
+| `docs/BUSINESS_REQUIREMENTS.md` | Business context, use cases, Getnet context, impact on approval rates |
+| `docs/TECHNICAL_SOLUTION.md` | Architecture, data flow, ML models, AI agents, control panel, project structure, compliance |
+| `docs/REFERENCE_GUIDE.md` | Deployment, configuration, schema, version alignment, troubleshooting |
 | `.cursor/rules/project.mdc` | Cursor rule set (aligns with this file) |
 
 **External references (best practices):** [Apps Cookbook](https://apps-cookbook.dev/docs/intro) (FastAPI, healthcheck, tables), [apx](https://github.com/databricks-solutions/apx) (toolkit, build, OpenAPI), [AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit) (Databricks SDK, MCP, skills).

@@ -8,12 +8,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BarChart3, Gauge, Award, Zap, ExternalLink, Code2, Activity, MessageSquareText, ArrowRight, LayoutGrid, ArrowLeft, AlertCircle } from "lucide-react";
-import { getWorkspaceUrl, getGenieUrl, openInDatabricks, getLakeviewDashboardUrl } from "@/config/workspace";
+import { getWorkspaceUrl, getGenieUrl, openInDatabricks } from "@/config/workspace";
 import { DataSourceBadge } from "@/components/apx/data-source-badge";
 import { PageHeader } from "@/components/layout";
-import { DashboardTable } from "@/components/dashboards";
+import { DashboardTable, DashboardRenderer } from "@/components/dashboards";
 import { friendlyReason } from "@/lib/reasoning";
-import { useListDashboards, useRecentDecisions, getNotebookUrl, useGetDashboardUrl, type DashboardCategory, type DashboardInfo } from "@/lib/api";
+import { useListDashboards, useRecentDecisions, getNotebookUrl, type DashboardCategory, type DashboardInfo } from "@/lib/api";
 
 function DashboardsErrorFallback({ error, resetErrorBoundary }: { error: unknown; resetErrorBoundary: () => void }) {
   return (
@@ -76,11 +76,6 @@ export function Component() {
     query: { refetchInterval: 30_000 },
   });
 
-  const { data: embedUrlData, isLoading: embedLoading, isError: embedError } = useGetDashboardUrl({
-    params: { dashboard_id: embedId ?? "", embed: true },
-    query: { enabled: !!embedId },
-  });
-
   const dashboards = dashboardList?.data.dashboards ?? [];
   const categories = dashboardList?.data.categories ?? {};
   const { data: decisionsData } = useRecentDecisions({
@@ -99,11 +94,6 @@ export function Component() {
   };
 
   const embedDashboard = embedId ? dashboards.find((d) => d.id === embedId) : null;
-  const iframeSrc =
-    embedUrlData?.data?.full_embed_url ||
-    (embedUrlData?.data?.embed_url && getWorkspaceUrl()
-      ? `${getWorkspaceUrl()}${embedUrlData.data.embed_url as string}`
-      : null);
   const showEmbedView = !!embedId;
   const goBack = () => navigate({ to: "/dashboards", search: {} });
   const openEmbed = (id: string) => navigate({ to: "/dashboards", search: { embed: id } });
@@ -139,7 +129,7 @@ export function Component() {
 
   return (
     <div className="space-y-8">
-      {/* Embedded dashboard view (when ?embed=id) */}
+      {/* Native dashboard view (when ?embed=id) — renders charts from SQL data */}
       {showEmbedView && (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -148,44 +138,26 @@ export function Component() {
               Back to list
             </Button>
             {embedDashboard && (
-              <span className="text-sm font-medium text-muted-foreground">
-                {embedDashboard.name}
-              </span>
+              <>
+                <span className="text-sm font-medium text-muted-foreground">
+                  {embedDashboard.name}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="ml-auto gap-1.5 text-xs"
+                  onClick={() => handleDashboardClick(embedDashboard)}
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Open in Databricks
+                </Button>
+              </>
             )}
           </div>
-          <div className="rounded-lg border border-border bg-muted/30 overflow-hidden min-h-embed">
-            {embedLoading ? (
-              <div className="flex items-center justify-center h-[70vh]">
-                <Skeleton className="h-full w-full max-w-md" />
-              </div>
-            ) : iframeSrc ? (
-              <EmbedWithFallback
-                title={embedDashboard?.name || "Dashboard"}
-                src={String(iframeSrc)}
-                dashboardId={embedId!}
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center h-[70vh] text-muted-foreground gap-3 p-4 max-w-md">
-                <p className="text-center text-sm">
-                  {embedError
-                    ? "Dashboard not found or embed not available."
-                    : "Dashboard embed needs a workspace URL. Open this app from Databricks (Compute → Apps) so your workspace is detected, or set DATABRICKS_HOST to your workspace URL."}
-                </p>
-                {embedId && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const u = getLakeviewDashboardUrl(embedId!);
-                      if (u) window.open(u, "_blank", "noopener,noreferrer");
-                    }}
-                  >
-                    Open in new tab
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
+          <DashboardRenderer
+            dashboardId={embedId!}
+            dashboardName={embedDashboard?.name}
+          />
         </div>
       )}
 
@@ -608,96 +580,3 @@ export function Component() {
   );
 }
 
-function EmbedWithFallback({
-  title,
-  src,
-  dashboardId,
-}: {
-  title: string;
-  src: string;
-  dashboardId: string;
-}) {
-  const [embedStatus, setEmbedStatus] = React.useState<"loading" | "loaded" | "failed">("loading");
-  const iframeRef = React.useRef<HTMLIFrameElement>(null);
-  const externalUrl = getLakeviewDashboardUrl(dashboardId);
-
-  React.useEffect(() => {
-    setEmbedStatus("loading");
-    const timer = setTimeout(() => {
-      // Only mark failed if still loading — if onLoad already fired, the embed works.
-      setEmbedStatus((prev) => {
-        if (prev !== "loading") return prev;
-        if (iframeRef.current) {
-          try {
-            // Cross-origin iframe access throws — signals embed is blocked
-            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            iframeRef.current.contentDocument;
-          } catch {
-            return "failed";
-          }
-        }
-        return prev;
-      });
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, [src]);
-
-  // Auto-open in new tab when embedding fails
-  React.useEffect(() => {
-    if (embedStatus === "failed" && externalUrl) {
-      window.open(externalUrl, "_blank", "noopener,noreferrer");
-    }
-  }, [embedStatus, externalUrl]);
-
-  if (embedStatus === "failed") {
-    return (
-      <div className="flex flex-col items-center justify-center h-[70vh] gap-5 text-center p-6">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
-          <AlertCircle className="w-8 h-8 text-amber-600 dark:text-amber-400" />
-        </div>
-        <div className="space-y-2 max-w-lg">
-          <p className="text-base font-semibold">Dashboard opened in a new tab</p>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Databricks workspace security blocks embedding dashboards in iframes from external domains
-            (<code className="text-xs bg-muted px-1 py-0.5 rounded">*.databricksapps.com</code>).
-            The dashboard has been opened directly in your workspace.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            To enable in-app embedding, a workspace admin must set{" "}
-            <strong>Settings → Security → Embed dashboards → Allow</strong> and add{" "}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">*.databricksapps.com</code>{" "}
-            to the allowed domains.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          {externalUrl && (
-            <Button onClick={() => window.open(externalUrl, "_blank", "noopener,noreferrer")} className="gap-2">
-              <ExternalLink className="w-4 h-4" />
-              Open again in new tab
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {embedStatus === "loading" && (
-        <div className="flex items-center justify-center h-12 bg-muted/30 text-sm text-muted-foreground gap-2">
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent" />
-          Loading dashboard…
-        </div>
-      )}
-      <iframe
-        ref={iframeRef}
-        title={title}
-        src={src}
-        className="w-full h-[78vh] border-0"
-        allowFullScreen
-        onLoad={() => setEmbedStatus("loaded")}
-        onError={() => setEmbedStatus("failed")}
-      />
-    </>
-  );
-}

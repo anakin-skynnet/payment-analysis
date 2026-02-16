@@ -307,7 +307,7 @@ function ProfileContent() {
               <div>
                 <p className="text-sm font-medium">Dashboards</p>
                 <p className="text-xs text-muted-foreground">
-                  3 unified AI/BI dashboards, 16+ gold views, closed-loop
+                  3 unified AI/BI dashboards, 24 gold views, closed-loop
                   decisioning engine
                 </p>
               </div>

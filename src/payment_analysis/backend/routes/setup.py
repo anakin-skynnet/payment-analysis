@@ -42,7 +42,7 @@ _app_config = AppConfig()
 
 
 # =============================================================================
-# Default resource IDs (from bundle deployment; see docs/DEPLOYMENT.md)
+# Default resource IDs (from bundle deployment; see docs/REFERENCE_GUIDE.md)
 # =============================================================================
 
 class _DefaultIds(TypedDict):
@@ -72,7 +72,7 @@ def _pipeline_id_env_key(key: str) -> str:
 
 
 # Job/pipeline IDs from bundle deploy (target workspace). Override via env: DATABRICKS_JOB_ID_<NAME>, DATABRICKS_PIPELINE_ID_<NAME>.
-# See docs/DEPLOYMENT.md for the list of env vars.
+# See docs/REFERENCE_GUIDE.md for the list of env vars.
 DEFAULT_IDS: _DefaultIds = {
     "warehouse_id": os.getenv("DATABRICKS_WAREHOUSE_ID", "") or "",
     "catalog": os.getenv("DATABRICKS_CATALOG", "ahs_demos_catalog") or "",

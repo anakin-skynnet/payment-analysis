@@ -47,7 +47,7 @@ const HERO = {
     { label: "AI Agents", value: "6", detail: "All with write-back tools" },
     { label: "ML Models", value: "4", detail: "HistGradientBoosting + 14 features" },
     { label: "Dashboards", value: "3", detail: "Unified AI/BI Lakeview" },
-    { label: "Gold Views", value: "16+", detail: "Including retry-by-reason" },
+    { label: "Gold Views", value: "24", detail: "Including retry-by-reason" },
   ],
 };
 
@@ -249,7 +249,7 @@ const TECH_SUMMARY = [
   { label: "AI Agents", value: "6 agents with write-back tools (Orchestrator + Routing, Retry, Decline, Risk, Performance)" },
   { label: "Database", value: "Lakebase (managed PostgreSQL) for rules, experiments, incidents, features, proposals, outcomes" },
   { label: "Application", value: "Databricks App: FastAPI backend + React frontend (16 pages, preset scenarios, inline review)" },
-  { label: "Dashboards", value: "3 unified AI/BI Lakeview dashboards + 16+ gold views (including v_retry_success_by_reason)" },
+  { label: "Dashboards", value: "3 unified AI/BI Lakeview dashboards + 24 gold views + 9 gold DLT tables (including v_retry_success_by_reason)" },
   { label: "Decision Engine", value: "Parallel ML + VS enrichment, streaming features, thread-safe caching, outcome feedback loop" },
   { label: "Infrastructure", value: "100% serverless compute \u2014 deployed via Databricks Asset Bundles (IaC)" },
 ];

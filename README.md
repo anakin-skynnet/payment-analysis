@@ -6,22 +6,25 @@ Databricks-powered payment approval optimization: **accelerate approval rates** 
 
 **Goal:** Reduce lost revenue from false declines, suboptimal routing, and missed retry opportunities.
 
-**How:** Real-time ML (4 HistGradientBoosting models with 14 engineered features), a ResponsesAgent (MLflow, OpenAI Responses API) with 10 UC tools + python_exec, Genie, rules engine, Vector Search, streaming features, and Lakebase — unified in a closed-loop decision engine and control panel. All compute is serverless. 4 ML model serving endpoints + 1 agent endpoint (`payment-response-agent`), 3 unified AI/BI dashboards, 16+ gold views (including `v_retry_success_by_reason`), 7 orchestrated jobs, 9 resources bound to the app. Decision routes use `DecisionEngine` with parallel ML + Vector Search enrichment (asyncio.gather), streaming real-time features, thread-safe caching, and outcome recording for continuous improvement.
+**How:** Real-time ML (4 HistGradientBoosting models with 14 engineered features), a ResponsesAgent (MLflow, OpenAI Responses API) with 10 UC tools + python_exec, Genie, rules engine, Vector Search, streaming features, and Lakebase — unified in a closed-loop decision engine and control panel. All compute is serverless. 4 ML model serving endpoints + 1 agent endpoint (`payment-response-agent`), 3 unified AI/BI dashboards (merged from 10 source dashboards), 24 gold views (including `v_retry_success_by_reason`) + 9 gold DLT tables, 7 orchestrated jobs, 8 resources bound to the app. Decision routes use `DecisionEngine` with parallel ML + Vector Search enrichment (asyncio.gather), streaming real-time features, thread-safe caching, and outcome recording for continuous improvement.
 
 **AI Chat architecture (3-tier fallback):**
 1. **Path 1 — ResponsesAgent** (`payment-response-agent`): MLflow ResponsesAgent with 10 UC function tools + `python_exec`, served on Databricks Model Serving. Uses Claude Sonnet 4.5 for balanced speed/quality on multi-turn tool calling.
 2. **Path 2 — AI Gateway**: Direct LLM call via Foundation Model API (Claude Opus 4.6) when the agent endpoint is unavailable.
 3. **Path 3 — Job 6 Agent Framework**: Custom Python multi-agent orchestrator with 5 specialists (Smart Routing, Smart Retry, Decline Analyst, Risk Assessor, Performance Recommender). Runs as a Databricks Job.
 
-**Recent enhancements (20 QA recommendations implemented):**
+**Recent enhancements (20 QA recommendations + end-to-end verification):**
 - **Closed feedback loop:** POST /api/decision/outcome records actual outcomes; policies use VS approval rates and agent confidence to adjust borderline decisions
 - **Feature parity:** ML features built with `_build_ml_features()` matching exact training schema (14 features including temporal, merchant/solution rates, network encoding, risk interactions)
 - **Parallel enrichment:** ML model calls and Vector Search run concurrently; thread-safe config caching with `threading.Lock`
 - **Streaming features:** Real-time behavioral features (approval_rate_5m, txn_velocity_1m) feed into authentication decisions
 - **Agent write-back:** Decline Analyst and Risk Assessor agents can write recommendations and propose config changes directly to Lakebase
 - **Actionable UI:** Top-3 actions on Command Center, 90% target reference lines, contextual guidance on Smart Checkout, preset scenarios and actionable recommendations on Decisioning, inline expert review on Reason Codes, recovery gap analysis on Smart Retry
+- **Frontend resilience:** `Suspense` wrapper around root `Outlet` for lazy-loaded routes, auth loading state to prevent layout shifts, error retry fallback on ML Models page
+- **Data quality fix:** Merchant dimension (`merchants_dim_bronze`) corrected to generate 100 merchants with 8 segments, matching the transaction simulator
+- **Pinned dependencies:** All frontend package versions pinned (no `^` or `~`); exact version alignment verified across `pyproject.toml`, `uv.lock`, `requirements.txt`, `package.json`, `bun.lock`
 
-For use cases, technology map, and **impact on accelerating approval rates**, see **[docs/GUIDE.md](docs/GUIDE.md)**.
+For use cases and impact on approval rates, see **[Business Requirements](docs/BUSINESS_REQUIREMENTS.md)**. For architecture and technical details, see **[Technical Solution](docs/TECHNICAL_SOLUTION.md)**. For deployment, schema reference, and troubleshooting, see **[Reference Guide](docs/REFERENCE_GUIDE.md)**.
 
 ---
 
@@ -46,11 +49,11 @@ For use cases, technology map, and **impact on accelerating approval rates**, se
 
 | Purpose | Document |
 |--------|----------|
-| **Index** | [docs/INDEX.md](docs/INDEX.md) — Document map and quick reference |
-| **Guide** | [docs/GUIDE.md](docs/GUIDE.md) — What the platform does, business context, architecture, project structure, control panel, data sources, verification |
-| **Deploy & operate** | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Deploy steps, app env (`app.yml` + UI), two-phase deploy, version alignment, troubleshooting |
-| **Reference** | [docs/REFERENCE.md](docs/REFERENCE.md) — Databricks alignment, agent architecture (ResponsesAgent + framework), model serving & UC functions, approval optimization |
-| **Schema** | [docs/SCHEMA_TABLES_VIEWS.md](docs/SCHEMA_TABLES_VIEWS.md) — Tables and views reference (required vs optional, where used, why empty) |
+| **Overview** | [docs/OVERVIEW.md](docs/OVERVIEW.md) — Executive summary, key metrics, quick reference |
+| **Business Requirements** | [docs/BUSINESS_REQUIREMENTS.md](docs/BUSINESS_REQUIREMENTS.md) — Business context, use cases, Getnet context, impact on approval rates |
+| **Technical Solution** | [docs/TECHNICAL_SOLUTION.md](docs/TECHNICAL_SOLUTION.md) — Architecture, data flow, ML models, AI agents, control panel, project structure |
+| **Reference Guide** | [docs/REFERENCE_GUIDE.md](docs/REFERENCE_GUIDE.md) — Deployment, configuration, schema, version alignment, troubleshooting |
+| **Agent rules** | [AGENTS.md](AGENTS.md) — AI agent (Cursor) rules, project conventions, dev commands |
 
 ## Quick start
 
@@ -58,7 +61,7 @@ Deployment is **two-phase**: first deploy all resources except the App, then dep
 
 1. **Phase 1 — deploy resources:** `./scripts/bundle.sh deploy dev` — builds the UI, cleans existing BI dashboards (avoids duplicates), prepares dashboards, deploys jobs/pipelines/dashboards/UC/model serving (everything **except** the App). 4 ML model serving endpoints are included; the agent endpoint (`payment-response-agent`) is managed by Job 6.
 2. **Run jobs 5 and 6:** In the app **Setup & Run**, run **Job 5 (Train Models)** and **Job 6 (Deploy Agents)** so ML models and the ResponsesAgent exist in UC.
-3. **Phase 2 — deploy app:** `./scripts/bundle.sh deploy app dev` — validates app dependencies, then deploys the App with all 9 resources bound (1 SQL warehouse, 1 UC volume, 1 Genie space, 5 serving endpoints).
+3. **Phase 2 — deploy app:** `./scripts/bundle.sh deploy app dev` — validates app dependencies, then deploys the App with all 8 resources bound (1 SQL warehouse, 1 UC volume, 1 Genie space, 5 serving endpoints).
 4. **Setup & Run (in order):** Jobs **1** → **2** → (ETL pipeline) → **3** → **4** → **5** → **6** → **7** (Create Data Repositories, Simulate Events, Initialize Ingestion, Deploy Dashboards, Train Models, Deploy Agents, Genie Sync).
 5. **App environment:** Defined in **`app.yml`** at project root (e.g. `LAKEBASE_PROJECT_ID`, `LAKEBASE_BRANCH_ID`, `LAKEBASE_ENDPOINT_ID`, `ORCHESTRATOR_SERVING_ENDPOINT`). Override in **Workspace → Apps → payment-analysis → Edit → Environment** (e.g. `DATABRICKS_WAREHOUSE_ID`, `DATABRICKS_HOST`, `DATABRICKS_TOKEN`). Redeploy to apply `app.yml` changes.
 
@@ -72,9 +75,10 @@ Deployment is **two-phase**: first deploy all resources except the App, then dep
 - **Vector Search:** `similar_transactions_index` populated from `payments_enriched_silver` via MERGE, synced to `databricks-bge-large-en`.
 - **17 individual + 5 consolidated UC functions** serve as agent tools. The ResponsesAgent uses 5 consolidated + 5 shared operational functions (10 total, Databricks limit). `v_retry_success_by_reason` gold view added for granular retry analysis by decline reason.
 - **Actionable UI:** Top-3 actions on Command Center, 90% target reference lines, last-updated indicators, contextual Smart Checkout guidance, preset decisioning scenarios, actionable recommendation buttons, inline expert review, recovery gap analysis.
-- **Error resilience:** All UI routes have `ErrorBoundary` wrappers and consistent `glass-card` styling.
+- **Error resilience:** All UI routes have `ErrorBoundary` wrappers, `Suspense` on the root `Outlet` for lazy-loaded routes, auth loading state to prevent layout shifts, error retry fallbacks, and consistent `glass-card` styling.
+- **Data integrity:** Merchant dimension generates 100 merchants with 8 segments (`spark.range(100)`), matching the transaction simulator's full merchant set. All 24 gold views are verified to connect to the correct upstream tables.
 
-The project is deployed as a [Databricks Asset Bundle (DAB)](https://docs.databricks.com/aws/en/dev-tools/bundles/). See [Deployment](docs/DEPLOYMENT.md) for full steps and troubleshooting.
+The project is deployed as a [Databricks Asset Bundle (DAB)](https://docs.databricks.com/aws/en/dev-tools/bundles/). See [Reference Guide](docs/REFERENCE_GUIDE.md) for full deploy steps and troubleshooting.
 
 ## References (best practices)
 

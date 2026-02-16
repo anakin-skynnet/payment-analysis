@@ -352,7 +352,7 @@ def decision_log_silver():
     """
     Decision audit log for tracking auth/retry/routing decisions.
     In production, this would be populated by the decisioning API.
-    Note: No gold view or backend reads this table. Safe to drop from pipeline if audit is not needed (see docs/SCHEMA_TABLES_VIEWS.md).
+    Note: No gold view or backend reads this table. Safe to drop from pipeline if audit is not needed (see docs/REFERENCE_GUIDE.md).
     """
     
     payments = dlt.read("payments_enriched_silver")

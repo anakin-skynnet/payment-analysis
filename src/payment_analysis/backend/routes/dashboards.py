@@ -11,7 +11,7 @@ import os
 from enum import Enum
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from ..config import (
@@ -20,7 +20,7 @@ from ..config import (
     ensure_absolute_workspace_url,
     workspace_id_from_workspace_url,
 )
-from ..dependencies import ConfigDep, EffectiveWorkspaceUrlDep
+from ..dependencies import ConfigDep, DatabricksServiceDep, EffectiveWorkspaceUrlDep, get_workspace_client_optional
 
 router = APIRouter(tags=["dashboards"])
 
@@ -89,6 +89,15 @@ _log = _logging.getLogger(__name__)
 _dashboard_id_cache: dict[str, str] = {}
 _discovery_lock = _threading.Lock()
 _discovery_done = False
+_discovery_attempt_count = 0
+_DISCOVERY_MAX_RETRIES = 3
+
+# Name patterns to look for (without environment prefix)
+_DASHBOARD_NAME_PATTERNS: dict[str, list[str]] = {
+    "data_quality": ["Data & Quality", "Data Quality", "data_quality"],
+    "ml_optimization": ["ML & Optimization", "ML Optimization", "ml_optimization"],
+    "executive_trends": ["Executive & Trends", "Executive Trends", "executive_trends"],
+}
 
 
 def _discover_dashboard_ids(ws: Any | None = None) -> dict[str, str]:
@@ -98,8 +107,11 @@ def _discover_dashboard_ids(ws: Any | None = None) -> dict[str, str]:
     function tries to build one from the environment (DATABRICKS_HOST / TOKEN).
     Discovery is skipped entirely when no credentials are available so the
     module import never blocks on interactive auth flows.
+
+    Retries up to ``_DISCOVERY_MAX_RETRIES`` times when no dashboards are found
+    (dashboards may not be deployed yet on first attempts after bundle deploy).
     """
-    global _discovery_done
+    global _discovery_done, _discovery_attempt_count
     if _discovery_done:
         return _dashboard_id_cache
 
@@ -107,11 +119,9 @@ def _discover_dashboard_ids(ws: Any | None = None) -> dict[str, str]:
         if _discovery_done:
             return _dashboard_id_cache
 
+        _discovery_attempt_count += 1
         try:
             if ws is None:
-                # Only attempt auto-discovery when explicit credentials exist;
-                # the default WorkspaceClient() constructor may try interactive
-                # auth (databricks-cli profile) which blocks indefinitely.
                 import os as _os
                 _host = _os.environ.get("DATABRICKS_HOST", "").strip()
                 _token = _os.environ.get("DATABRICKS_TOKEN", "").strip()
@@ -125,33 +135,39 @@ def _discover_dashboard_ids(ws: Any | None = None) -> dict[str, str]:
             else:
                 w = ws
 
-            # Name patterns to look for (without environment prefix)
-            name_patterns: dict[str, str] = {
-                "data_quality": "Data & Quality",
-                "ml_optimization": "ML & Optimization",
-                "executive_trends": "Executive & Trends",
-            }
-
             for dash in w.lakeview.list():
                 display_name = dash.display_name or ""
-                for key, pattern in name_patterns.items():
-                    if pattern in display_name and key not in _dashboard_id_cache:
-                        _dashboard_id_cache[key] = dash.dashboard_id or ""
-                        _log.info("Discovered dashboard '%s' (id=%s) for key '%s'",
-                                  display_name, dash.dashboard_id, key)
+                for key, patterns in _DASHBOARD_NAME_PATTERNS.items():
+                    if key in _dashboard_id_cache:
+                        continue
+                    for pattern in patterns:
+                        if pattern.lower() in display_name.lower():
+                            _dashboard_id_cache[key] = dash.dashboard_id or ""
+                            _log.info("Discovered dashboard '%s' (id=%s) for key '%s'",
+                                      display_name, dash.dashboard_id, key)
+                            break
 
-                # Stop early if all found
-                if len(_dashboard_id_cache) >= len(name_patterns):
+                if len(_dashboard_id_cache) >= len(_DASHBOARD_NAME_PATTERNS):
                     break
 
-            missing = [k for k in name_patterns if k not in _dashboard_id_cache]
+            missing = [k for k in _DASHBOARD_NAME_PATTERNS if k not in _dashboard_id_cache]
             if missing:
-                _log.warning("Could not discover dashboards for: %s. "
-                             "Set DASHBOARD_ID_* env vars or run Job 4 to deploy dashboards.", missing)
+                if _discovery_attempt_count < _DISCOVERY_MAX_RETRIES:
+                    _log.info("Dashboard discovery attempt %d: missing %s. Will retry on next request.",
+                              _discovery_attempt_count, missing)
+                    return _dashboard_id_cache
+                _log.warning("Could not discover dashboards for: %s after %d attempts. "
+                             "Set DASHBOARD_ID_* env vars or run Job 4 to deploy dashboards.",
+                             missing, _discovery_attempt_count)
         except Exception as exc:
-            _log.warning("Dashboard auto-discovery failed (will use env vars): %s", exc)
+            if _discovery_attempt_count < _DISCOVERY_MAX_RETRIES:
+                _log.info("Dashboard discovery attempt %d failed (%s). Will retry.", _discovery_attempt_count, exc)
+                return _dashboard_id_cache
+            _log.warning("Dashboard auto-discovery failed after %d attempts (will use env vars): %s",
+                         _discovery_attempt_count, exc)
         finally:
-            _discovery_done = True
+            if len(_dashboard_id_cache) >= len(_DASHBOARD_NAME_PATTERNS) or _discovery_attempt_count >= _DISCOVERY_MAX_RETRIES:
+                _discovery_done = True
 
     return _dashboard_id_cache
 
@@ -269,19 +285,20 @@ DASHBOARDS = _get_dashboards()
 
 @router.get("", response_model=DashboardList, operation_id="listDashboards")
 async def list_dashboards(
+    request: Request,
     category: DashboardCategory | None = Query(None, description="Filter by category"),
     tag: str | None = Query(None, description="Filter by tag"),
+    ws: Any = Depends(get_workspace_client_optional),
 ) -> DashboardList:
     """
     List all available AI/BI dashboards.
     
     Returns metadata for all dashboards with optional filtering by category or tag.
-    On the first call, triggers background auto-discovery of dashboard IDs from the
-    workspace API (non-blocking — returns immediately with whatever IDs are available).
+    On the first call, runs auto-discovery of dashboard IDs from the workspace API
+    using the request's workspace client for proper authentication.
     """
-    # Trigger auto-discovery in background on first request (non-blocking)
     if not _discovery_done:
-        _threading.Thread(target=_discover_dashboard_ids, daemon=True).start()
+        _discover_dashboard_ids(ws=ws)
 
     dashboards = _get_dashboards()
     filtered_dashboards = dashboards
@@ -458,3 +475,128 @@ async def get_dashboard_url(
     }
 
 
+# =============================================================================
+# Native Dashboard Data (SQL-powered in-app rendering)
+# =============================================================================
+# Reads dashboard JSON definitions, executes SQL queries against the warehouse,
+# and returns results + widget metadata so the frontend can render charts natively.
+
+import json as _json
+from pathlib import Path as _Path
+
+from ..config import get_default_schema
+
+_DASHBOARDS_DIR = _Path(__file__).resolve().parent.parent.parent.parent.parent / "resources" / "dashboards"
+_CATALOG_PLACEHOLDER = "__CATALOG__.__SCHEMA__"
+
+
+class DatasetResult(BaseModel):
+    """Result of executing a single dashboard dataset query."""
+    name: str
+    display_name: str
+    columns: list[str] = Field(default_factory=list)
+    rows: list[dict[str, Any]] = Field(default_factory=list)
+    error: str | None = None
+
+
+class WidgetSpec(BaseModel):
+    """Widget rendering specification extracted from dashboard JSON."""
+    dataset_name: str
+    widget_type: str
+    title: str = ""
+    encodings: dict[str, Any] = Field(default_factory=dict)
+class DashboardDataOut(BaseModel):
+    """Full dashboard data for native in-app rendering."""
+    dashboard_id: str
+    dashboard_name: str
+    datasets: list[DatasetResult]
+    widgets: list[WidgetSpec]
+
+
+def _load_dashboard_json(dashboard_id: str) -> dict[str, Any] | None:
+    """Load a dashboard JSON file from resources/dashboards/."""
+    path = _DASHBOARDS_DIR / f"{dashboard_id}.lvdash.json"
+    if not path.exists():
+        return None
+    try:
+        return _json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _extract_widgets(data: dict[str, Any]) -> list[WidgetSpec]:
+    """Extract widget specs from dashboard JSON for frontend chart rendering."""
+    widgets: list[WidgetSpec] = []
+    for page in data.get("pages", []):
+        for item in page.get("layout", []):
+            w = item.get("widget", {})
+            spec = w.get("spec", {})
+            widget_type = spec.get("widgetType", "table")
+            queries = w.get("queries", [])
+            dataset_name = ""
+            for q in queries:
+                qq = q.get("query", {})
+                if qq.get("datasetName"):
+                    dataset_name = qq["datasetName"]
+                    break
+            if not dataset_name:
+                continue
+            widgets.append(WidgetSpec(
+                dataset_name=dataset_name,
+                widget_type=widget_type,
+                title=w.get("name", ""),
+                encodings=spec.get("encodings", {}),
+            ))
+    return widgets
+
+
+@router.get("/{dashboard_id}/data", response_model=DashboardDataOut, operation_id="getDashboardData")
+async def get_dashboard_data(
+    dashboard_id: str,
+    svc: DatabricksServiceDep,
+) -> DashboardDataOut:
+    """Execute all SQL queries for a dashboard and return data for native rendering.
+
+    Reads the dashboard JSON definition, replaces catalog/schema placeholders,
+    executes each dataset query against the SQL warehouse, and returns
+    results with widget metadata so the frontend can render charts natively.
+    """
+    data = _load_dashboard_json(dashboard_id)
+    if data is None:
+        raise HTTPException(status_code=404, detail=f"Dashboard '{dashboard_id}' JSON not found")
+
+    dashboard_info = next((d for d in _DASHBOARDS_STATIC if d.id == dashboard_id), None)
+    dashboard_name = dashboard_info.name if dashboard_info else dashboard_id
+
+    catalog = os.getenv("DATABRICKS_CATALOG", "ahs_demos_catalog")
+    schema = get_default_schema()
+    catalog_schema = f"{catalog}.{schema}"
+
+    datasets_raw = data.get("datasets", [])
+    results: list[DatasetResult] = []
+
+    for ds in datasets_raw:
+        name = ds.get("name", "")
+        display_name = ds.get("displayName", name)
+        query_lines = ds.get("queryLines", [])
+        if not query_lines:
+            results.append(DatasetResult(name=name, display_name=display_name, error="No query defined"))
+            continue
+
+        sql = query_lines[0].replace(_CATALOG_PLACEHOLDER, catalog_schema)
+        try:
+            rows = await svc._execute_query_internal(sql)
+            columns = list(rows[0].keys()) if rows else []
+            results.append(DatasetResult(name=name, display_name=display_name, columns=columns, rows=rows))
+        except Exception as exc:
+            _log.warning("Dashboard query failed for %s.%s: %s", dashboard_id, name, exc)
+            results.append(DatasetResult(name=name, display_name=display_name, error=str(exc)))
+
+    widgets = _extract_widgets(data)
+
+    return DashboardDataOut(
+        dashboard_id=dashboard_id,
+        dashboard_name=dashboard_name,
+        datasets=results,
+        widgets=widgets,
+    )

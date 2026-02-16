@@ -196,6 +196,13 @@ export const DashboardCategory = {
 
 export type DashboardCategory = (typeof DashboardCategory)[keyof typeof DashboardCategory];
 
+export interface DashboardDataOut {
+  dashboard_id: string;
+  dashboard_name: string;
+  datasets: DatasetResult[];
+  widgets: WidgetSpec[];
+}
+
 export interface DashboardInfo {
   category: DashboardCategory;
   description: string;
@@ -227,6 +234,14 @@ export interface DatabricksKPIOut {
   period_start: string;
   total_transactions: number;
   total_value: number;
+}
+
+export interface DatasetResult {
+  columns?: string[];
+  display_name: string;
+  error?: string | null;
+  name: string;
+  rows?: Record<string, unknown>[];
 }
 
 export interface DecisionConfigUpdateIn {
@@ -863,6 +878,13 @@ export interface VersionOut {
   version: string;
 }
 
+export interface WidgetSpec {
+  dataset_name: string;
+  encodings?: Record<string, unknown>;
+  title?: string;
+  widget_type: string;
+}
+
 export interface WorkspaceConfigOut {
   workspace_url: string;
 }
@@ -1021,6 +1043,10 @@ export interface ListDashboardsParams {
 }
 
 export interface GetDashboardParams {
+  dashboard_id: string;
+}
+
+export interface GetDashboardDataParams {
   dashboard_id: string;
 }
 
@@ -2395,6 +2421,29 @@ export function useGetDashboard<TData = { data: DashboardInfo }>(options: { para
 
 export function useGetDashboardSuspense<TData = { data: DashboardInfo }>(options: { params: GetDashboardParams; query?: Omit<UseSuspenseQueryOptions<{ data: DashboardInfo }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getDashboardKey(options.params), queryFn: () => getDashboard(options.params), ...options?.query });
+}
+
+export const getDashboardData = async (params: GetDashboardDataParams, options?: RequestInit): Promise<{ data: DashboardDataOut }> => {
+  const res = await fetch(`/api/dashboards/${params.dashboard_id}/data`, { ...options, method: "GET" });
+  if (!res.ok) {
+    const body = await res.text();
+    let parsed: unknown;
+    try { parsed = JSON.parse(body); } catch { parsed = body; }
+    throw new ApiError(res.status, res.statusText, parsed);
+  }
+  return { data: await res.json() };
+};
+
+export const getDashboardDataKey = (params?: GetDashboardDataParams) => {
+  return ["/api/dashboards/{dashboard_id}/data", params] as const;
+};
+
+export function useGetDashboardData<TData = { data: DashboardDataOut }>(options: { params: GetDashboardDataParams; query?: Omit<UseQueryOptions<{ data: DashboardDataOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useQuery({ queryKey: getDashboardDataKey(options.params), queryFn: () => getDashboardData(options.params), ...options?.query });
+}
+
+export function useGetDashboardDataSuspense<TData = { data: DashboardDataOut }>(options: { params: GetDashboardDataParams; query?: Omit<UseSuspenseQueryOptions<{ data: DashboardDataOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+  return useSuspenseQuery({ queryKey: getDashboardDataKey(options.params), queryFn: () => getDashboardData(options.params), ...options?.query });
 }
 
 export const getDashboardUrl = async (params: GetDashboardUrlParams, options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {

@@ -11,7 +11,7 @@
 # Step 6 (deploy agents)   → resources/agents.yml
 # Step 7 (Genie sync)     → resources/genie_spaces.yml
 #
-# Execution order: 1 → 2 → 3 → 4 → 5 → 6 → 7. See docs/DEPLOYMENT.md and Setup & Run.
+# Execution order: 1 → 2 → 3 → 4 → 5 → 6 → 7. See docs/REFERENCE_GUIDE.md and Setup & Run.
 # =============================================================================
 
 resources:

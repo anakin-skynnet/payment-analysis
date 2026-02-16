@@ -74,10 +74,10 @@ def merchants_dim_bronze():
     """Merchant dimension table for enrichment."""
     
     return (
-        spark.range(50)  # type: ignore[name-defined]
+        spark.range(100)  # type: ignore[name-defined]  # Must match MERCHANTS in transaction_simulator (100 merchants)
         .withColumn("merchant_id", concat(lit("m_"), col("id").cast("string")))
         .withColumn("merchant_name", concat(lit("Merchant "), col("id").cast("string")))
-        .withColumn("merchant_segment", array(lit("Travel"), lit("Retail"), lit("Gaming"), lit("Digital"), lit("Entertainment")).getItem((col("id") % 5).cast("int")))
+        .withColumn("merchant_segment", array(lit("Travel"), lit("Retail"), lit("Gaming"), lit("Digital"), lit("Entertainment"), lit("Grocery"), lit("Fuel"), lit("Subscription")).getItem((col("id") % 8).cast("int")))
         .withColumn("merchant_country", array(lit("US"), lit("GB"), lit("CA")).getItem((col("id") % 3).cast("int")))
         .withColumn("merchant_risk_tier", array(lit("low"), lit("medium"), lit("high")).getItem((col("id") % 3).cast("int")))
         .withColumn("created_at", current_timestamp())

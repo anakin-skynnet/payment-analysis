@@ -5,7 +5,7 @@
 #   https://docs.databricks.com/aws/en/dev-tools/bundles/
 # Payment approval optimization: Smart Checkout, Reason Codes, Smart Retry.
 # All parameters have defaults or are set at deployment (target/variables).
-# Docs: docs/GUIDE.md, docs/DEPLOYMENT.md
+# Docs: docs/TECHNICAL_SOLUTION.md, docs/REFERENCE_GUIDE.md
 #
 # Deploy app: ./scripts/bundle.sh deploy [dev|prod]
 # Required: catalog exists; app env LAKEBASE_* + DATABRICKS_WAREHOUSE_ID (see DEPLOYMENT.md).
@@ -31,7 +31,7 @@ workspace:
 # Resource modules. Order: UC → Lakebase → pipelines → warehouse → jobs → agents → simulator → Genie → dashboards → app.
 # Lakebase is required for UI CRUD (rules, experiments, incidents) and ML features.
 # Vector Search: create manually from resources/vector_search.yml.
-# Execution order for jobs (Setup & Run): see docs/DEPLOYMENT.md and Setup & Run in the app.
+# Execution order for jobs (Setup & Run): see docs/REFERENCE_GUIDE.md and Setup & Run in the app.
 #
 # Dashboards: resources/dashboards.yml is included so deploy updates existing dashboards in place
 # (same display_name + parent_path). Run prepare before deploy so .build/dashboards/*.lvdash.json exist.
