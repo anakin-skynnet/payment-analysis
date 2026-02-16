@@ -5,7 +5,7 @@
 #
 # Authorization (two identity models):
 #   User auth (OBO): open from Compute → Apps → payment-analysis; platform forwards X-Forwarded-Access-Token.
-#     Scopes (user_api_scopes in fastapi_app.yml): sql, serving.serving-endpoints, dashboards.genie, dashboards.lakeview
+#     Scopes (user_api_scopes in fastapi_app.yml): sql, serving.serving-endpoints, dashboards.genie
 #   App auth (SP): DATABRICKS_CLIENT_ID/SECRET injected by platform. Used for Lakebase, background tasks, app_config.
 #
 # Platform-injected env: DATABRICKS_WAREHOUSE_ID (from sql-warehouse binding), DATABRICKS_CLIENT_ID, DATABRICKS_CLIENT_SECRET.

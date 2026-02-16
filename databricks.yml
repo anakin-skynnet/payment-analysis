@@ -9,7 +9,7 @@
 #
 # Deploy app: ./scripts/bundle.sh deploy [dev|prod]
 # Required: catalog exists; app env LAKEBASE_* + DATABRICKS_WAREHOUSE_ID (see docs/REFERENCE_GUIDE.md).
-# App resources/scopes: resources/fastapi_app.yml (sql-warehouse, 5 serving endpoints, Genie, UC volume; user_api_scopes: sql, serving, dashboards.genie, dashboards.lakeview).
+# App resources/scopes: resources/fastapi_app.yml (sql-warehouse, 5 serving endpoints, Genie, UC volume; user_api_scopes: sql, serving, dashboards.genie).
 # =============================================================================
 
 bundle:

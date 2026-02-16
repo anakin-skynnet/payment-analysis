@@ -46,12 +46,11 @@ resources:
       #   sql                        → SQL warehouse queries (analytics, gold views, KPIs)
       #   serving.serving-endpoints  → Model Serving (4 ML endpoints + ResponsesAgent)
       #   dashboards.genie           → Genie Conversation API (natural-language data queries)
-      #   dashboards.lakeview        → Lakeview dashboard listing and embed URL generation
+      #   (dashboards.lakeview is NOT a valid app scope — dashboard listing uses the user's OBO token directly)
       user_api_scopes:
         - sql
         - serving.serving-endpoints
         - dashboards.genie
-        - dashboards.lakeview
 
       # -----------------------------------------------------------------------
       # App resources (SP permissions on workspace resources)
