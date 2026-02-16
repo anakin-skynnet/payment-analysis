@@ -101,6 +101,14 @@ async def lifespan(app: FastAPI):
     )
 
     runtime = Runtime(config)
+    # Always register model schemas early so SQLAlchemy queries use qualified
+    # table names ("payment_analysis".decisionlog) even if the DB is unreachable.
+    # Without this, queries fall back to the public schema which has no tables.
+    try:
+        runtime.register_model_schemas()
+    except Exception as schema_err:
+        logger.warning("Could not register model schemas: %s", schema_err)
+
     # Validate and initialize DB (Lakebase). Non-fatal: if Lakebase is unreachable
     # (endpoint suspended, not yet created, auth failure), the app still starts and
     # serves dashboards, analytics, and AI features. CRUD routes will return errors

@@ -143,12 +143,19 @@ class Runtime:
         cparams["password"] = cred.token
 
     @cached_property
+    def _db_schema_name(self) -> str:
+        """Validated Postgres schema name used for search_path and SQLModel."""
+        raw = (self.config.db.db_schema or "payment_analysis").strip()
+        return raw if raw.replace("_", "").isalnum() else "payment_analysis"
+
+    @cached_property
     def engine(self) -> Engine:
         if not self._db_configured():
             raise ValueError(
                 "Database not configured. Set LAKEBASE_PROJECT_ID, LAKEBASE_BRANCH_ID, LAKEBASE_ENDPOINT_ID "
                 "or LAKEBASE_CONNECTION_STRING (and LAKEBASE_OAUTH_TOKEN) in the app Environment."
             )
+        schema = self._db_schema_name
         # In dev mode: no SSL, no password callback, single connection (PGlite limit)
         # In production: require SSL and use Databricks credential callback
         if self._dev_db_port:
@@ -160,10 +167,14 @@ class Runtime:
         else:
             # Lakebase: token injected per connection (OAuth expires ~1h). pool_recycle < 1h.
             # See https://apps-cookbook.dev/docs/fastapi/getting_started/lakebase_connection
+            # Set search_path so unqualified table names resolve to the app schema.
             engine = create_engine(
                 self.engine_url,
                 pool_recycle=45 * 60,
-                connect_args={"sslmode": "require"},
+                connect_args={
+                    "sslmode": "require",
+                    "options": f"-csearch_path={schema},public",
+                },
                 pool_size=4,
             )
             event.listens_for(engine, "do_connect")(self._before_connect)
@@ -224,23 +235,31 @@ class Runtime:
         else:
             logger.info("Lakebase Autoscaling database connection validated successfully")
 
+    def register_model_schemas(self) -> None:
+        """Set the Postgres schema on all SQLModel tables so queries use qualified names.
+
+        Must be called early (even before DB is reachable) so that SELECT/INSERT
+        statements emit "schema".table instead of unqualified table names that
+        default to the 'public' schema.
+        """
+        schema_name = self._db_schema_name
+        # Import registers all table classes with SQLModel.metadata.
+        from . import db_models  # noqa: F401
+
+        SQLModel.metadata.schema = schema_name
+        for table in SQLModel.metadata.tables.values():
+            table.schema = schema_name
+        logger.info("SQLModel schemas set to '%s' for %d table(s)", schema_name, len(SQLModel.metadata.tables))
+
     def initialize_models(self) -> None:
         if not self._db_configured():
             logger.info("Database not configured; skipping table creation.")
             return
-        raw_schema = (self.config.db.db_schema or "payment_analysis").strip()
-        schema_name = raw_schema if raw_schema.replace("_", "").isalnum() else "payment_analysis"
+        schema_name = self._db_schema_name
         logger.info("Initializing database models (schema=%s)", schema_name)
-        # Ensure SQLModel tables are registered before create_all().
-        # Import is intentionally inside the method to avoid import-time side effects.
-        from . import db_models  # noqa: F401
 
-        # Use a dedicated schema so we don't need CREATE on public (Lakebase often denies public).
-        # Tables are created at import time with schema=None; we must set each table's schema
-        # so create_all() emits CREATE TABLE "schema".table, not public.
-        SQLModel.metadata.schema = schema_name
-        for table in SQLModel.metadata.tables.values():
-            table.schema = schema_name
+        # Ensure schemas are set (idempotent; may already be called).
+        self.register_model_schemas()
 
         # Only create the schema in local dev. In Lakebase, the schema is created by Job 1
         # (lakebase_data_init); the app's service principal has no database-level CREATE
