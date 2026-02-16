@@ -8,7 +8,7 @@
 # Docs: docs/TECHNICAL_SOLUTION.md, docs/REFERENCE_GUIDE.md
 #
 # Deploy app: ./scripts/bundle.sh deploy [dev|prod]
-# Required: catalog exists; app env LAKEBASE_* + DATABRICKS_WAREHOUSE_ID (see DEPLOYMENT.md).
+# Required: catalog exists; app env LAKEBASE_* + DATABRICKS_WAREHOUSE_ID (see docs/REFERENCE_GUIDE.md).
 # App resources/scopes: resources/fastapi_app.yml (sql-warehouse, jobs 1–7, user_api_scopes: sql, jobs, pipelines).
 # =============================================================================
 
