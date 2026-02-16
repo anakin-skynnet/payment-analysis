@@ -155,15 +155,15 @@ function ModelCard({ model }: { model: ModelOut }) {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-          <Button variant="default" size="sm" className="flex-1 min-w-0" onClick={() => openModelInRegistry(model.catalog_path)}>
+        <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+          <Button variant="default" size="sm" className="w-full justify-center" onClick={() => openModelInRegistry(model.catalog_path)}>
             Open in Model Registry
-            <ExternalLink className="w-3 h-3 ml-2" />
+            <ExternalLink className="w-3 h-3 ml-1.5" />
           </Button>
-          <Button variant="outline" size="sm" className="flex-1 min-w-0" onClick={() => openNotebookInDatabricks("train_models")}>
-            <Code2 className="w-4 h-4 mr-2" />
+          <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => openNotebookInDatabricks("train_models")}>
+            <Code2 className="w-4 h-4 mr-1.5" />
             Training Notebook
-            <ExternalLink className="w-3 h-3 ml-2" />
+            <ExternalLink className="w-3 h-3 ml-1.5" />
           </Button>
         </div>
       </CardContent>

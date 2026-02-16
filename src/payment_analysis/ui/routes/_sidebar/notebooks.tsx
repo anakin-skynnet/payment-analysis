@@ -82,9 +82,9 @@ export function Component() {
     }
   };
 
-  const getCategoryLabel = (category: string): string => {
-    return category.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
-  };
+  const ACRONYMS: Record<string, string> = { ai: "AI", llm: "LLM", ml: "ML" };
+  const getCategoryLabel = (category: string): string =>
+    category.split("_").map((w) => ACRONYMS[w] ?? w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
   return (
     <div className="space-y-6">
@@ -199,7 +199,7 @@ export function Component() {
                     {notebook.job_name && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <PlayCircle className="w-3 h-3 shrink-0" />
-                        <span className="truncate max-w-sm" title={`Scheduled: ${notebook.job_name}`}>
+                        <span className="break-words" title={`Scheduled: ${notebook.job_name}`}>
                           Scheduled: {notebook.job_name}
                         </span>
                       </div>

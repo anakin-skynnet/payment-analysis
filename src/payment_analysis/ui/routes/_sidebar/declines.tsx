@@ -161,7 +161,7 @@ function DeclineBucketsChart() {
   }
 
   const chartData = buckets.slice(0, 8).map((b, i) => ({
-    reason: b.key.length > 28 ? b.key.slice(0, 26) + "…" : b.key,
+    reason: b.key.length > 32 ? b.key.slice(0, 30) + "…" : b.key,
     fullReason: b.key,
     count: b.count,
     fill: DECLINE_COLORS[i % DECLINE_COLORS.length],
@@ -172,7 +172,7 @@ function DeclineBucketsChart() {
       <ChartContainer config={declineChartConfig} className="h-[300px] w-full">
         <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
           <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-          <YAxis dataKey="reason" type="category" width={180} tick={{ fontSize: 11 }} />
+          <YAxis dataKey="reason" type="category" width={200} tick={{ fontSize: 11 }} />
           <XAxis type="number" tick={{ fontSize: 11 }} />
           <ChartTooltip
             content={
@@ -193,11 +193,11 @@ function DeclineBucketsChart() {
       </ChartContainer>
 
       {/* Legend below chart */}
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2">
         {buckets.map((b) => (
-          <div key={b.key} className="flex items-center gap-1.5">
-            <span className="font-mono text-xs">{b.key}</span>
-            <Badge variant="secondary" className="text-xs">{b.count}</Badge>
+          <div key={b.key} className="flex items-center gap-1.5" title={b.key}>
+            <span className="font-mono text-xs break-all">{b.key}</span>
+            <Badge variant="secondary" className="text-xs tabular-nums shrink-0">{b.count}</Badge>
           </div>
         ))}
       </div>

@@ -225,7 +225,7 @@ export function Component() {
                       </Badge>
                     </div>
                     <CardTitle className="text-lg mt-2">{dashboard.name}</CardTitle>
-                    <CardDescription className="line-clamp-2">
+                    <CardDescription className="line-clamp-3">
                       {dashboard.description}
                     </CardDescription>
                   </CardHeader>
@@ -249,7 +249,7 @@ export function Component() {
                               key={notebookId}
                               variant="ghost"
                               size="sm"
-                              className="h-6 px-2 text-xs hover:bg-primary/10"
+                              className="h-auto py-1 px-2 text-xs hover:bg-primary/10 whitespace-nowrap"
                               onClick={(e) => handleNotebookClick(notebookId, e)}
                             >
                               {notebookId.replace(/_/g, " ")}
@@ -378,7 +378,7 @@ export function Component() {
                           </Badge>
                         </div>
                         <CardTitle className="text-lg">{dashboard.name}</CardTitle>
-                        <CardDescription className="line-clamp-2">
+                        <CardDescription className="line-clamp-3">
                           {dashboard.description}
                         </CardDescription>
                       </CardHeader>
@@ -407,7 +407,7 @@ export function Component() {
                                   key={notebookId}
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 px-2 text-xs hover:bg-primary/10"
+                                  className="h-auto py-1 px-2 text-xs hover:bg-primary/10 whitespace-nowrap"
                                   onClick={(e) => handleNotebookClick(notebookId, e)}
                                 >
                                   {notebookId.replace(/_/g, " ")}
@@ -452,7 +452,7 @@ export function Component() {
                         </Badge>
                       </div>
                       <CardTitle className="text-lg">{dashboard.name}</CardTitle>
-                      <CardDescription className="line-clamp-2">
+                      <CardDescription className="line-clamp-3">
                         {dashboard.description}
                       </CardDescription>
                     </CardHeader>
@@ -481,7 +481,7 @@ export function Component() {
                                 key={notebookId}
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 px-2 text-xs hover:bg-primary/10"
+                                className="h-auto py-1 px-2 text-xs hover:bg-primary/10 whitespace-nowrap"
                                 onClick={(e) => handleNotebookClick(notebookId, e)}
                               >
                                 {notebookId.replace(/_/g, " ")}

@@ -92,8 +92,12 @@ const agentIcons: Record<
   performance_recommender: Lightbulb,
 };
 
+const ACRONYMS: Record<string, string> = { ai: "AI", llm: "LLM", ml: "ML" };
 const getTypeLabel = (type: string): string =>
-  type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  type
+    .split("_")
+    .map((w) => ACRONYMS[w] ?? w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 
 /** Refresh agent list from backend every 30s for real-time visibility. */
 const REFRESH_AGENTS_MS = 30_000;

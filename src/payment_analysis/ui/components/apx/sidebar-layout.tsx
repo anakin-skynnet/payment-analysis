@@ -79,10 +79,10 @@ function Breadcrumb() {
   const embedLabel = embedId ? DASHBOARD_EMBED_LABELS[embedId] ?? embedId.replace(/_/g, " ") : null;
   const label = embedLabel ? `${baseLabel} / ${embedLabel}` : baseLabel;
   return (
-    <nav className={cn("flex items-center gap-1.5 text-sm text-muted-foreground min-w-0 flex-1", path === "/command-center" && "md:opacity-70")} aria-label="Breadcrumb">
+    <nav className={cn("hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground min-w-0", path === "/command-center" && "!hidden")} aria-label="Breadcrumb">
       <Tooltip>
         <TooltipTrigger asChild>
-          <Link to="/command-center" className="link-anchor hover:text-foreground transition-colors truncate max-w-[8rem] sm:max-w-none" aria-label="Command Center">
+          <Link to="/command-center" className="link-anchor hover:text-foreground transition-colors shrink-0" aria-label="Command Center">
             Overview
           </Link>
         </TooltipTrigger>
@@ -91,14 +91,14 @@ function Breadcrumb() {
       <span aria-hidden className="shrink-0">/</span>
       {path === "/dashboards" && embedId ? (
         <>
-          <Link to="/dashboards" className="link-anchor hover:text-foreground transition-colors truncate max-w-[6rem] sm:max-w-none">
+          <Link to="/dashboards" className="link-anchor hover:text-foreground transition-colors shrink-0">
             Dashboards
           </Link>
           <span aria-hidden className="shrink-0">/</span>
-          <span className="truncate font-medium text-foreground">{embedLabel}</span>
+          <span className="font-medium text-foreground truncate">{embedLabel}</span>
         </>
       ) : (
-        <span className="truncate font-medium text-foreground">{label}</span>
+        <span className="font-medium text-foreground whitespace-nowrap">{label}</span>
       )}
     </nav>
   );
@@ -201,7 +201,7 @@ function SidebarLayout({ children }: SidebarLayoutProps) {
         >
           <SidebarTrigger className="-ml-1 cursor-pointer rounded-lg p-2 transition-colors hover:bg-sidebar-accent/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" aria-label="Toggle sidebar" />
           <div className="flex flex-col min-w-0 flex-1 md:flex-row md:items-center md:gap-4">
-            <h1 className="text-base md:text-lg font-semibold text-foreground truncate order-2 md:order-1">
+            <h1 className="text-base md:text-lg font-semibold text-foreground truncate order-2 md:order-1 md:max-w-[16rem] lg:max-w-none" title="Global Payments Command Center">
               Global Payments Command Center
             </h1>
             <Breadcrumb />
