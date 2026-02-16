@@ -161,7 +161,7 @@ function DeclineBucketsChart() {
   }
 
   const chartData = buckets.slice(0, 8).map((b, i) => ({
-    reason: b.key.length > 20 ? b.key.slice(0, 18) + "…" : b.key,
+    reason: b.key.length > 28 ? b.key.slice(0, 26) + "…" : b.key,
     fullReason: b.key,
     count: b.count,
     fill: DECLINE_COLORS[i % DECLINE_COLORS.length],
@@ -172,7 +172,7 @@ function DeclineBucketsChart() {
       <ChartContainer config={declineChartConfig} className="h-[300px] w-full">
         <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
           <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-          <YAxis dataKey="reason" type="category" width={130} tick={{ fontSize: 11 }} />
+          <YAxis dataKey="reason" type="category" width={180} tick={{ fontSize: 11 }} />
           <XAxis type="number" tick={{ fontSize: 11 }} />
           <ChartTooltip
             content={

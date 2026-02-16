@@ -198,8 +198,8 @@ export function Component() {
                     {/* Job Info */}
                     {notebook.job_name && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <PlayCircle className="w-3 h-3" />
-                        <span className="truncate max-w-xs" title={notebook.job_name}>
+                        <PlayCircle className="w-3 h-3 shrink-0" />
+                        <span className="truncate max-w-sm" title={`Scheduled: ${notebook.job_name}`}>
                           Scheduled: {notebook.job_name}
                         </span>
                       </div>

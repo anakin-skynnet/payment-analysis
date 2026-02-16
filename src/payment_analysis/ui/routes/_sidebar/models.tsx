@@ -211,7 +211,7 @@ function Models() {
               <DataSourceBadge label="From UC & MLflow" />
             </div>
             <p className="page-section-description">
-              Four models (approval propensity, risk, routing, retry) from Setup & Run step 7. All are <strong>RandomForestClassifier</strong> (scikit-learn), trained in one MLflow experiment on UC data; use in Decisioning and with Rules.
+              Four models (approval propensity, risk, routing, retry) from Setup & Run step 7. All are <strong>HistGradientBoostingClassifier</strong> (scikit-learn), trained in one MLflow experiment on Unity Catalog data; use in Decisioning and with Rules.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -241,7 +241,7 @@ function Models() {
             <Brain className="w-5 h-5 text-primary mt-0.5" />
             <div className="space-y-1">
               <p className="text-sm font-medium">
-                Model types: all four are RandomForestClassifier (scikit-learn), trained and registered to Unity Catalog
+                Model types: all four are HistGradientBoostingClassifier (scikit-learn), trained and registered to Unity Catalog
               </p>
               <p className="text-xs text-muted-foreground">
                 Each card shows the purpose of the model experiment, feature set, and catalog path. The backend uses your Databricks config (catalog/schema). Open <strong>MLflow</strong> or <strong>Model Registry</strong> for latest run metrics, or use <strong>Decisioning</strong> for live predictions.
@@ -297,7 +297,7 @@ function Models() {
         <CardHeader>
           <CardTitle className="text-lg">Model Training Pipeline</CardTitle>
           <CardDescription>
-            Automated training workflow (Setup & Run step 7). All four models are RandomForestClassifier; trained in one MLflow experiment and registered to Unity Catalog.
+            Automated training workflow (Setup & Run step 7). All four models are HistGradientBoostingClassifier; trained in one MLflow experiment and registered to Unity Catalog.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -331,7 +331,7 @@ function Models() {
               <div>
                 <p className="font-medium">Model Training & Evaluation</p>
                 <p className="text-xs text-muted-foreground">
-                  Trains four RandomForestClassifier models (approval propensity, risk scoring, smart routing, smart retry), train/test split, logs params and metrics to MLflow
+                  Trains four HistGradientBoostingClassifier models (approval propensity, risk scoring, smart routing, smart retry), train/test split, logs params and metrics to MLflow
                 </p>
               </div>
             </div>

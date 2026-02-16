@@ -108,7 +108,7 @@ function Rules() {
           Conditions and actions that automatically accelerate approval rates or constrain risk
         </p>
         <p className="text-sm text-muted-foreground mt-2">
-          Rules are used by the decision engine and AI agents. Stored in Lakebase (seeded by Job 1) or Lakehouse. Run Job 1 (Create Data Repositories) to create Lakebase Autoscaling and seed default rules.
+          Rules are used by the decision engine and AI agents. Stored in Lakebase and mirrored to Lakehouse. Run Job 1 (Create Data Repositories) to initialize Lakebase and seed default rules.
         </p>
       </div>
 
