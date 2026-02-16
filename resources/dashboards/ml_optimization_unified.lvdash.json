@@ -172,8 +172,8 @@
         {
           "widget": {
             "name": "heatmap_recovery",
-            "queries": [{"name": "main_query", "query": {"datasetName": "m1_ds_recovery", "fields": [{"name": "decline_reason", "expression": "`decline_reason`"}, {"name": "merchant_segment", "expression": "`merchant_segment`"}, {"name": "sum(decline_count)", "expression": "SUM(`decline_count`)"}], "disaggregated": false}}],
-            "spec": {"version": 3, "widgetType": "heatmap", "encodings": {"x": {"fieldName": "decline_reason", "scale": {"type": "categorical"}, "displayName": "Decline Reason", "axis": {"title": "Decline Reason"}}, "y": {"fieldName": "merchant_segment", "scale": {"type": "categorical"}, "displayName": "Merchant Segment", "axis": {"title": "Merchant Segment"}}, "color": {"fieldName": "sum(decline_count)", "scale": {"type": "quantitative"}, "displayName": "Decline Count"}}, "frame": {"showTitle": true, "title": "Decline Recovery Opportunities (Heatmap)", "showDescription": false}}
+            "queries": [{"name": "main_query", "query": {"datasetName": "m1_ds_recovery", "fields": [{"name": "card_network", "expression": "`card_network`"}, {"name": "decline_reason", "expression": "`decline_reason`"}, {"name": "sum(potential_recovery_value)", "expression": "SUM(`potential_recovery_value`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "heatmap", "encodings": {"x": {"fieldName": "card_network", "scale": {"type": "categorical"}, "displayName": "Card Network", "axis": {"title": "Card Network"}}, "y": {"fieldName": "decline_reason", "scale": {"type": "categorical"}, "displayName": "Decline Reason", "axis": {"title": "Decline Reason"}}, "color": {"fieldName": "sum(potential_recovery_value)", "scale": {"type": "quantitative"}, "displayName": "Recovery Value ($)"}}, "frame": {"showTitle": true, "title": "Decline Recovery Opportunities (Heatmap)", "showDescription": false}}
           },
           "position": {"x": 0, "y": 7, "width": 12, "height": 5}
         }
