@@ -1,63 +1,98 @@
-# Databricks App resource: name, source path, and resource bindings.
+# =============================================================================
+# Databricks App Resource: Payment Analysis Platform
+# =============================================================================
 # Configuration: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/configuration
 # Authorization: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth
 # Runtime: app.yml at project root (command, env). source_code_path = workspace root (sync destination).
 #
-# Full configuration: User authorization scopes (below) + App resources listed. Set --var genie_space_id=<uuid> for Genie when deploying.
+# Two identity models:
+#   1. APP AUTHORIZATION (service principal)
+#      - Injected automatically: DATABRICKS_CLIENT_ID, DATABRICKS_CLIENT_SECRET
+#      - Used for: Lakebase (managed Postgres), background tasks, app_config, session management
+#      - The SP needs: Postgres role in Lakebase, UC permissions on catalog/schema
 #
-# APP RESOURCES: Only user-facing resources are included (SQL warehouse, UC volume, ML serving endpoints).
-# Jobs (1–7) are admin/setup resources and are NOT included — the app SP can discover them via
-# ws.jobs.list() using inherited workspace permissions. See the comment section below for details.
-#   If a deploy fails with "Endpoint with name '...' does not exist", run Job 5 (ML models) and
-#   Job 6 (agents) first so the endpoints exist, then redeploy.
-#   For orchestrator chat: ORCHESTRATOR_SERVING_ENDPOINT is set in app.yml (project root).
+#   2. USER AUTHORIZATION (on-behalf-of / OBO)
+#      - Forwarded via X-Forwarded-Access-Token header when opened from Compute → Apps
+#      - Used for: SQL warehouse queries, model serving, Genie conversations, dashboard listing
+#      - Requires user_api_scopes below; user must consent on first visit
 #
-# Note: experiments, vector_search_index, and UC functions are not supported as app resource types
-# by the bundle schema. Add them manually in Workspace → Apps → payment-analysis → Configure → App resources if needed.
-# App env: defined in app.yml at project root (env section). LAKEBASE_*, PYTHONPATH, ORCHESTRATOR_SERVING_ENDPOINT.
-# Platform-injected: DATABRICKS_WAREHOUSE_ID (from sql-warehouse binding), DATABRICKS_CLIENT_ID, DATABRICKS_CLIENT_SECRET.
+# APP RESOURCES: User-facing resources the app accesses (SQL warehouse, serving endpoints, Genie, UC volume).
+# Jobs (1–7) are admin/setup resources discovered via ws.jobs.list() using inherited workspace permissions.
+# Pipelines are also discovered dynamically; not a supported app resource type.
+#
+# Note: vector_search_index, UC functions, and experiments are not supported as app resource types.
+# Add them manually in Workspace → Apps → payment-analysis → Configure → App resources if needed.
+# =============================================================================
 
 resources:
   apps:
     payment_analysis_app:
       name: payment-analysis
       source_code_path: ${workspace.root_path}
-      description: Payment Approval Optimization Platform – dashboards, rules, decisioning, ML models, and agent jobs.
-      # User authorization scopes (Users must consent; required for OBO access). See Apps UI → Configure → User authorization.
-      # User authorization scopes — only include scopes supported by the workspace OAuth system.
+      description: >-
+        Payment Approval Rate Optimization Platform — 8 AI agents, 4 ML models,
+        3 AI/BI dashboards, 26 gold views, closed-loop decisioning engine,
+        and full-stack React + FastAPI control center for Getnet.
+
+      # -----------------------------------------------------------------------
+      # User authorization scopes (OAuth consent)
+      # -----------------------------------------------------------------------
+      # Users must consent to these scopes on first visit (Compute → Apps → payment-analysis).
+      # Each scope enables the app to call Databricks APIs using the user's identity (OBO).
       # Invalid scopes cause "error while trying to authenticate" at login.
       # See: https://docs.databricks.com/en/dev-tools/databricks-apps/auth.html
+      #
+      # Required by this app:
+      #   sql                        → SQL warehouse queries (analytics, gold views, KPIs)
+      #   serving.serving-endpoints  → Model Serving (4 ML endpoints + ResponsesAgent)
+      #   dashboards.genie           → Genie Conversation API (natural-language data queries)
+      #   dashboards.lakeview        → Lakeview dashboard listing and embed URL generation
       user_api_scopes:
         - sql
         - serving.serving-endpoints
         - dashboards.genie
+        - dashboards.lakeview
+
+      # -----------------------------------------------------------------------
+      # App resources (SP permissions on workspace resources)
+      # -----------------------------------------------------------------------
+      # These bindings grant the app's service principal access to specific resources.
+      # Platform injects DATABRICKS_WAREHOUSE_ID from the sql-warehouse binding.
       resources:
-        # SQL warehouse — [dev] Payment Analysis Warehouse
+        # SQL Warehouse — [dev] Payment Analysis Warehouse
+        # Used by: DatabricksService.execute_query() for all analytics, KPIs, gold views, app_config
         - name: sql-warehouse
-          description: SQL warehouse for analytics, app_config, gold views
+          description: SQL warehouse for analytics queries, gold views, and app_config
           sql_warehouse:
             id: ${resources.sql_warehouses.payment_analysis_warehouse.id}
             permission: CAN_USE
-        # UC volume — /Volumes/ahs_demos_catalog/payment_analysis/reports
+
+        # UC Volume — /Volumes/<catalog>/<schema>/reports
+        # Used by: Genie config sync, report storage
         - name: volume-reports
           description: UC volume for reports and Genie config
           uc_securable:
             securable_type: VOLUME
             securable_full_name: "${var.catalog}.${var.schema}.reports"
             permission: READ_VOLUME
-        # Genie space — Payment Analytics (natural-language data queries).
-        # Grants the app SP CAN_EDIT on the Genie space for the Genie Assistant dialog.
+
+        # Genie Space — Payment Analytics
+        # Used by: POST /api/agents/chat → ws.genie.start_conversation_and_wait()
         - name: genie-space
-          description: Genie space Payment Analytics
+          description: Genie space for natural-language data queries (Genie Assistant floating dialog)
           genie_space:
             name: "Payment Analytics"
             space_id: ${var.genie_space_id}
             permission: CAN_EDIT
-        # ResponsesAgent endpoint — the AI Chat's primary backend (Path 1).
-        # PaymentAnalysisAgent (agent.py) with 10 UC tools + python_exec.
+
+        # ResponsesAgent — AI Chat primary backend (Path 1)
+        # PaymentAnalysisAgent with 10 UC tools + python_exec
+        # Used by: POST /api/agents/orchestrator/chat
         - name: serving-response-agent
           serving_endpoint: { name: "payment-response-agent", permission: CAN_QUERY }
-        # ML Model Serving endpoints (4 models — used by DecisionEngine and ML predictions UI)
+
+        # ML Model Serving endpoints (4 models)
+        # Used by: DecisionEngine parallel enrichment, ML predictions UI, /api/decision/ml/*
         - name: serving-approval-prop
           serving_endpoint: { name: "approval-propensity", permission: CAN_QUERY }
         - name: serving-risk-scoring
@@ -66,32 +101,24 @@ resources:
           serving_endpoint: { name: "smart-routing", permission: CAN_QUERY }
         - name: serving-smart-retry
           serving_endpoint: { name: "smart-retry", permission: CAN_QUERY }
+
         # ------------------------------------------------------------------------------------------
-        # Jobs are NOT included as app resources. They are admin/setup resources, not user-facing.
-        # The app's Setup & Run page uses ws.jobs.list() (inherited workspace permissions) to
-        # discover and trigger jobs. End-users interacting with the app don't need direct job access;
-        # they use dashboards, decisioning, ML predictions, and agent chat.
-        # To grant the app SP access to jobs for Setup & Run, add CAN_MANAGE_RUN on each job via
-        # Workspace → Jobs → [job] → Permissions → Add payment-analysis SP.
+        # NOT included as app resources (discovered dynamically or not supported):
+        #
+        # Jobs (1–7): Admin/setup resources. The app discovers them via ws.jobs.list() using
+        #   inherited workspace permissions. To grant the SP access for Setup & Run, add
+        #   CAN_MANAGE_RUN on each job via Workspace → Jobs → [job] → Permissions.
+        #
+        # Pipelines (8–9): Not a supported app resource type. Grant access via
+        #   Workspace → Pipelines → [pipeline] → Permissions → Add payment-analysis SP
+        #   with "Can Manage Run" permission.
+        #
+        # Vector Search: Index ${var.catalog}.${var.schema}.similar_transactions_index
+        #   Not a supported app resource type. Used by DecisionEngine for experience replay.
+        #
+        # UC Functions: ${var.catalog}.${var.schema}.<function_name>
+        #   Agent tools registered by Job 3. Not supported as app resource type.
+        #
+        # Foundation Model Endpoints (AI Gateway): databricks-claude-opus-4-6, databricks-claude-sonnet-4-5
+        #   Accessed via ws.serving_endpoints.query(). Available to all workspace users by default.
         # ------------------------------------------------------------------------------------------
-        # ------------------------------------------------------------------------------------------
-        # Pipelines: The backend uses ws.pipelines.list_pipelines() and ws.pipelines.start_update()
-        # for pipelines 8 & 9 from the Setup & Run page. However, **pipelines are NOT a supported
-        # Databricks Apps resource type**. To grant access:
-        #   1. In Workspace → Pipelines → [pipeline] → Permissions, add the app's service principal
-        #      (payment-analysis) with "Can Manage Run" permission. OR
-        #   2. In the pipeline permissions section of pipelines.yml (DAB), add the app SP.
-        # Pipeline IDs:
-        #   8. ETL: ${resources.pipelines.payment_analysis_etl.id}
-        #   9. Real-Time Stream: ${resources.pipelines.payment_realtime_pipeline.id}
-        # ------------------------------------------------------------------------------------------
-        # Optional: legacy/external LLM endpoint (uncomment if used)
-        # - name: serving-endpoint
-        #   description: External model endpoint
-        #   serving_endpoint:
-        #     name: "mas-b6e74e87-endpoint"
-        #     permission: CAN_QUERY
-        # --- Not supported by bundle schema; add in Workspace → Apps → Configure → App resources if needed ---
-        # MLflow experiments (IDs are workspace-specific; add manually after deploy)
-        # Vector search index: ${var.catalog}.${var.schema}.similar_transactions_index
-        # UC functions: ${var.catalog}.${var.schema}.<function_name> (agent tools from Job 3)

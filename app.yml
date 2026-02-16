@@ -2,8 +2,13 @@
 # Docs: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/app-runtime
 # App definition (resources, bindings): resources/fastapi_app.yml. When deployed, the platform runs this in source_code_path and proxies traffic to the app.
 # Environment variables: defined below in env (not in Compute → Apps → Edit UI). Redeploy bundle to apply changes.
-# User auth: open from Compute → Apps → payment-analysis so the platform forwards your token (x-forwarded-access-token).
-# Lakebase: LAKEBASE_* below; DATABRICKS_WAREHOUSE_ID from sql-warehouse binding; DATABRICKS_CLIENT_ID/SECRET injected by platform.
+#
+# Authorization (two identity models):
+#   User auth (OBO): open from Compute → Apps → payment-analysis; platform forwards X-Forwarded-Access-Token.
+#     Scopes (user_api_scopes in fastapi_app.yml): sql, serving.serving-endpoints, dashboards.genie, dashboards.lakeview
+#   App auth (SP): DATABRICKS_CLIENT_ID/SECRET injected by platform. Used for Lakebase, background tasks, app_config.
+#
+# Platform-injected env: DATABRICKS_WAREHOUSE_ID (from sql-warehouse binding), DATABRICKS_CLIENT_ID, DATABRICKS_CLIENT_SECRET.
 #
 # WORKSPACE PORTABILITY: Dashboard and Genie IDs below are workspace-specific.
 # On a new workspace, either:
