@@ -265,7 +265,7 @@ AGENTS = [
     AgentInfo(
         id="payment_intelligence_assistant",
         name="Payment Intelligence Assistant",
-        description="LLM-powered conversational agent via Mosaic AI Gateway (Llama 3.1 70B) that provides natural language explanations of payment data, identifies anomalies, and suggests optimization strategies.",
+        description="LLM-powered conversational agent via Mosaic AI Gateway (Claude Opus 4.6 & Sonnet 4.5) that provides natural language explanations of payment data, identifies anomalies, and suggests optimization strategies.",
         agent_type=AgentType.AI_GATEWAY,
         capabilities=[
             AgentCapability.CONVERSATIONAL_INSIGHTS,

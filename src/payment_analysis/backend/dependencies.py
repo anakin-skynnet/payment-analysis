@@ -18,6 +18,7 @@ from typing import Annotated, Generator
 
 from databricks.sdk import WorkspaceClient
 from fastapi import Depends, Header, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from sqlmodel import Session
 
 from .config import (
@@ -218,7 +219,7 @@ def get_session(rt: RuntimeDep) -> Generator[Session, None, None]:
     try:
         with rt.get_session() as session:
             yield session
-    except HTTPException:
+    except (HTTPException, RequestValidationError):
         raise
     except (RuntimeError, ValueError) as e:
         if "not configured" in str(e).lower():
@@ -256,6 +257,8 @@ def get_session_optional(rt: RuntimeDep) -> Generator[Session | None, None, None
     try:
         with rt.get_session() as session:
             yield session
+    except (HTTPException, RequestValidationError):
+        raise
     except Exception as exc:
         logger.debug("Optional session unavailable: %s", exc)
         yield None
