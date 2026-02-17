@@ -127,13 +127,11 @@ variables:
 # -----------------------------------------------------------------------------
 sync:
   include:
-    - .build
-    # NOTE: .build/dashboards/ is used ONLY at deploy-time by DAB dashboard
-    # resources (resources/dashboards.yml file_path). The app backend fetches
-    # dashboard definitions at runtime from the Lakeview API — NOT from local
-    # files — so these JSONs are not needed in the deployed workspace for the app.
-    # Do NOT sync "dashboards" or "resources/dashboards" separately — that
-    # would create duplicate DASHBOARD objects in the same workspace directory.
+    - .build/transform
+    # IMPORTANT: Do NOT sync .build/dashboards/ — .lvdash.json files uploaded to
+    # the workspace become duplicate Dashboard objects (visible in Dashboards list).
+    # DAB reads file_path locally during deploy; the app fetches definitions at
+    # runtime from the Lakeview API. Only .build/transform/ is needed (SQL scripts).
     - src/payment_analysis/__dist__   # UI build output (created by artifacts.default build); required for app web UI
     - src/payment_analysis/ml
     - src/payment_analysis/streaming

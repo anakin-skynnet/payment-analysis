@@ -562,13 +562,42 @@ class DashboardDataOut(BaseModel):
     widgets: list[WidgetSpec]
 
 
+def _get_sp_workspace_client() -> Any | None:
+    """Return a WorkspaceClient authenticated as the app's service principal.
+
+    The Lakeview API (``w.lakeview.get``) requires the ``dashboards`` OAuth
+    scope, which is NOT available as a ``user_api_scope`` for Databricks Apps.
+    The app's SP has full workspace permissions, so we always use it for
+    Lakeview API calls.
+    """
+    import os as _os
+    try:
+        from databricks.sdk import WorkspaceClient
+        host = _os.environ.get("DATABRICKS_HOST", "").strip()
+        client_id = _os.environ.get("DATABRICKS_CLIENT_ID", "").strip()
+        client_secret = _os.environ.get("DATABRICKS_CLIENT_SECRET", "").strip()
+        if host and client_id and client_secret:
+            return WorkspaceClient(
+                host=host,
+                client_id=client_id,
+                client_secret=client_secret,
+            )
+        return WorkspaceClient()
+    except Exception as exc:
+        _log.warning("Could not create SP workspace client for Lakeview API: %s", exc)
+        return None
+
+
 def _fetch_dashboard_from_api(lakeview_id: str, ws: Any | None) -> dict[str, Any] | None:
     """Fetch a dashboard definition from the Lakeview API with in-memory caching.
 
+    Always uses the app's service principal (SP) because the Lakeview API
+    requires the ``dashboards`` OAuth scope which user OBO tokens lack.
+
     Returns the parsed ``serialized_dashboard`` dict, or *None* if the API
-    call fails or no workspace client / dashboard ID is available.
+    call fails or no dashboard ID is available.
     """
-    if not lakeview_id or not ws:
+    if not lakeview_id:
         return None
 
     # Check cache
@@ -578,9 +607,15 @@ def _fetch_dashboard_from_api(lakeview_id: str, ws: Any | None) -> dict[str, Any
         if _time.monotonic() - ts < _DASHBOARD_DEF_TTL:
             return data
 
+    # Use the app SP — user OBO tokens lack the 'dashboards' scope
+    sp_ws = _get_sp_workspace_client()
+    if sp_ws is None:
+        _log.warning("No SP workspace client available for Lakeview API fetch of %s", lakeview_id)
+        return None
+
     # Fetch from API
     try:
-        dashboard = ws.lakeview.get(lakeview_id)
+        dashboard = sp_ws.lakeview.get(lakeview_id)
         raw = dashboard.serialized_dashboard
         if not raw:
             _log.warning("Lakeview API returned empty serialized_dashboard for %s", lakeview_id)

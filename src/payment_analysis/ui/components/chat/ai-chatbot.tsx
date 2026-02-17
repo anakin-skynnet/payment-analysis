@@ -117,7 +117,11 @@ export function AIChatbot({
       ]);
       scrollToBottom();
     } catch (e) {
-      const err = e instanceof Error ? e.message : "Orchestrator agent unavailable.";
+      const raw = e instanceof Error ? e.message : String(e);
+      const is504 = raw.includes("504");
+      const err = is504
+        ? "The AI agent is warming up (cold start). Please try again in a minute."
+        : raw || "Orchestrator agent unavailable.";
       setMessages((prev) => [
         ...prev,
         { id: msgId(), role: "assistant", content: `Sorry, I couldn't reach the orchestrator. ${err}` },

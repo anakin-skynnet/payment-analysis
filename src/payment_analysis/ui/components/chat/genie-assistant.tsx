@@ -108,7 +108,11 @@ export function GenieAssistant({
       ]);
       scrollToBottom();
     } catch (e) {
-      const err = e instanceof Error ? e.message : "Genie unavailable.";
+      const raw = e instanceof Error ? e.message : String(e);
+      const is504 = raw.includes("504");
+      const err = is504
+        ? "The Genie service is warming up (cold start). Please try again in a minute."
+        : raw || "Genie unavailable.";
       setMessages((prev) => [
         ...prev,
         { id: msgId(), role: "assistant", content: `Sorry, I couldn't process that. ${err}`, genieUrl: null },

@@ -38,9 +38,16 @@ AI_GATEWAY_ENDPOINT_DEFAULT = "databricks-claude-opus-4-6"
 AI_GATEWAY_GENIE_ENDPOINT_ENV = "LLM_ENDPOINT_GENIE"
 AI_GATEWAY_GENIE_ENDPOINT_DEFAULT = "databricks-claude-sonnet-4-5"
 
-# Job 6 poll settings (orchestrator chat fallback)
-ORCHESTRATOR_JOB_POLL_TIMEOUT_S = 120
+# Job 6 poll settings (orchestrator chat fallback).
+# Must stay well under the Databricks Apps proxy timeout (~60 s).
+ORCHESTRATOR_JOB_POLL_TIMEOUT_S = 50
 ORCHESTRATOR_JOB_POLL_INTERVAL_S = 4
+
+# Timeout (seconds) for individual serving endpoint / Genie calls.
+# Databricks Apps proxy returns HTTP 504 after ~60 s, so each tier must finish
+# well within that window to leave room for fallback paths.
+_SERVING_CALL_TIMEOUT_S = 45
+_GENIE_CALL_TIMEOUT_S = 45
 
 # Shared brevity instruction appended to every user message so ALL agent paths
 # (ResponsesAgent, AI Gateway, Job 6) produce concise, dialog-friendly answers.
@@ -465,15 +472,26 @@ async def chat(
     if space_id and ws is not None:
         try:
             import datetime
-            msg = ws.genie.start_conversation_and_wait(
-                space_id=space_id,
-                content=body.message.strip(),
-                timeout=datetime.timedelta(minutes=2),
+
+            msg = await asyncio.wait_for(
+                asyncio.to_thread(
+                    ws.genie.start_conversation_and_wait,
+                    space_id=space_id,
+                    content=body.message.strip(),
+                    timeout=datetime.timedelta(seconds=_GENIE_CALL_TIMEOUT_S),
+                ),
+                timeout=_GENIE_CALL_TIMEOUT_S,
             )
             reply = _extract_genie_reply(msg)
             if reply:
                 return ChatOut(reply=reply, genie_url=genie_url)
             logger.info("Genie returned empty reply for space %s; trying AI Gateway fallback.", space_id)
+        except asyncio.TimeoutError:
+            logger.warning(
+                "Genie space query timed out after %ds (space_id=%s), trying AI Gateway fallback",
+                _GENIE_CALL_TIMEOUT_S,
+                space_id,
+            )
         except Exception as exc:
             logger.warning(
                 "Genie space query failed (space_id=%s), trying AI Gateway fallback: %s",
@@ -487,14 +505,21 @@ async def chat(
             from databricks.sdk.service.serving import ChatMessage, ChatMessageRole
 
             endpoint_name = _genie_ai_gateway_endpoint()
-            response = ws.serving_endpoints.query(
-                name=endpoint_name,
-                messages=[
-                    ChatMessage(role=ChatMessageRole.SYSTEM, content=_GENIE_SYSTEM_PROMPT),
-                    ChatMessage(role=ChatMessageRole.USER, content=body.message.strip()),
-                ],
-                max_tokens=500,
-                temperature=0.2,
+
+            def _genie_gateway_call() -> Any:
+                return ws.serving_endpoints.query(
+                    name=endpoint_name,
+                    messages=[
+                        ChatMessage(role=ChatMessageRole.SYSTEM, content=_GENIE_SYSTEM_PROMPT),
+                        ChatMessage(role=ChatMessageRole.USER, content=body.message.strip()),
+                    ],
+                    max_tokens=500,
+                    temperature=0.2,
+                )
+
+            response = await asyncio.wait_for(
+                asyncio.to_thread(_genie_gateway_call),
+                timeout=_SERVING_CALL_TIMEOUT_S,
             )
             choices = getattr(response, "choices", None) or []
             if choices:
@@ -502,6 +527,8 @@ async def chat(
                 content = (getattr(msg_obj, "content", "") or "").strip()
                 if content:
                     return ChatOut(reply=content, genie_url=genie_url)
+        except asyncio.TimeoutError:
+            logger.warning("AI Gateway Genie fallback timed out after %ds", _SERVING_CALL_TIMEOUT_S)
         except Exception as exc:
             logger.warning("AI Gateway fallback for Genie also failed: %s", exc)
 
@@ -674,9 +701,18 @@ async def orchestrator_chat(
     endpoint_name = (os.getenv(ORCHESTRATOR_SERVING_ENDPOINT_ENV) or "").strip()
     if endpoint_name:
         try:
-            reply, agents_used = _query_orchestrator_endpoint(ws, endpoint_name, user_message)
+            reply, agents_used = await asyncio.wait_for(
+                asyncio.to_thread(_query_orchestrator_endpoint, ws, endpoint_name, user_message),
+                timeout=_SERVING_CALL_TIMEOUT_S,
+            )
             if reply:
                 return OrchestratorChatOut(reply=reply, run_page_url=None, agents_used=agents_used)
+        except asyncio.TimeoutError:
+            logger.warning(
+                "Orchestrator serving endpoint '%s' timed out after %ds, trying AI Gateway",
+                endpoint_name,
+                _SERVING_CALL_TIMEOUT_S,
+            )
         except Exception as e:
             logger.warning(
                 "Orchestrator serving endpoint '%s' failed, trying AI Gateway: %s",
@@ -686,9 +722,14 @@ async def orchestrator_chat(
 
     # --- Path 2: AI Gateway direct call (fast foundation model) ---
     try:
-        reply, agents_used = _query_ai_gateway_direct(ws, user_message)
+        reply, agents_used = await asyncio.wait_for(
+            asyncio.to_thread(_query_ai_gateway_direct, ws, user_message),
+            timeout=_SERVING_CALL_TIMEOUT_S,
+        )
         if reply:
             return OrchestratorChatOut(reply=reply, run_page_url=None, agents_used=agents_used)
+    except asyncio.TimeoutError:
+        logger.warning("AI Gateway direct call timed out after %ds, trying Job 6", _SERVING_CALL_TIMEOUT_S)
     except Exception as e:
         logger.warning("AI Gateway fallback failed, trying Job 6: %s", e)
 
