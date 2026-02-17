@@ -28,7 +28,27 @@ def main() -> None:
 
     print(f"App SP: {sp}")
 
-    wh_id = "e7cf95d268793fe6"
+    # Discover the warehouse ID from the app's environment or the bundle config
+    import os
+    wh_id = os.environ.get("DATABRICKS_WAREHOUSE_ID", "")
+    if not wh_id:
+        # Fallback: list warehouses and pick the payment-analysis one
+        try:
+            for wh in w.warehouses.list():
+                if "payment" in (wh.name or "").lower():
+                    wh_id = wh.id or ""
+                    break
+            if not wh_id:
+                # Use first available warehouse
+                for wh in w.warehouses.list():
+                    if wh.id:
+                        wh_id = wh.id
+                        break
+        except Exception:
+            pass
+    if not wh_id:
+        print("  Could not discover warehouse ID. Set DATABRICKS_WAREHOUSE_ID env var.")
+        return
 
     # 1. Unity Catalog grants
     uc_grants = [

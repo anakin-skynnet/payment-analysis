@@ -510,7 +510,12 @@ from pathlib import Path as _Path
 
 from ..config import get_default_schema
 
-_DASHBOARDS_DIR = _Path(__file__).resolve().parent.parent.parent.parent.parent / "resources" / "dashboards"
+_PROJECT_ROOT = _Path(__file__).resolve().parent.parent.parent.parent.parent
+# Search order: .build/dashboards (synced to workspace), resources/dashboards (local dev)
+_DASHBOARDS_DIRS = [
+    _PROJECT_ROOT / ".build" / "dashboards",
+    _PROJECT_ROOT / "resources" / "dashboards",
+]
 _CATALOG_PLACEHOLDER = "__CATALOG__.__SCHEMA__"
 
 
@@ -538,14 +543,19 @@ class DashboardDataOut(BaseModel):
 
 
 def _load_dashboard_json(dashboard_id: str) -> dict[str, Any] | None:
-    """Load a dashboard JSON file from resources/dashboards/."""
-    path = _DASHBOARDS_DIR / f"{dashboard_id}.lvdash.json"
-    if not path.exists():
-        return None
-    try:
-        return _json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return None
+    """Load a dashboard JSON file, checking .build/dashboards then resources/dashboards.
+
+    .build/dashboards is included in sync.include (databricks.yml) so it's
+    available in the deployed workspace. resources/dashboards may not be synced.
+    """
+    for d in _DASHBOARDS_DIRS:
+        path = d / f"{dashboard_id}.lvdash.json"
+        if path.exists():
+            try:
+                return _json.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+    return None
 
 
 def _extract_widgets(data: dict[str, Any]) -> list[WidgetSpec]:
