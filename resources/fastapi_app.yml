@@ -102,22 +102,18 @@ resources:
           serving_endpoint: { name: "smart-retry", permission: CAN_QUERY }
 
         # ------------------------------------------------------------------------------------------
-        # NOT included as app resources (discovered dynamically or not supported):
+        # Resources added via Apps API (not supported in DAB uc_securable — only VOLUME is):
         #
-        # Jobs (1–7): Admin/setup resources. The app discovers them via ws.jobs.list() using
-        #   inherited workspace permissions. To grant the SP access for Setup & Run, add
-        #   CAN_MANAGE_RUN on each job via Workspace → Jobs → [job] → Permissions.
+        # UC Functions (11): ResponsesAgent tools registered by Job 3.
+        #   Added by scripts/grant_sp_permissions.py or post-deploy step.
+        #   Functions: get_cascade_recommendations, get_decline_by_segment, get_decline_trends,
+        #   get_high_risk_transactions, get_kpi_summary, get_optimization_opportunities,
+        #   get_recovery_opportunities, get_retry_success_rates, get_risk_distribution,
+        #   get_route_performance, get_trend_analysis
         #
-        # Pipelines (8–9): Not a supported app resource type. Grant access via
-        #   Workspace → Pipelines → [pipeline] → Permissions → Add payment-analysis SP
-        #   with "Can Manage Run" permission.
+        # Vector Search Index: similar_transactions_index — added manually or via script.
         #
-        # Vector Search: Index ${var.catalog}.${var.schema}.similar_transactions_index
-        #   Not a supported app resource type. Used by DecisionEngine for experience replay.
-        #
-        # UC Functions: ${var.catalog}.${var.schema}.<function_name>
-        #   Agent tools registered by Job 3. Not supported as app resource type.
-        #
-        # Foundation Model Endpoints (AI Gateway): databricks-claude-opus-4-6, databricks-claude-sonnet-4-5
-        #   Accessed via ws.serving_endpoints.query(). Available to all workspace users by default.
+        # Jobs (1–7): Admin/setup resources discovered via ws.jobs.list().
+        # Pipelines (8–9): Not a supported app resource type.
+        # Foundation Model Endpoints (AI Gateway): Available to all workspace users by default.
         # ------------------------------------------------------------------------------------------
