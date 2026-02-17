@@ -191,11 +191,11 @@ class DecisionEngine:
     def __init__(
         self,
         session: Any | None = None,
-        service: Any | None = None,
+        service: Any = None,
         runtime: Any | None = None,
     ) -> None:
         self._session = session
-        self._service = service  # DatabricksService for ML calls
+        self._service: Any = service  # DatabricksService for ML calls
         self._runtime = runtime
 
     # -- Cache loaders -------------------------------------------------------

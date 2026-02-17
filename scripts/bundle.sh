@@ -138,6 +138,9 @@ case "$CMD" in
     [[ -n "${LAKEBASE_INSTANCE_NAME:-}" ]] && EXTRA_VARS+=(--var "lakebase_instance_name=${LAKEBASE_INSTANCE_NAME}")
     databricks bundle deploy -t "$TARGET" --force --auto-approve "${EXTRA_VARS[@]}"
     echo ""
+    echo "Granting permissions to the App's Service Principal..."
+    uv run python scripts/grant_sp_permissions.py 2>&1 || echo "⚠️  SP permission grant had issues (non-fatal). Check logs."
+    echo ""
     echo "================================================================================"
     echo "App deployed with all dependencies and resources assigned and uncommented."
     echo "================================================================================"

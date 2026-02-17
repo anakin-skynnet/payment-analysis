@@ -137,23 +137,23 @@
           "widget": {
             "name": "line_realtime_trends",
             "queries": [{"name": "main_query", "query": {"datasetName": "m0_ds_approval_trends", "fields": [{"name": "event_second", "expression": "`event_second`"}, {"name": "sum(transaction_count)", "expression": "SUM(`transaction_count`)"}, {"name": "sum(approval_rate_pct)", "expression": "SUM(`approval_rate_pct`)"}], "disaggregated": false}}],
-            "spec": {"version": 3, "widgetType": "line", "encodings": {"x": {"fieldName": "event_second", "scale": {"type": "temporal"}, "displayName": "Time", "axis": {"title": "Time"}}, "y": {"fieldName": "sum(transaction_count)", "scale": {"type": "quantitative"}, "displayName": "Transaction Count", "axis": {"title": "Transaction Count"}}}, "frame": {"showTitle": true, "title": "Real-Time Approval Trends", "showDescription": false}}
+            "spec": {"version": 3, "widgetType": "line", "encodings": {"x": {"fieldName": "event_second", "scale": {"type": "temporal"}, "displayName": "Time", "axis": {"title": "Time"}}, "y": {"fieldName": "sum(transaction_count)", "scale": {"type": "quantitative"}, "displayName": "Transaction Count", "axis": {"title": "Transaction Count"}}, "color": {"fieldName": "sum(approval_rate_pct)", "scale": {"type": "quantitative"}, "displayName": "Approval Rate %"}}, "frame": {"showTitle": true, "title": "Real-Time Approval Trends", "showDescription": false}}
           },
           "position": {"x": 0, "y": 4, "width": 12, "height": 5}
         },
         {
           "widget": {
             "name": "bar_solution_perf",
-            "queries": [{"name": "main_query", "query": {"datasetName": "m0_ds_solution_perf", "fields": [{"name": "payment_solution", "expression": "`payment_solution`"}, {"name": "sum(transaction_count)", "expression": "SUM(`transaction_count`)"}], "disaggregated": false}}],
-            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "sum(transaction_count)", "scale": {"type": "quantitative"}, "displayName": "Transaction Count", "axis": {"title": "Transaction Count"}}, "y": {"fieldName": "payment_solution", "scale": {"type": "categorical", "sort": {"by": "x-reversed"}}, "displayName": "Payment Solution", "axis": {"title": "Payment Solution"}}}, "frame": {"showTitle": true, "title": "Solution Performance (by Volume)", "showDescription": false}}
+            "queries": [{"name": "main_query", "query": {"datasetName": "m0_ds_solution_perf", "fields": [{"name": "payment_solution", "expression": "`payment_solution`"}, {"name": "sum(transaction_count)", "expression": "SUM(`transaction_count`)"}, {"name": "sum(approval_rate_pct)", "expression": "SUM(`approval_rate_pct`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "sum(transaction_count)", "scale": {"type": "quantitative"}, "displayName": "Transaction Count", "axis": {"title": "Transaction Count"}}, "y": {"fieldName": "payment_solution", "scale": {"type": "categorical", "sort": {"by": "x-reversed"}}, "displayName": "Payment Solution", "axis": {"title": "Payment Solution"}}, "color": {"fieldName": "sum(approval_rate_pct)", "scale": {"type": "quantitative"}, "displayName": "Approval Rate %"}}, "frame": {"showTitle": true, "title": "Solution Performance (by Volume)", "showDescription": false}}
           },
           "position": {"x": 0, "y": 9, "width": 6, "height": 5}
         },
         {
           "widget": {
             "name": "map_geography",
-            "queries": [{"name": "main_query", "query": {"datasetName": "m0_ds_geography", "fields": [{"name": "country", "expression": "`country`"}, {"name": "sum(transaction_count)", "expression": "SUM(`transaction_count`)"}], "disaggregated": false}}],
-            "spec": {"version": 3, "widgetType": "choropleth", "encodings": {"color": {"fieldName": "sum(transaction_count)", "scale": {"type": "quantitative"}, "displayName": "Transaction Count"}, "region": {"fieldName": "country", "displayName": "Country"}}, "frame": {"showTitle": true, "title": "Performance by Geography", "showDescription": false}}
+            "queries": [{"name": "main_query", "query": {"datasetName": "m0_ds_geography", "fields": [{"name": "country", "expression": "`country`"}, {"name": "sum(transaction_count)", "expression": "SUM(`transaction_count`)"}, {"name": "sum(approval_rate_pct)", "expression": "SUM(`approval_rate_pct`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "choropleth", "encodings": {"color": {"fieldName": "sum(approval_rate_pct)", "scale": {"type": "quantitative"}, "displayName": "Approval Rate %"}, "region": {"fieldName": "country", "displayName": "Country"}}, "frame": {"showTitle": true, "title": "Performance by Geography (Approval Rate)", "showDescription": false}}
           },
           "position": {"x": 6, "y": 9, "width": 6, "height": 5}
         }
