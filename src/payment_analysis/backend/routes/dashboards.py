@@ -502,21 +502,39 @@ async def get_dashboard_url(
 # =============================================================================
 # Native Dashboard Data (SQL-powered in-app rendering)
 # =============================================================================
-# Reads dashboard JSON definitions, executes SQL queries against the warehouse,
-# and returns results + widget metadata so the frontend can render charts natively.
+# Fetches dashboard definitions from the Lakeview API (optimal for Databricks
+# Apps), executes SQL queries against the warehouse, and returns results +
+# widget metadata so the frontend can render charts natively.
+#
+# Primary source: Lakeview API  w.lakeview.get(id).serialized_dashboard
+#   - Always up-to-date (reflects published edits)
+#   - No file-path resolution issues in deployed workspace
+#   - Cached in-memory with TTL to minimise API calls
+# Fallback: local .lvdash.json files (for local dev without dashboard IDs)
 
 import json as _json
+import time as _time
 from pathlib import Path as _Path
 
 from ..config import get_default_schema
 
+_CATALOG_PLACEHOLDER = "__CATALOG__.__SCHEMA__"
+
+# ---------------------------------------------------------------------------
+# In-memory cache for dashboard definitions fetched from the Lakeview API.
+# Key = Lakeview dashboard ID, Value = (parsed_dict, fetch_timestamp).
+# TTL = 5 minutes — long enough to avoid per-request API calls, short enough
+# to pick up dashboard edits reasonably quickly.
+# ---------------------------------------------------------------------------
+_DASHBOARD_DEF_CACHE: dict[str, tuple[dict[str, Any], float]] = {}
+_DASHBOARD_DEF_TTL = 300  # seconds
+
+# Local-file fallback directories (only used when Lakeview API is unavailable)
 _PROJECT_ROOT = _Path(__file__).resolve().parent.parent.parent.parent.parent
-# Search order: .build/dashboards (synced to workspace), resources/dashboards (local dev)
 _DASHBOARDS_DIRS = [
     _PROJECT_ROOT / ".build" / "dashboards",
     _PROJECT_ROOT / "resources" / "dashboards",
 ]
-_CATALOG_PLACEHOLDER = "__CATALOG__.__SCHEMA__"
 
 
 class DatasetResult(BaseModel):
@@ -534,6 +552,8 @@ class WidgetSpec(BaseModel):
     widget_type: str
     title: str = ""
     encodings: dict[str, Any] = Field(default_factory=dict)
+
+
 class DashboardDataOut(BaseModel):
     """Full dashboard data for native in-app rendering."""
     dashboard_id: str
@@ -542,11 +562,42 @@ class DashboardDataOut(BaseModel):
     widgets: list[WidgetSpec]
 
 
-def _load_dashboard_json(dashboard_id: str) -> dict[str, Any] | None:
-    """Load a dashboard JSON file, checking .build/dashboards then resources/dashboards.
+def _fetch_dashboard_from_api(lakeview_id: str, ws: Any | None) -> dict[str, Any] | None:
+    """Fetch a dashboard definition from the Lakeview API with in-memory caching.
 
-    .build/dashboards is included in sync.include (databricks.yml) so it's
-    available in the deployed workspace. resources/dashboards may not be synced.
+    Returns the parsed ``serialized_dashboard`` dict, or *None* if the API
+    call fails or no workspace client / dashboard ID is available.
+    """
+    if not lakeview_id or not ws:
+        return None
+
+    # Check cache
+    cached = _DASHBOARD_DEF_CACHE.get(lakeview_id)
+    if cached:
+        data, ts = cached
+        if _time.monotonic() - ts < _DASHBOARD_DEF_TTL:
+            return data
+
+    # Fetch from API
+    try:
+        dashboard = ws.lakeview.get(lakeview_id)
+        raw = dashboard.serialized_dashboard
+        if not raw:
+            _log.warning("Lakeview API returned empty serialized_dashboard for %s", lakeview_id)
+            return None
+        data = _json.loads(raw)
+        _DASHBOARD_DEF_CACHE[lakeview_id] = (data, _time.monotonic())
+        _log.info("Fetched dashboard definition from Lakeview API: %s", lakeview_id)
+        return data
+    except Exception as exc:
+        _log.warning("Lakeview API fetch failed for %s: %s — falling back to local files", lakeview_id, exc)
+        return None
+
+
+def _load_dashboard_json_local(dashboard_id: str) -> dict[str, Any] | None:
+    """Fallback: load dashboard JSON from local files (.build/ or resources/).
+
+    Used only for local development when the Lakeview API is unavailable.
     """
     for d in _DASHBOARDS_DIRS:
         path = d / f"{dashboard_id}.lvdash.json"
@@ -556,6 +607,23 @@ def _load_dashboard_json(dashboard_id: str) -> dict[str, Any] | None:
             except Exception:
                 continue
     return None
+
+
+def _get_dashboard_definition(
+    dashboard_id: str,
+    ws: Any | None,
+) -> dict[str, Any] | None:
+    """Resolve the dashboard JSON definition using the optimal source.
+
+    Priority:
+      1. Lakeview API (cached, always up-to-date, no file-path issues)
+      2. Local .lvdash.json files (fallback for local dev)
+    """
+    lakeview_id = _current_lakeview_id(dashboard_id)
+    data = _fetch_dashboard_from_api(lakeview_id, ws)
+    if data is not None:
+        return data
+    return _load_dashboard_json_local(dashboard_id)
 
 
 def _extract_widgets(data: dict[str, Any]) -> list[WidgetSpec]:
@@ -588,16 +656,18 @@ def _extract_widgets(data: dict[str, Any]) -> list[WidgetSpec]:
 async def get_dashboard_data(
     dashboard_id: str,
     svc: DatabricksServiceDep,
+    ws: Any = Depends(get_workspace_client_optional),
 ) -> DashboardDataOut:
     """Execute all SQL queries for a dashboard and return data for native rendering.
 
-    Reads the dashboard JSON definition, replaces catalog/schema placeholders,
-    executes each dataset query against the SQL warehouse, and returns
-    results with widget metadata so the frontend can render charts natively.
+    Fetches the dashboard definition from the Lakeview API (primary) or local
+    files (fallback), replaces catalog/schema placeholders, executes each
+    dataset query against the SQL warehouse, and returns results with widget
+    metadata so the frontend can render charts natively.
     """
-    data = _load_dashboard_json(dashboard_id)
+    data = _get_dashboard_definition(dashboard_id, ws)
     if data is None:
-        raise HTTPException(status_code=404, detail=f"Dashboard '{dashboard_id}' JSON not found")
+        raise HTTPException(status_code=404, detail=f"Dashboard '{dashboard_id}' definition not found")
 
     dashboard_info = next((d for d in _DASHBOARDS_STATIC if d.id == dashboard_id), None)
     dashboard_name = dashboard_info.name if dashboard_info else dashboard_id
@@ -612,11 +682,10 @@ async def get_dashboard_data(
     for ds in datasets_raw:
         name = ds.get("name", "")
         display_name = ds.get("displayName", name)
-        # Support both Lakeview formats: "query" (string) and "queryLines" (array)
         raw_query = ds.get("query") or ""
         if not raw_query:
             query_lines = ds.get("queryLines", [])
-            raw_query = query_lines[0] if query_lines else ""
+            raw_query = "\n".join(query_lines) if query_lines else ""
         if not raw_query:
             results.append(DatasetResult(name=name, display_name=display_name, error="No query defined"))
             continue
@@ -627,8 +696,10 @@ async def get_dashboard_data(
             columns = list(rows[0].keys()) if rows else []
             results.append(DatasetResult(name=name, display_name=display_name, columns=columns, rows=rows))
         except Exception as exc:
-            _log.warning("Dashboard query failed for %s.%s: %s", dashboard_id, name, exc)
-            results.append(DatasetResult(name=name, display_name=display_name, error=str(exc)))
+            err_msg = getattr(exc, "message", None) or str(exc)
+            _log.warning("Dashboard query failed for %s.%s: %s (warehouse=%s)",
+                         dashboard_id, name, err_msg, svc.config.warehouse_id)
+            results.append(DatasetResult(name=name, display_name=display_name, error=err_msg))
 
     widgets = _extract_widgets(data)
 
