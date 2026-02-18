@@ -793,14 +793,17 @@ async def factors_delaying_approval(
 async def entry_system_distribution(
     request: Request,
     service: DatabricksServiceDep,
+    response: Response,
     entity: str = Query(DEFAULT_ENTITY, description="Entity or country code (e.g. BR). Filter by Getnet entity."),
 ) -> list[EntrySystemDistributionOut]:
     """Transaction distribution by entry system for the given entity (coverage check)."""
     if _is_mock_request(request):
+        _set_data_source_header(response, service, forced_mock=True)
         return [EntrySystemDistributionOut(**row) for row in _mock.mock_entry_system_distribution()]
     data = await service.get_entry_system_distribution(entity=entity)
     if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_entry_system_distribution()
+    _set_data_source_header(response, service)
     return [EntrySystemDistributionOut(**row) for row in data]
 
 
