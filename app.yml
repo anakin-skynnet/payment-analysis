@@ -54,10 +54,10 @@ env:
     value: "322421284086051"
   # Lakeview dashboard IDs — leave empty for auto-discovery from workspace API.
   # If auto-discovery is too slow or unreliable, set explicitly after Job 4 deploys dashboards.
-  # Updated: 2026-02-05 - Verified against actual dashboards in workspace
+  # Updated: 2026-02-18 - Fresh deploy (previous IDs were TRASHED)
   - name: DASHBOARD_ID_DATA_QUALITY
-    value: "01f10c630ab414f18fc5a9d5f5db58a7"
+    value: "01f10c8357c3109b95b13ff763752746"
   - name: DASHBOARD_ID_ML_OPTIMIZATION
-    value: "01f10c630ac01742adbe0ecab4d3dde7"
+    value: "01f10c8357b81b5ebaaf7546e476f557"
   - name: DASHBOARD_ID_EXECUTIVE_TRENDS
-    value: "01f10c630abf198a95ac2df801f29ac5"
+    value: "01f10c8357c416fc8223b3244362adfd"

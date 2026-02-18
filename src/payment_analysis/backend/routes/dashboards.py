@@ -610,7 +610,7 @@ def _get_sp_workspace_client() -> Any | None:
     import os as _os
     try:
         from databricks.sdk import WorkspaceClient
-        from ..config import get_default_config
+        from ..config import AppConfig
         
         # Try explicit env vars first
         host = _os.environ.get("DATABRICKS_HOST", "").strip()
@@ -620,8 +620,10 @@ def _get_sp_workspace_client() -> Any | None:
         # If host is missing but we have SP credentials, try to get host from config
         if not host and (client_id and client_secret):
             try:
-                config = get_default_config()
-                host = (config.databricks.workspace_url or "").strip().rstrip("/")
+                config = AppConfig()
+                raw = (config.databricks.workspace_url or "").strip().rstrip("/")
+                if raw and "example.databricks.com" not in raw:
+                    host = raw
             except Exception:
                 pass
         
@@ -723,9 +725,9 @@ def _load_dashboard_json_local(dashboard_id: str) -> dict[str, Any] | None:
         try:
             dashboard_id_lower = dashboard_id.lower()
             for file_path in d.iterdir():
-                if file_path.suffix != ".lvdash.json":
+                if not file_path.name.endswith(".lvdash.json"):
                     continue
-                file_stem = file_path.stem.lower()
+                file_stem = file_path.name.removesuffix(".lvdash.json").lower()
                 # Match if dashboard_id is contained in file_stem or vice versa
                 if dashboard_id_lower in file_stem or file_stem in dashboard_id_lower:
                     try:
@@ -764,22 +766,33 @@ def _get_dashboard_definition(
       2. Local .lvdash.json files (fallback for local dev)
     """
     lakeview_id = _current_lakeview_id(dashboard_id)
-    _log.debug("Resolving dashboard '%s' with lakeview_id='%s'", dashboard_id, lakeview_id or "(empty)")
-    
+
+    # If no ID from env and discovery hasn't run, trigger it now
+    if not lakeview_id and not _discovery_done:
+        _discover_dashboard_ids(ws=None)
+        _refresh_dashboard_ids_from_cache()
+        lakeview_id = _current_lakeview_id(dashboard_id)
+
+    _log.info("Resolving dashboard '%s' with lakeview_id='%s'", dashboard_id, lakeview_id or "(empty)")
+
     # Try API first
-    data = _fetch_dashboard_from_api(lakeview_id, ws)
-    if data is not None:
-        return data
+    if lakeview_id:
+        data = _fetch_dashboard_from_api(lakeview_id, ws)
+        if data is not None:
+            return data
     
     # Fallback to local files
-    _log.debug("Falling back to local files for dashboard '%s'", dashboard_id)
+    _log.info("Falling back to local files for dashboard '%s'", dashboard_id)
     local_data = _load_dashboard_json_local(dashboard_id)
     if local_data is not None:
         _log.info("Loaded dashboard '%s' from local files", dashboard_id)
         return local_data
     
-    _log.warning("Dashboard '%s' definition not found (lakeview_id=%s, checked API and local files)", 
-                 dashboard_id, lakeview_id or "(empty)")
+    env_var, _ = _DASHBOARD_ID_MAP.get(dashboard_id, ("", ""))
+    _log.warning("Dashboard '%s' definition not found (lakeview_id=%s, env=%s=%s, dirs=%s)", 
+                 dashboard_id, lakeview_id or "(empty)", env_var,
+                 _os.getenv(env_var, "(unset)") if env_var else "n/a",
+                 [str(d) for d in _DASHBOARDS_DIRS])
     return None
 
 
@@ -822,9 +835,23 @@ async def get_dashboard_data(
     dataset query against the SQL warehouse, and returns results with widget
     metadata so the frontend can render charts natively.
     """
+    # Run discovery if not done yet
+    if not _discovery_done:
+        _discover_dashboard_ids(ws=None)
+        _refresh_dashboard_ids_from_cache()
+
     data = _get_dashboard_definition(dashboard_id, ws)
     if data is None:
-        raise HTTPException(status_code=404, detail=f"Dashboard '{dashboard_id}' definition not found")
+        lakeview_id = _current_lakeview_id(dashboard_id)
+        env_var, _ = _DASHBOARD_ID_MAP.get(dashboard_id, ("", ""))
+        detail = (
+            f"Dashboard '{dashboard_id}' definition not found. "
+            f"Lakeview ID: {lakeview_id or '(empty)'}, "
+            f"env {env_var}={_os.getenv(env_var, '(unset)') if env_var else 'n/a'}. "
+            f"Checked {len(_DASHBOARDS_DIRS)} local dir(s). "
+            f"Ensure dashboard IDs in app.yml are correct and dashboards are ACTIVE (not trashed)."
+        )
+        raise HTTPException(status_code=404, detail=detail)
 
     dashboard_info = next((d for d in _DASHBOARDS_STATIC if d.id == dashboard_id), None)
     dashboard_name = dashboard_info.name if dashboard_info else dashboard_id
