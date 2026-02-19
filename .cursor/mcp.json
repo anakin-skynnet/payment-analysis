@@ -2,24 +2,33 @@
   "mcpServers": {
     "apx": {
       "command": "uv",
-      "args": ["run", "apx", "mcp"]
+      "args": [
+        "run",
+        "apx",
+        "mcp"
+      ]
     },
     "shadcn": {
       "command": "npx",
-      "args": ["shadcn@latest", "mcp"]
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ]
     },
     "playwright": {
       "command": "npx",
-      "args": ["-y", "@playwright/mcp@latest"]
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ]
     },
     "databricks": {
-      "command": "uvx",
-      "args": ["databricks-mcp-server@latest"],
+      "command": "/Users/ariel.hdez/.ai-dev-kit/.venv/bin/python",
+      "args": [
+        "/Users/ariel.hdez/.ai-dev-kit/repo/databricks-mcp-server/run_server.py"
+      ],
       "env": {
-        "DATABRICKS_HOST": "${env:DATABRICKS_HOST}",
-        "DATABRICKS_TOKEN": "${env:DATABRICKS_TOKEN}",
-        "DATABRICKS_WAREHOUSE_ID": "${env:DATABRICKS_WAREHOUSE_ID}",
-        "RUNNING_VIA_CURSOR_MCP": "true"
+        "DATABRICKS_CONFIG_PROFILE": "DEFAULT"
       }
     }
   }
