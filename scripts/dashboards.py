@@ -1360,6 +1360,60 @@ def cmd_publish(path: str | None, dry_run: bool) -> int:
     return 0
 
 
+# Map dashboard file stem (no .lvdash.json) to app.yml env var name (without DASHBOARD_ID_ prefix for value line match).
+_APP_YML_DASHBOARD_MAP = {
+    "data_quality_unified": "DASHBOARD_ID_DATA_QUALITY",
+    "ml_optimization_unified": "DASHBOARD_ID_ML_OPTIMIZATION",
+    "executive_trends_unified": "DASHBOARD_ID_EXECUTIVE_TRENDS",
+}
+
+
+def cmd_update_app_yml(path: str | None) -> int:
+    """After deploy, fetch dashboard IDs from workspace and update app.yml env values."""
+    root = path or get_workspace_root()
+    if not root:
+        print(
+            "Error: could not get workspace path. Run after deploy or pass --path /Workspace/Users/.../payment-analysis",
+            file=sys.stderr,
+        )
+        return 1
+    dashboards_path = f"{root.rstrip('/')}/dashboards"
+    try:
+        result = subprocess.run(
+            ["databricks", "workspace", "list", dashboards_path, "-o", "json"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=REPO_ROOT,
+        )
+        result.check_returncode()
+        objects = json.loads(result.stdout)
+    except (subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError, subprocess.TimeoutExpired) as e:
+        print(f"Error: failed to list workspace dashboards: {e}", file=sys.stderr)
+        return 1
+    dashboards = [o for o in (objects if isinstance(objects, list) else []) if o.get("object_type") == "DASHBOARD"]
+    id_by_key = {}
+    for o in dashboards:
+        name = (o.get("path") or "").split("/")[-1].replace(".lvdash.json", "")
+        if name in _APP_YML_DASHBOARD_MAP and o.get("resource_id"):
+            id_by_key[_APP_YML_DASHBOARD_MAP[name]] = o.get("resource_id")
+    if len(id_by_key) != 3:
+        print(f"Warning: found {len(id_by_key)}/3 dashboard IDs. Expected data_quality_unified, ml_optimization_unified, executive_trends_unified.", file=sys.stderr)
+    app_yml = REPO_ROOT / "app.yml"
+    if not app_yml.exists():
+        print("Error: app.yml not found", file=sys.stderr)
+        return 1
+    content = app_yml.read_text()
+    for env_var, dashboard_id in id_by_key.items():
+        # Replace line: "  - name: ENV_VAR\n    value: \"old_id\""
+        pattern = rf'(  - name: {re.escape(env_var)}\s*\n\s*value: )\"[^\"]*\"'
+        replacement = rf'\g<1>"{dashboard_id}"'
+        content = re.sub(pattern, replacement, content)
+    app_yml.write_text(content)
+    print(f"Updated app.yml with {len(id_by_key)} dashboard ID(s): {list(id_by_key.keys())}")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Dashboard operations: prepare, validate-assets, publish, link-widgets")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -1377,6 +1431,9 @@ def main() -> int:
     p_pub = sub.add_parser("publish", help="Publish all dashboards with embed credentials (after deploy)")
     p_pub.add_argument("--path", default=None, help="Workspace root path")
     p_pub.add_argument("--dry-run", action="store_true")
+    # update-app-yml
+    p_app = sub.add_parser("update-app-yml", help="Update app.yml dashboard IDs from workspace (run after deploy)")
+    p_app.add_argument("--path", default=None, help="Workspace root path")
     # link-widgets
     sub.add_parser("link-widgets", help="Add layout with table widgets linked to each dataset (dbdemos pattern)")
     # check-widgets
@@ -1415,6 +1472,8 @@ def main() -> int:
         return 0
     if args.cmd == "publish":
         return cmd_publish(args.path, args.dry_run)
+    if args.cmd == "update-app-yml":
+        return cmd_update_app_yml(getattr(args, "path", None))
     if args.cmd == "link-widgets":
         return cmd_link_widgets()
     if args.cmd == "check-widgets":
