@@ -129,7 +129,8 @@ case "$CMD" in
     echo ""
     echo "Uncommenting model_serving and serving endpoint bindings..."
     ensure_app_and_serving_included
-    uv run python scripts/toggle_app_resources.py --enable-serving-endpoints
+    # Skip payment-response-agent if Job 6 has not run yet (endpoint does not exist). Remove --skip-endpoint after Job 6.
+    uv run python scripts/toggle_app_resources.py --enable-serving-endpoints --skip-endpoint payment-response-agent
     echo "Validating bundle (-t $TARGET)..."
     prepare_dashboards
     databricks bundle validate -t "$TARGET"

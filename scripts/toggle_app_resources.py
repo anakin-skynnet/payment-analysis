@@ -38,12 +38,34 @@ def _serving_block_lines() -> list[tuple[str, str]]:
     return pairs
 
 
-def enable_serving_endpoints() -> bool:
-    """Uncomment the 7 model serving endpoint blocks in resources/fastapi_app.yml."""
+def enable_serving_endpoints(skip_endpoints: set[str] | None = None) -> bool:
+    """Uncomment serving endpoint blocks in resources/fastapi_app.yml. skip_endpoints: endpoint names to leave commented (e.g. when endpoint does not exist yet)."""
+    names = [
+        ("serving-orchestrator", "payment-analysis-orchestrator"),
+        ("serving-response-agent", "payment-response-agent"),
+        ("serving-decline-analyst", "decline-analyst"),
+        ("serving-approval-prop", "approval-propensity"),
+        ("serving-risk-scoring", "risk-scoring"),
+        ("serving-smart-routing", "smart-routing"),
+        ("serving-smart-retry", "smart-retry"),
+    ]
+    skip = skip_endpoints or set()
     text = FASTAPI_APP_YML.read_text()
-    for commented, uncommented in _serving_block_lines():
-        if commented in text:
-            text = text.replace(commented, uncommented, 1)
+    for name, endpoint in names:
+        commented = f"        # - name: {name}"
+        uncommented = f"        - name: {name}"
+        commented_ep = f'        #   serving_endpoint: {{ name: "{endpoint}", permission: CAN_QUERY }}'
+        uncommented_ep = f'          serving_endpoint: {{ name: "{endpoint}", permission: CAN_QUERY }}'
+        if endpoint in skip:
+            if uncommented in text:
+                text = text.replace(uncommented, commented, 1)
+            if uncommented_ep in text:
+                text = text.replace(uncommented_ep, commented_ep, 1)
+        else:
+            if commented in text:
+                text = text.replace(commented, uncommented, 1)
+            if commented_ep in text:
+                text = text.replace(commented_ep, uncommented_ep, 1)
     FASTAPI_APP_YML.write_text(text)
     return True
 
@@ -109,10 +131,12 @@ def main() -> None:
     group.add_argument("--enable-serving-endpoints", action="store_true", help="Uncomment serving endpoint blocks in fastapi_app.yml")
     group.add_argument("--disable-serving-endpoints", action="store_true", help="Comment serving endpoint blocks in fastapi_app.yml")
     group.add_argument("--check-app-deployable", action="store_true", help="Validate app can be deployed with all dependencies and resources")
+    parser.add_argument("--skip-endpoint", action="append", default=[], dest="skip_endpoints", metavar="NAME", help="When enabling, leave this endpoint commented (e.g. payment-response-agent if Job 6 not run)")
     args = parser.parse_args()
 
+    skip = set(args.skip_endpoints) if args.skip_endpoints else None
     if args.enable_serving_endpoints:
-        enable_serving_endpoints()
+        enable_serving_endpoints(skip_endpoints=skip)
         print("Serving endpoint bindings enabled in resources/fastapi_app.yml")
     elif args.disable_serving_endpoints:
         disable_serving_endpoints()
