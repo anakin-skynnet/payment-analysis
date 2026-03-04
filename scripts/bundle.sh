@@ -7,6 +7,10 @@
 #
 # Usage: ./scripts/bundle.sh {validate|deploy|redeploy|deploy app|verify} [target]
 #   target: dev (default) or prod
+#
+# Performance (faster deploys):
+#   - Phase 1 runs "apx build" and "dashboards prepare" in parallel to save ~20–50s.
+#   - Phase 2: set SKIP_DASHBOARD_PREPARE=1 when running "deploy app" right after phase 1 (dashboards already prepared).
 set -e
 cd "$(dirname "$0")/.."
 if [[ -z "${1:-}" ]]; then
@@ -95,9 +99,13 @@ case "$CMD" in
   deploy)
     echo "=== Phase 1: Deploy all resources EXCEPT the App ==="
     comment_out_app_and_serving
-    echo "Building web UI..."
-    uv run apx build
-    prepare_dashboards
+    echo "Building web UI and preparing dashboards in parallel..."
+    uv run apx build &
+    BUILD_PID=$!
+    prepare_dashboards &
+    PREPARE_PID=$!
+    wait "$BUILD_PID" || exit $?
+    wait "$PREPARE_PID" || exit $?
     echo "Cleaning workspace dashboards (except dbdemos*)..."
     WORKSPACE_PATH=$(databricks bundle validate -t "$TARGET" 2>/dev/null | sed -n 's/.*Path:[[:space:]]*\([^[:space:]]*\).*/\1/p' | head -1)
     if [[ -n "$WORKSPACE_PATH" ]]; then
