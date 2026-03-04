@@ -357,14 +357,17 @@ def _ensure_serving_endpoint(
     from databricks.sdk import WorkspaceClient
     from databricks.sdk.service.serving import (
         EndpointCoreConfigInput, ServedEntityInput, TrafficConfig, Route,
+        ServingModelWorkloadType,
     )
     w = WorkspaceClient()
+    # workload_type must be ServingModelWorkloadType enum (e.g. CPU), not str
+    wt = workload_type if isinstance(workload_type, ServingModelWorkloadType) else getattr(ServingModelWorkloadType, str(workload_type).upper(), ServingModelWorkloadType.CPU)
     served_entity = ServedEntityInput(
         entity_name=entity_name,
         entity_version=str(entity_version),
         workload_size=workload_size,
         scale_to_zero_enabled=scale_to_zero,
-        workload_type=workload_type,
+        workload_type=wt,
         environment_vars=environment_vars or {},
     )
     model_short = entity_name.split(".")[-1]
