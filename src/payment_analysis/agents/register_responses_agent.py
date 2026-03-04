@@ -383,7 +383,9 @@ def _ensure_serving_endpoint(
             w.serving_endpoints.create(
                 name=endpoint_name,
                 config=EndpointCoreConfigInput(
-                    served_entities=[served_entity], traffic_config=traffic,
+                    name=endpoint_name,
+                    served_entities=[served_entity],
+                    traffic_config=traffic,
                 ),
             )
             print(f"  ✓ Create initiated")

@@ -24,7 +24,6 @@ from uuid import uuid4
 import backoff
 import mlflow
 import openai
-from databricks.sdk import WorkspaceClient
 from databricks_openai import DatabricksOpenAI, UCFunctionToolkit
 from mlflow.entities import SpanType
 from mlflow.pyfunc import ResponsesAgent
@@ -139,15 +138,43 @@ class ToolInfo(BaseModel):
         arbitrary_types_allowed = True
 
 
+_TOOL_NAME_LIMIT = 64
+
+# Parameter descriptions injected into tool specs when UC metadata is missing.
+# Improves LLM tool-calling accuracy by clarifying expected values.
+_PARAM_DESCRIPTIONS: dict[str, dict[str, str]] = {
+    "mode": "Analysis mode — one of the values listed in the function description (e.g. 'trends', 'kpi', 'performance'). Pass exactly one mode per call.",
+    "threshold": "Numeric threshold for filtering results (e.g. minimum approval rate 0.0-1.0 or risk score).",
+    "status_filter": "Filter by status: 'active', 'resolved', 'all'. Defaults to 'active'.",
+    "segment": "Merchant segment to filter by (e.g. 'e-commerce', 'retail', 'travel'). Empty string for all segments.",
+    "merchant_segment": "Merchant segment to filter by (e.g. 'e-commerce', 'retail', 'travel'). Empty string for all segments.",
+}
+
+
 def create_tool_info(
     tool_spec: dict, exec_fn_param: Optional[Callable] = None
 ) -> ToolInfo:
     """Factory to create ToolInfo from a UC toolkit tool spec."""
-    # Remove 'strict' property (unsupported by some models)
-    tool_spec.get("function", {}).pop("strict", None)
-    tool_name = tool_spec["function"]["name"]
-    # UC double-underscore convention -> dot notation
-    udf_name = tool_name.replace("__", ".")
+    func = tool_spec.get("function", {})
+    func.pop("strict", None)
+
+    original_name = func["name"]
+    # UC double-underscore convention -> dot notation (resolve BEFORE truncation)
+    udf_name = original_name.replace("__", ".")
+
+    # Truncate names that exceed the OpenAI 64-char limit
+    tool_name = original_name
+    if len(tool_name) > _TOOL_NAME_LIMIT:
+        tool_name = tool_name[:_TOOL_NAME_LIMIT]
+        func["name"] = tool_name
+
+    # Inject missing parameter descriptions
+    props = func.get("parameters", {}).get("properties", {})
+    for param_name, param_schema in props.items():
+        if not param_schema.get("description"):
+            default_desc = _PARAM_DESCRIPTIONS.get(param_name)
+            if default_desc:
+                param_schema["description"] = default_desc
 
     def exec_fn(**kwargs: Any) -> Any:
         result = uc_function_client.execute_function(udf_name, kwargs)
@@ -238,6 +265,24 @@ class PaymentAnalysisAgent(ResponsesAgent):
             ):
                 yield chunk.to_dict()
 
+    @staticmethod
+    def _parse_tool_args(raw: str) -> dict:
+        """Parse tool arguments, handling concatenated JSON from streaming assembly.
+
+        LLMs sometimes produce ``{"mode":"kpi"}{"mode":"trends"}`` when the
+        streaming chunk assembler concatenates multiple tool-call deltas.
+        ``json.JSONDecoder.raw_decode`` extracts the first valid object.
+        """
+        raw = raw.strip()
+        if not raw:
+            return {}
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            decoder = json.JSONDecoder()
+            obj, _ = decoder.raw_decode(raw)
+            return obj if isinstance(obj, dict) else {}
+
     def handle_tool_call(
         self,
         tool_call: dict[str, Any],
@@ -246,8 +291,8 @@ class PaymentAnalysisAgent(ResponsesAgent):
         """Execute a tool call, append result to message history, and return stream event."""
         raw_args = tool_call.get("arguments") or "{}"
         try:
-            args = json.loads(raw_args)
-        except (json.JSONDecodeError, TypeError) as e:
+            args = self._parse_tool_args(raw_args)
+        except (json.JSONDecodeError, TypeError, ValueError) as e:
             args = {}
             result = f"Error: invalid tool arguments — {e}"
         else:
@@ -355,9 +400,12 @@ class PaymentAnalysisAgent(ResponsesAgent):
         """Tag the current MLflow trace with the session ID if available."""
         session_id = self._get_session_id(request)
         if session_id:
-            mlflow.update_current_trace(
-                metadata={"mlflow.trace.session": session_id}
-            )
+            try:
+                mlflow.update_current_trace(
+                    metadata={"mlflow.trace.session": session_id}
+                )
+            except Exception:
+                pass
 
     def predict(
         self, request: ResponsesAgentRequest
@@ -388,11 +436,17 @@ class PaymentAnalysisAgent(ResponsesAgent):
 # ---------------------------------------------------------------------------
 # MLflow model registration
 # ---------------------------------------------------------------------------
+# Disable noisy tracing warnings that fire when the trace provider isn't fully
+# initialized (e.g. serverless notebook, Job 6).  These are cosmetic —
+# tracing still works once Model Serving sets up the provider at request time.
+warnings.filterwarnings("ignore", message=".*NonRecordingSpan.*")
+warnings.filterwarnings("ignore", message=".*No active trace found.*")
+warnings.filterwarnings("ignore", message=".*_multi_processor.*")
+
 try:
     mlflow.openai.autolog()
-except (AttributeError, Exception) as e:  # noqa: BLE001
-    # In some contexts (e.g. Databricks Job 6 notebook) GLOBAL_TRACE_PROVIDER._multi_processor
-    # is None; autolog is optional for agent operation.
-    warnings.warn(f"mlflow.openai.autolog() skipped: {e}", UserWarning, stacklevel=0)
+except Exception:  # noqa: BLE001
+    pass
+
 AGENT = PaymentAnalysisAgent(llm_endpoint=LLM_ENDPOINT_NAME, tools=TOOL_INFOS)
 mlflow.models.set_model(AGENT)
