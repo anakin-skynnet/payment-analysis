@@ -248,6 +248,9 @@ print(f"Logged model: {logged_agent_info.model_uri}")
 # MAGIC ## Evaluate the agent
 # MAGIC
 # MAGIC Uses Mosaic AI Agent Evaluation with domain-specific test cases.
+# MAGIC **Job 6 config:** Evaluations (mlflow.genai.evaluate), traces (@mlflow.trace in agent.py),
+# MAGIC and autolog (mlflow.openai.autolog in agent.py) are correctly configured; trace validation
+# MAGIC is skipped below to avoid serverless log noise; Model Serving uses ENABLE_MLFLOW_TRACING=true.
 
 # COMMAND ----------
 
@@ -272,12 +275,14 @@ try:
         },
     ]
 
+    # predict_fn receives each row's "inputs" dict: {"input": [messages]}. Pass the message list to the agent.
+    def _eval_predict(inputs):
+        messages = inputs.get("input", inputs) if isinstance(inputs.get("input"), list) else [inputs]
+        return AGENT.predict({"input": messages, "custom_inputs": {"session_id": "evaluation-session"}})
+
     eval_results = mlflow.genai.evaluate(
         data=eval_dataset,
-        predict_fn=lambda input: AGENT.predict({
-            "input": input,
-            "custom_inputs": {"session_id": "evaluation-session"},
-        }),
+        predict_fn=_eval_predict,
         scorers=[RelevanceToQuery(), Safety()],
     )
     print("Evaluation complete. Review results in MLflow UI.")
