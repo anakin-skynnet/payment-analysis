@@ -57,11 +57,19 @@ def main() -> None:
     ]
 
     def _run_uc_grant(sql_stmt: str) -> str:
-        r = w.statement_execution.execute_statement(statement=sql_stmt, warehouse_id=wh_id, wait_timeout="30s")
-        state = r.status.state if r.status else "unknown"
-        err = (r.status.error.message if r.status and r.status.error else "") or ""
-        tag = "OK" if "SUCCEEDED" in str(state) else f"WARN({state} {err})"
-        return f"  UC: {tag} — {sql_stmt[:70]}"
+        import time as _time
+        r = w.statement_execution.execute_statement(statement=sql_stmt, warehouse_id=wh_id, wait_timeout="0s")
+        sid = r.statement_id or ""
+        for _ in range(60):
+            st = w.statement_execution.get_statement(sid)
+            state_str = str(st.status.state) if st.status else "unknown"
+            if "SUCCEEDED" in state_str:
+                return f"  UC: OK — {sql_stmt[:70]}"
+            if "FAILED" in state_str or "CANCELED" in state_str:
+                err = (st.status.error.message if st.status and st.status.error else "") or ""
+                return f"  UC: WARN({state_str} {err}) — {sql_stmt[:70]}"
+            _time.sleep(0.5)
+        return f"  UC: WARN(timeout) — {sql_stmt[:70]}"
 
     def _run_warehouse_grant() -> str:
         try:
