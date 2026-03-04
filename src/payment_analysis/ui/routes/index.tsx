@@ -2,8 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ErrorBoundary } from "react-error-boundary";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import Navbar from "@/components/apx/navbar";
-import Logo from "@/components/apx/logo";
 import {
   BarChart3,
   ArrowRight,
@@ -65,8 +63,6 @@ function Index() {
 
   return (
     <div className="flex min-h-screen w-full flex-col overflow-x-hidden bg-background">
-      <Navbar leftContent={<Logo to="/" showText />} />
-
       <main
         className="grid flex-1 min-h-0 md:grid-cols-2"
         id="landing-main"
