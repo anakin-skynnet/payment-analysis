@@ -257,12 +257,17 @@ def create_decline_code(
         raise HTTPException(status_code=500, detail=f"Failed to create: {e}")
 
 
+class DeleteDeclineCodeOut(BaseModel):
+    deleted: bool
+    code: str
+
+
 @router.delete(
     "/decline-codes/{code}",
-    response_model=dict,
+    response_model=DeleteDeclineCodeOut,
     operation_id="deleteRetryableDeclineCode",
 )
-def delete_decline_code(code: str, runtime: RuntimeDep) -> dict:
+def delete_decline_code(code: str, runtime: RuntimeDep) -> DeleteDeclineCodeOut:
     """Delete a retryable decline code."""
     _check_runtime(runtime)
     schema = _get_schema(runtime)
@@ -277,7 +282,7 @@ def delete_decline_code(code: str, runtime: RuntimeDep) -> dict:
         from ..decisioning.engine import _decline_codes_cache
         _decline_codes_cache.fetched_at = 0.0
 
-        return {"deleted": True, "code": code}
+        return DeleteDeclineCodeOut(deleted=True, code=code)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete: {e}")
 

@@ -1,4 +1,6 @@
 import os
+import threading
+import time
 from functools import cached_property
 from urllib.parse import urlparse, urlunparse
 
@@ -9,6 +11,8 @@ from sqlmodel import SQLModel, Session, text
 from .config import AppConfig
 from .lakebase_helpers import discover_endpoint_name, resolve_endpoint_host, _get_postgres_api
 from .logger import logger
+
+TOKEN_REFRESH_INTERVAL_S = 50 * 60
 
 
 def _normalize_lakebase_url(raw: str) -> str:
@@ -122,25 +126,59 @@ class Runtime:
         # The config may say "payment_analysis" (the Postgres *schema*); map to the real DB name.
         database = (self.config.db.database_name or "").strip()
         database = "databricks_postgres" if database in ("", "payment_analysis") else database
-        username = (
-            self.ws.config.client_id
-            if self.ws.config.client_id
-            else (self.ws.current_user.me().user_name if self.ws.current_user else "postgres")
-        )
+        username = self.ws.config.client_id or os.environ.get("DATABRICKS_CLIENT_ID") or ""
+        if not username:
+            try:
+                username = self.ws.current_user.me().user_name or "postgres"
+            except Exception:
+                username = "postgres"
         logger.info("Using Lakebase Autoscaling (postgres): %s", self._endpoint_name)
         host = resolve_endpoint_host(self.ws, self._endpoint_name)
         return f"{prefix}://{username}:@{host}:{port}/{database}"
 
+    def _refresh_lakebase_token(self) -> str:
+        """Generate a fresh Lakebase credential and cache it. Thread-safe."""
+        postgres_api = _get_postgres_api(self.ws)
+        cred = postgres_api.generate_database_credential(endpoint=self._endpoint_name)
+        self._cached_lakebase_token = cred.token
+        self._token_last_refresh = time.monotonic()
+        return cred.token
+
+    def _start_token_refresh_daemon(self) -> None:
+        """Start a background daemon thread that refreshes the Lakebase token every 50 min.
+
+        Per Apps Cookbook: OAuth tokens expire after ~1h; refresh every 50 min for continuity.
+        See: https://apps-cookbook.dev/docs/fastapi/getting_started/lakebase_connection
+        """
+        if getattr(self, "_token_refresh_thread", None) is not None:
+            return
+
+        def _refresh_loop():
+            while True:
+                time.sleep(TOKEN_REFRESH_INTERVAL_S)
+                try:
+                    self._refresh_lakebase_token()
+                    logger.info("Background Lakebase token refresh succeeded")
+                except Exception as e:
+                    logger.error("Background Lakebase token refresh failed: %s", e)
+
+        t = threading.Thread(target=_refresh_loop, daemon=True, name="lakebase-token-refresh")
+        t.start()
+        self._token_refresh_thread = t
+        logger.info("Lakebase background token refresh started (every %ds)", TOKEN_REFRESH_INTERVAL_S)
+
     def _before_connect(self, dialect, conn_rec, cargs, cparams):
-        """SQLAlchemy ``do_connect`` hook — inject OAuth token per connection (from env for direct URL, or from SDK for Autoscaling)."""
+        """SQLAlchemy ``do_connect`` hook — inject cached OAuth token per connection."""
         if self._use_lakebase_direct_connection():
             token = os.environ.get("LAKEBASE_OAUTH_TOKEN", "").strip()
             if token:
                 cparams["password"] = token
             return
-        postgres_api = _get_postgres_api(self.ws)
-        cred = postgres_api.generate_database_credential(endpoint=self._endpoint_name)
-        cparams["password"] = cred.token
+        cached = getattr(self, "_cached_lakebase_token", None)
+        if cached:
+            cparams["password"] = cached
+        else:
+            cparams["password"] = self._refresh_lakebase_token()
 
     @cached_property
     def _db_schema_name(self) -> str:
@@ -167,17 +205,24 @@ class Runtime:
         else:
             # Lakebase: token injected per connection (OAuth expires ~1h). pool_recycle < 1h.
             # See https://apps-cookbook.dev/docs/fastapi/getting_started/lakebase_connection
-            # Set search_path so unqualified table names resolve to the app schema.
+            # Pool config aligned with Apps Cookbook: pool_size=5, max_overflow=10, pool_timeout=10.
             engine = create_engine(
                 self.engine_url,
                 pool_recycle=45 * 60,
+                pool_pre_ping=False,
+                pool_size=5,
+                max_overflow=10,
+                pool_timeout=10,
                 connect_args={
                     "sslmode": "require",
                     "options": f"-csearch_path={schema},public",
+                    "connect_timeout": 30,
                 },
-                pool_size=4,
             )
             event.listens_for(engine, "do_connect")(self._before_connect)
+            if self._use_lakebase_autoscaling():
+                self._refresh_lakebase_token()
+                self._start_token_refresh_daemon()
         return engine
 
     def get_session(self) -> Session:

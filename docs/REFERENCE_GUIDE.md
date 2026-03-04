@@ -138,7 +138,7 @@ Catalog/schema: `ahs_demos_catalog.payment_analysis` (or your catalog/schema).
 | Type | Required | Optional / Not read by app |
 |------|----------|----------------------------|
 | **Silver/Bronze (Lakeflow)** | payments_enriched_silver, merchants_dim_bronze (100 merchants, 8 segments), merchant_visible_attempts_silver, reason_code_taxonomy_silver, insight_feedback_silver, smart_checkout_decisions_silver | decision_log_silver, payments_stream_alerts |
-| **Gold views (Job 3 SQL)** | All 24 `v_*` and metric views (including `v_retry_success_by_reason`) | — |
+| **Gold views (Job 3 SQL)** | All 26 `v_*` and metric views (including 3 metric views and `v_retry_success_by_reason`) | — |
 | **Gold tables (Lakeflow)** | v_retry_performance, v_3ds_funnel_br, v_reason_codes_br, v_reason_code_insights_br, v_entry_system_distribution_br, v_dedup_collision_stats, v_false_insights_metric, v_smart_checkout_* | — |
 | **Bootstrap (Job 1)** | v_recommendations_from_lakehouse, v_approval_rules_active, v_online_features_latest (and base tables) | — |
 
@@ -157,7 +157,7 @@ Created by **Lakeflow pipelines**. Empty until the pipeline runs and source data
 | **decision_log_silver** | **No** | Defined in silver_transform.py only | Audit/decision log for future use. Safe to drop. |
 | **payments_stream_alerts** | **No** | Defined in realtime_pipeline.py only | Real-time alert table; no reader in app. Safe to drop. |
 
-### Gold views (Job 3 — 24 SQL views)
+### Gold views (Job 3 — 26 SQL views)
 
 Created by **Job 3** from `gold_views.sql`. All depend on **payments_enriched_silver**.
 
@@ -187,6 +187,8 @@ Created by **Job 3** from `gold_views.sql`. All depend on **payments_enriched_si
 | **decline_metrics** | Yes | UC metrics; dashboards.py validation |
 | **merchant_metrics** | Yes | UC metrics; dashboards.py validation |
 | **v_retry_success_by_reason** | Yes | Smart Retry analytics, retry by decline reason |
+| **v_transaction_summaries_for_search** | Yes | Vector Search source (MERGE into delta-sync index) |
+| **v_recommendations_from_lakehouse** | Yes | Decisioning recommendations (from approval_recommendations) |
 
 ### Gold tables (Lakeflow — 9 DLT tables)
 
@@ -227,7 +229,7 @@ Created by **Job 1**, task `lakehouse_bootstrap`. Base tables are seeded when em
 | **Job 1 – lakehouse_bootstrap.sql** | `INSERT INTO ... WHERE (SELECT COUNT(*) FROM ...) = 0` (seed when empty). | app_config, approval_rules, countries. |
 | **Job 2 – transaction_simulator** | `df.write.mode("append").saveAsTable(target_table)`. | payments_stream_input. |
 | **Job 1 – vector_search create_index** | MERGE from payments_enriched_silver into transaction_summaries_for_search. | transaction_summaries_for_search → similar_transactions_index (Vector Search). |
-| **Job 3 – run_gold_views.py** | Executes `gold_views.sql`; only creates VIEWs. | All 24 gold SQL views. |
+| **Job 3 – run_gold_views.py** | Executes `gold_views.sql`; only creates VIEWs. | All 26 gold SQL views. |
 | **Backend (FastAPI)** | `DatabricksService` runs INSERT/MERGE via SQL Warehouse. Dual-write for rules. | app_config, approval_rules, insight_feedback_silver. |
 
 ### Order of operations for "no empty tables"
@@ -303,6 +305,9 @@ By default: Workspace folder, Lakebase, Jobs (7 steps), 2 pipelines, SQL warehou
 | **Node named '…' already exists** (dashboard) | Run `./scripts/bundle.sh deploy dev` (cleans existing dashboards first). |
 | **payments_enriched_silver not found** (Job 3) | Run ETL pipeline first, then Job 3. |
 | **Dashboard TABLE_OR_VIEW_NOT_FOUND** | Run Job 3 (gold views) and ETL pipeline in the same catalog.schema. |
+| **Merchant segments show 0.0%** | Rebuild frontend after pulling latest (field normalization via `model_validator`); verify `uv run apx build` passes. |
+| **AI Chat says "503"** | Open app from **Compute → Apps** (not direct URL); ensure Job 6 has been run and `payment-response-agent` endpoint exists. |
+| **Genie says "503"** | Open app from **Compute → Apps**; ensure `GENIE_SPACE_ID` is set in `app.yml`. |
 
 ### Fix: Lakebase project not found
 

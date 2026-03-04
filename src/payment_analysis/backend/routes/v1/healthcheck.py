@@ -1,5 +1,6 @@
 """Healthcheck endpoints (Cookbook: /api/v1/healthcheck, /api/v1/health/database).
 Data source validation: /api/v1/health/databricks confirms analytics and AI are from Databricks when available.
+See: https://apps-cookbook.dev/docs/fastapi/getting_started/create
 """
 
 from datetime import datetime, timezone
@@ -10,12 +11,26 @@ from sqlalchemy import text
 from ...dependencies import get_databricks_service
 from ...services.databricks_service import DatabricksService
 
+try:
+    from ...._metadata import app_name as _app_name
+except (ImportError, ModuleNotFoundError):
+    _app_name = "payment-analysis"
+
+try:
+    from .... import __version__ as _version
+except (ImportError, ModuleNotFoundError):
+    _version = "0.0.0"
+
 router = APIRouter()
+
+_STARTUP_TIME = datetime.now(timezone.utc)
 
 
 class HealthcheckOut(BaseModel):
     status: str
     timestamp: str
+    version: str = Field("", description="Application version")
+    uptime_seconds: int = Field(0, description="Seconds since application startup")
 
 
 class HealthDatabaseOut(BaseModel):
@@ -27,10 +42,13 @@ class HealthDatabaseOut(BaseModel):
 
 @router.get("/healthcheck", response_model=HealthcheckOut, operation_id="healthcheck")
 async def healthcheck() -> HealthcheckOut:
-    """Return the API status."""
+    """Return the API status, version, and uptime."""
+    now = datetime.now(timezone.utc)
     return HealthcheckOut(
         status="OK",
-        timestamp=datetime.now(timezone.utc).isoformat(),
+        timestamp=now.isoformat(),
+        version=_version,
+        uptime_seconds=int((now - _STARTUP_TIME).total_seconds()),
     )
 
 

@@ -118,13 +118,19 @@ export function AIChatbot({
       scrollToBottom();
     } catch (e) {
       const raw = e instanceof Error ? e.message : String(e);
-      const is504 = raw.includes("504");
-      const err = is504
-        ? "The AI agent is warming up (cold start). Please try again in a minute."
-        : raw || "Orchestrator agent unavailable.";
+      let err: string;
+      if (raw.includes("504")) {
+        err = "The AI agent is warming up (cold start). Please try again in a minute.";
+      } else if (raw.includes("503")) {
+        err = "The orchestrator endpoint is not reachable. Please open the app from Compute \u2192 Apps to enable authentication, and ensure Job 6 has deployed the agent.";
+      } else if (raw.includes("403") || raw.includes("401")) {
+        err = "Authentication required. Please open this app from Databricks (Compute \u2192 Apps \u2192 payment-analysis) so your token is forwarded.";
+      } else {
+        err = raw || "Orchestrator agent unavailable.";
+      }
       setMessages((prev) => [
         ...prev,
-        { id: msgId(), role: "assistant", content: `Sorry, I couldn't reach the orchestrator. ${err}` },
+        { id: msgId(), role: "assistant", content: `Sorry, I couldn\u2019t reach the orchestrator. ${err}` },
       ]);
     } finally {
       setLoading(false);

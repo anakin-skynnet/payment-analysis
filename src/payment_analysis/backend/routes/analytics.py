@@ -23,7 +23,7 @@ import logging
 from typing import Any, Optional, cast
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from sqlalchemy import desc, func
 
 from sqlmodel import select
@@ -1025,80 +1025,155 @@ async def submit_insight_feedback(
     return InsightFeedbackOut(accepted=bool(ok))
 
 
+class DeclineRecoveryOpportunityOut(BaseModel):
+    """Decline recovery opportunity ranked by estimated recoverable value."""
+    decline_reason: Optional[str] = None
+    transaction_count: Optional[int] = None
+    decline_count: Optional[int] = None
+    recoverable_amount: Optional[float] = None
+    total_declined_value: Optional[float] = None
+    recovery_strategy: Optional[str] = None
+    recommended_action: Optional[str] = None
+    estimated_recovery_rate: Optional[float] = None
+
+
+class CardNetworkPerformanceOut(BaseModel):
+    """Approval rate and volume by card network."""
+    card_network: Optional[str] = None
+    transaction_count: Optional[int] = None
+    approval_rate: Optional[float] = None
+    approval_rate_pct: Optional[float] = None
+    approved_count: Optional[int] = None
+    total_value: Optional[float] = None
+
+    @model_validator(mode="after")
+    def _sync_rate(self) -> "CardNetworkPerformanceOut":
+        if self.approval_rate_pct is None and self.approval_rate is not None:
+            self.approval_rate_pct = self.approval_rate
+        elif self.approval_rate is None and self.approval_rate_pct is not None:
+            self.approval_rate = self.approval_rate_pct
+        return self
+
+
+class MerchantSegmentPerformanceOut(BaseModel):
+    """Approval rate and volume by merchant segment."""
+    merchant_segment: Optional[str] = None
+    transaction_count: Optional[int] = None
+    approval_rate: Optional[float] = None
+    approval_rate_pct: Optional[float] = None
+    avg_transaction_amount: Optional[float] = None
+    total_value: Optional[float] = None
+
+    @model_validator(mode="after")
+    def _sync_rate(self) -> "MerchantSegmentPerformanceOut":
+        if self.approval_rate_pct is None and self.approval_rate is not None:
+            self.approval_rate_pct = self.approval_rate
+        elif self.approval_rate is None and self.approval_rate_pct is not None:
+            self.approval_rate = self.approval_rate_pct
+        return self
+
+
+class DailyTrendOut(BaseModel):
+    """Daily approval rate and volume trend data point."""
+    event_date: Optional[str] = None
+    total_transactions: Optional[int] = None
+    transaction_count: Optional[int] = None
+    approved_count: Optional[int] = None
+    approval_rate: Optional[float] = None
+    approval_rate_pct: Optional[float] = None
+    total_value: Optional[float] = None
+
+    @model_validator(mode="after")
+    def _sync_fields(self) -> "DailyTrendOut":
+        if self.transaction_count is None and self.total_transactions is not None:
+            self.transaction_count = self.total_transactions
+        elif self.total_transactions is None and self.transaction_count is not None:
+            self.total_transactions = self.transaction_count
+        if self.approval_rate_pct is None and self.approval_rate is not None:
+            self.approval_rate_pct = self.approval_rate
+        elif self.approval_rate is None and self.approval_rate_pct is not None:
+            self.approval_rate = self.approval_rate_pct
+        return self
+
+
 @router.get(
     "/declines/recovery-opportunities",
-    response_model=list[dict],
+    response_model=list[DeclineRecoveryOpportunityOut],
     operation_id="getDeclineRecoveryOpportunities",
 )
 async def decline_recovery_opportunities(
     request: Request,
     service: DatabricksServiceDep,
     limit: int = Query(20, ge=1, le=100, description="Max rows"),
-) -> list[dict]:
+) -> list[DeclineRecoveryOpportunityOut]:
     """Decline recovery opportunities ranked by estimated recoverable value; mock fallback."""
     if _is_mock_request(request):
-        return _mock.mock_decline_recovery_opportunities()[:limit]
-    data = await service.get_decline_recovery_opportunities(limit=limit)
-    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_decline_recovery_opportunities()[:limit]
-    return data
+    else:
+        data = await service.get_decline_recovery_opportunities(limit=limit)
+        if not data and _should_use_mock_fallback(request, service):
+            data = _mock.mock_decline_recovery_opportunities()[:limit]
+    return [DeclineRecoveryOpportunityOut(**r) for r in data]
 
 
 @router.get(
     "/card-network-performance",
-    response_model=list[dict],
+    response_model=list[CardNetworkPerformanceOut],
     operation_id="getCardNetworkPerformance",
 )
 async def card_network_performance(
     request: Request,
     service: DatabricksServiceDep,
     limit: int = Query(20, ge=1, le=50, description="Max rows"),
-) -> list[dict]:
+) -> list[CardNetworkPerformanceOut]:
     """Approval rate and volume by card network; mock fallback."""
     if _is_mock_request(request):
-        return _mock.mock_card_network_performance()[:limit]
-    data = await service.get_card_network_performance(limit=limit)
-    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_card_network_performance()[:limit]
-    return data
+    else:
+        data = await service.get_card_network_performance(limit=limit)
+        if not data and _should_use_mock_fallback(request, service):
+            data = _mock.mock_card_network_performance()[:limit]
+    return [CardNetworkPerformanceOut(**r) for r in data]
 
 
 @router.get(
     "/merchant-segment-performance",
-    response_model=list[dict],
+    response_model=list[MerchantSegmentPerformanceOut],
     operation_id="getMerchantSegmentPerformance",
 )
 async def merchant_segment_performance(
     request: Request,
     service: DatabricksServiceDep,
     limit: int = Query(20, ge=1, le=50, description="Max rows"),
-) -> list[dict]:
+) -> list[MerchantSegmentPerformanceOut]:
     """Approval rate and volume by merchant segment; mock fallback."""
     if _is_mock_request(request):
-        return _mock.mock_merchant_segment_performance()[:limit]
-    data = await service.get_merchant_segment_performance(limit=limit)
-    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_merchant_segment_performance()[:limit]
-    return data
+    else:
+        data = await service.get_merchant_segment_performance(limit=limit)
+        if not data and _should_use_mock_fallback(request, service):
+            data = _mock.mock_merchant_segment_performance()[:limit]
+    return [MerchantSegmentPerformanceOut(**r) for r in data]
 
 
 @router.get(
     "/daily-trends",
-    response_model=list[dict],
+    response_model=list[DailyTrendOut],
     operation_id="getDailyTrends",
 )
 async def daily_trends(
     request: Request,
     service: DatabricksServiceDep,
     days: int = Query(30, ge=1, le=90, description="Number of days"),
-) -> list[dict]:
+) -> list[DailyTrendOut]:
     """Daily approval rate and volume trends; mock fallback."""
     if _is_mock_request(request):
-        return _mock.mock_daily_trends(days=days)
-    data = await service.get_daily_trends(days=days)
-    if not data and _should_use_mock_fallback(request, service):
         data = _mock.mock_daily_trends(days=days)
-    return data
+    else:
+        data = await service.get_daily_trends(days=days)
+        if not data and _should_use_mock_fallback(request, service):
+            data = _mock.mock_daily_trends(days=days)
+    return [DailyTrendOut(**r) for r in data]
 
 
 @router.post("/events", response_model=AuthorizationEvent, operation_id="ingestAuthEvent")

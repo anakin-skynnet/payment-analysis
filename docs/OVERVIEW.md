@@ -12,9 +12,9 @@ Executive summary and quick reference for the Databricks-powered payment approva
 | **Platform** | Databricks — 100% serverless (Lakeflow, Unity Catalog, SQL Warehouse, MLflow, Model Serving, Genie, Vector Search, Lakebase). |
 | **ML** | 4 HistGradientBoosting models (14 engineered features) — approval propensity, risk scoring, smart routing, smart retry. |
 | **AI Agents** | ResponsesAgent (10 UC tools + python_exec) with 3-tier fallback + 5 specialist agents with write-back tools. |
-| **Data** | Medallion (Bronze → Silver → Gold), 24 gold SQL views + 9 gold DLT tables, streaming features, Vector Search. |
+| **Data** | Medallion (Bronze → Silver → Gold), 26 gold SQL views + 9 gold DLT tables, streaming features, Vector Search. |
 | **Dashboards** | 3 unified AI/BI Lakeview dashboards (merged from 10 source dashboards), embeddable in the app. |
-| **App** | FastAPI + React (16-page control panel), 8 resources bound, closed-loop DecisionEngine. |
+| **App** | FastAPI + React (21-page control panel + 2 floating AI dialogs), 8 resources bound, closed-loop DecisionEngine. |
 | **Schema** | Always `payment_analysis` (same in dev and prod). DAB schema prefixing disabled. |
 | **Deploy** | Two-phase: `./scripts/bundle.sh deploy dev` (phase 1: resources) → run jobs 5 & 6 → `./scripts/bundle.sh deploy app dev` (phase 2: App). Or automated: `./scripts/deploy_with_dependencies.sh dev`. |
 | **Check** | `uv run apx dev check` (TS + Python). |
@@ -29,10 +29,10 @@ Executive summary and quick reference for the Databricks-powered payment approva
 | AI agents | 6 (orchestrator + 5 specialists) |
 | UC functions | 17 individual + 5 consolidated |
 | Model Serving endpoints | 4 ML + 1 agent (`payment-response-agent`) |
-| Gold SQL views | 24 (including `v_retry_success_by_reason`) |
+| Gold SQL views | 26 (including 3 metric views and `v_retry_success_by_reason`) |
 | Gold DLT tables | 9 |
 | AI/BI dashboards | 3 unified (from 10 sources) |
-| App pages | 16 |
+| App pages | 21 + 2 floating AI dialogs |
 | App resource bindings | 8 (SQL warehouse, UC volume, Genie space, 5 serving endpoints) |
 | Orchestrated jobs | 7 |
 | Pipelines | 2 (ETL, Real-Time Stream) |
@@ -55,20 +55,27 @@ Executive summary and quick reference for the Databricks-powered payment approva
 
 ## Testing & Validation Status
 
-**Status:** ✅ **PRODUCTION-READY** (February 17, 2026)
+**Status:** ✅ **PRODUCTION-READY** (March 4, 2026)
 
 All components have been thoroughly tested and validated:
 - ✅ All 5 ML serving endpoints in READY state
 - ✅ All 3 Lakeview dashboards accessible
-- ✅ All 24 gold views verified with real data
-- ✅ All UI components functional and connected to Databricks
+- ✅ All 26 gold views verified with real data
+- ✅ All 21 UI pages + 2 floating AI dialogs functional and connected to Databricks
 - ✅ All end-to-end flows tested (AI Chat, Genie, Dashboards, Decision Engine)
 - ✅ Code quality verified (TypeScript + Python, no errors)
 - ✅ All critical issues fixed
+- ✅ Deep QA testing of every page with browser automation
 
-**Key Fixes Applied:**
-- Missing `X-Data-Source` header added to analytics endpoints
-- Mock data format consistency (approval rates standardized to 0-100 scale)
+**Key Fixes Applied (March 2026):**
+- Pydantic `model_validator` to normalize field names (`approval_rate` ↔ `approval_rate_pct`, `total_transactions` ↔ `transaction_count`) across mock and Databricks data sources
+- Approval Rate Trend chart Y-axis changed from `[0, 100]` to auto-scaling for visible trend variation
+- User-friendly error messages in AI Chatbot and Genie Assistant for 401/403/503/504 errors
+- Rules save error displays actionable guidance instead of raw HTTP status
+- Lakebase connection pooling aligned with Apps Cookbook (`pool_size=5`, `max_overflow=10`, background token refresh)
+- `WorkspaceClient` creation deduplicated; healthcheck includes `version` and `uptime_seconds`
+- Strongly typed Pydantic response models for all API endpoints (replaced `list[dict]` / `dict[str, Any]`)
+- React Query `staleTime` tuned to 30s; smart retry skips 401/403/404
 
 For detailed testing results, see [Technical Solution — Testing & Validation](TECHNICAL_SOLUTION.md#9-testing--validation).
 

@@ -13,10 +13,15 @@ import { MockDataProvider } from "@/contexts/mock-data-context";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 10_000,
-      gcTime: 5 * 60_000,
+      staleTime: 30_000,
+      gcTime: 10 * 60_000,
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: (failureCount, error) => {
+        if (failureCount >= 2) return false;
+        const status = (error as { status?: number })?.status;
+        if (status === 401 || status === 403 || status === 404) return false;
+        return true;
+      },
     },
   },
 });

@@ -5,11 +5,12 @@ The Databricks App platform assigns a new SP client_id each time the app resourc
 so all permissions must be re-granted.
 
 Usage:
-    uv run python scripts/grant_sp_permissions.py
+    uv run python scripts/grant_sp_permissions.py [--catalog CATALOG] [--schema SCHEMA]
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import subprocess
@@ -18,8 +19,18 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from databricks.sdk import WorkspaceClient
 
+DEFAULT_CATALOG = "ahs_demos_catalog"
+DEFAULT_SCHEMA = "payment_analysis"
+
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Grant SP permissions for the app")
+    parser.add_argument("--catalog", default=os.environ.get("DATABRICKS_CATALOG", DEFAULT_CATALOG))
+    parser.add_argument("--schema", default=os.environ.get("DATABRICKS_SCHEMA", DEFAULT_SCHEMA))
+    args = parser.parse_args()
+    catalog = args.catalog
+    schema = args.schema
+
     w = WorkspaceClient()
 
     app = w.apps.get("payment-analysis")
@@ -28,7 +39,7 @@ def main() -> None:
         print("No service principal found on the app. Skipping.")
         return
 
-    print(f"App SP: {sp}")
+    print(f"App SP: {sp} (catalog={catalog}, schema={schema})")
 
     wh_id = os.environ.get("DATABRICKS_WAREHOUSE_ID", "")
     if not wh_id:
@@ -48,12 +59,11 @@ def main() -> None:
         print("  Could not discover warehouse ID. Set DATABRICKS_WAREHOUSE_ID env var.")
         return
 
-    # 1. Unity Catalog grants + Warehouse CAN_USE — run concurrently
     uc_grants = [
-        f"GRANT USE CATALOG ON CATALOG ahs_demos_catalog TO `{sp}`",
-        f"GRANT USE SCHEMA ON SCHEMA ahs_demos_catalog.payment_analysis TO `{sp}`",
-        f"GRANT SELECT ON SCHEMA ahs_demos_catalog.payment_analysis TO `{sp}`",
-        f"GRANT EXECUTE ON SCHEMA ahs_demos_catalog.payment_analysis TO `{sp}`",
+        f"GRANT USE CATALOG ON CATALOG {catalog} TO `{sp}`",
+        f"GRANT USE SCHEMA ON SCHEMA {catalog}.{schema} TO `{sp}`",
+        f"GRANT SELECT ON SCHEMA {catalog}.{schema} TO `{sp}`",
+        f"GRANT EXECUTE ON SCHEMA {catalog}.{schema} TO `{sp}`",
     ]
 
     def _run_uc_grant(sql_stmt: str) -> str:
@@ -93,6 +103,9 @@ def main() -> None:
             print(fut.result())
 
     # 3. Lakebase Postgres role + grants
+    lakebase_project_id = os.environ.get("LAKEBASE_PROJECT_ID", "payment-analysis-db")
+    lakebase_branch_id = os.environ.get("LAKEBASE_BRANCH_ID", "production")
+    lakebase_endpoint_id = os.environ.get("LAKEBASE_ENDPOINT_ID", "primary")
     try:
         import psycopg  # noqa: F811
 
@@ -108,8 +121,31 @@ def main() -> None:
         token = json.loads(result.stdout)["access_token"]
         user = w.current_user.me().user_name
 
+        lakebase_host = None
+        try:
+            postgres_api = w.postgres
+            endpoint_name = f"projects/{lakebase_project_id}/branches/{lakebase_branch_id}/endpoints/{lakebase_endpoint_id}"
+            ep = postgres_api.get_endpoint(name=endpoint_name)
+            hosts_obj = getattr(getattr(ep, "status", None), "hosts", None)
+            lakebase_host = getattr(hosts_obj, "host", None)
+            if not lakebase_host:
+                branch_name = f"projects/{lakebase_project_id}/branches/{lakebase_branch_id}"
+                for ep_item in postgres_api.list_endpoints(parent=branch_name):
+                    hosts_obj = getattr(getattr(ep_item, "status", None), "hosts", None)
+                    h = getattr(hosts_obj, "host", None)
+                    if h:
+                        lakebase_host = h
+                        break
+        except Exception as e:
+            print(f"  Lakebase: endpoint discovery failed ({e}), trying LAKEBASE_HOST env var...")
+        if not lakebase_host:
+            lakebase_host = os.environ.get("LAKEBASE_HOST", "")
+        if not lakebase_host:
+            print("  Lakebase: could not discover endpoint host. Set LAKEBASE_HOST env var or verify Lakebase project exists.")
+            return
+
         conn = psycopg.connect(
-            host="ep-broad-forest-e1dqz0rd.database.eastus2.azuredatabricks.net",
+            host=lakebase_host,
             port=5432,
             dbname="databricks_postgres",
             user=user,
@@ -121,7 +157,7 @@ def main() -> None:
 
         from psycopg import sql
 
-        cur.execute("CREATE EXTENSION IF NOT EXISTS databricks_auth;")  # type: ignore[arg-type]
+        cur.execute("CREATE EXTENSION IF NOT EXISTS databricks_auth;")
         try:
             cur.execute(
                 sql.SQL("SELECT databricks_create_role({sp}, 'SERVICE_PRINCIPAL')").format(
@@ -135,16 +171,17 @@ def main() -> None:
             else:
                 print(f"  Lakebase role issue: {e}")
 
+        schema_ident = sql.Identifier(schema)
         sp_ident = sql.Identifier(sp)
         grant_stmts = [
-            sql.SQL("GRANT ALL PRIVILEGES ON SCHEMA payment_analysis TO {}").format(sp_ident),
-            sql.SQL("GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA payment_analysis TO {}").format(sp_ident),
-            sql.SQL("GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA payment_analysis TO {}").format(sp_ident),
-            sql.SQL("ALTER DEFAULT PRIVILEGES IN SCHEMA payment_analysis GRANT ALL ON TABLES TO {}").format(sp_ident),
+            sql.SQL("GRANT ALL PRIVILEGES ON SCHEMA {} TO {}").format(schema_ident, sp_ident),
+            sql.SQL("GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {} TO {}").format(schema_ident, sp_ident),
+            sql.SQL("GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA {} TO {}").format(schema_ident, sp_ident),
+            sql.SQL("ALTER DEFAULT PRIVILEGES IN SCHEMA {} GRANT ALL ON TABLES TO {}").format(schema_ident, sp_ident),
         ]
         for stmt in grant_stmts:
             cur.execute(stmt)
-        print("  Lakebase schema/table/sequence grants complete")
+        print(f"  Lakebase {schema} schema/table/sequence grants complete")
 
         cur.close()
         conn.close()

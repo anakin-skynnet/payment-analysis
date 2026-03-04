@@ -561,24 +561,24 @@ function CommandCenter() {
   }, [entryDistQ.data?.data]);
 
   const merchantSegments = useMemo(() => {
-    const raw = (merchantSegmentQ.data?.data ?? []) as Array<Record<string, unknown>>;
+    const raw = merchantSegmentQ.data?.data ?? [];
     if (!raw.length) return [];
     return raw.slice(0, 6).map((m, i) => ({
-      segment: String(m.merchant_segment ?? m.segment ?? m.name ?? `Segment ${i + 1}`),
-      approval_rate: Number(m.approval_rate_pct ?? m.approval_rate ?? m.approval_pct ?? 0),
-      volume: Number(m.transaction_count ?? m.total_transactions ?? m.volume ?? 0),
-      avg_amount: Number(m.avg_transaction_amount ?? m.avg_amount ?? 0),
+      segment: m.merchant_segment ?? `Segment ${i + 1}`,
+      approval_rate: m.approval_rate_pct ?? m.approval_rate ?? 0,
+      volume: m.transaction_count ?? 0,
+      avg_amount: m.avg_transaction_amount ?? 0,
     }));
   }, [merchantSegmentQ.data?.data]);
 
   const dailyTrendData = useMemo(() => {
-    const raw = (dailyTrendsQ.data?.data ?? []) as Array<Record<string, unknown>>;
+    const raw = dailyTrendsQ.data?.data ?? [];
     if (!raw.length) return [];
     return raw.map((d) => ({
-      date: String(d.event_date ?? d.date ?? ""),
-      approval_rate: Number(d.approval_rate ?? d.approval_rate_pct ?? 0),
-      total: Number(d.transactions ?? d.total_transactions ?? d.transaction_count ?? d.total ?? 0),
-      approved: Number(d.approved_count ?? d.approved ?? 0),
+      date: d.event_date ?? "",
+      approval_rate: d.approval_rate_pct ?? d.approval_rate ?? 0,
+      total: d.total_transactions ?? d.transaction_count ?? 0,
+      approved: d.approved_count ?? 0,
     }));
   }, [dailyTrendsQ.data?.data]);
 
@@ -687,7 +687,7 @@ function CommandCenter() {
                   </defs>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis dataKey="time" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} />
+                  <YAxis tick={{ fontSize: 11 }} domain={["dataMin - 5", "dataMax + 3"]} />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   {/* P2 #8: Configurable target line at 90% */}
                   <ReferenceLine y={90} stroke="var(--destructive)" strokeDasharray="6 3" strokeWidth={1.5} label={{ value: "Target 90%", position: "right", fill: "var(--destructive)", fontSize: 10 }} />

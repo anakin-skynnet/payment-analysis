@@ -315,7 +315,7 @@ function RecoveryOpportunities() {
     params: { limit: 10 },
     query: { refetchInterval: REFRESH_ANALYTICS_MS },
   });
-  const opportunities = (resp?.data ?? []) as Array<Record<string, unknown>>;
+  const opportunities = resp?.data ?? [];
 
   if (opportunities.length === 0) {
     return (
@@ -326,7 +326,7 @@ function RecoveryOpportunities() {
   }
 
   const totalRecoverable = opportunities.reduce(
-    (sum, o) => sum + (Number(o.potential_recovery_value ?? o.recoverable_amount ?? o.estimated_recovery ?? 0)),
+    (sum, o) => sum + (Number(o.recoverable_amount ?? o.total_declined_value ?? 0)),
     0,
   );
   const totalTransactions = opportunities.reduce(
@@ -368,10 +368,10 @@ function RecoveryOpportunities() {
         </TableHeader>
         <TableBody>
           {opportunities.slice(0, 8).map((o, i) => {
-            const reason = String(o.decline_reason ?? o.reason_code ?? o.category ?? `Group ${i + 1}`);
+            const reason = String(o.decline_reason ?? `Group ${i + 1}`);
             const count = Number(o.transaction_count ?? o.decline_count ?? 0);
-            const amount = Number(o.potential_recovery_value ?? o.recoverable_amount ?? o.estimated_recovery ?? 0);
-            const strategy = String(o.recovery_strategy ?? o.recommended_action ?? o.strategy ?? "Smart Retry");
+            const amount = Number(o.recoverable_amount ?? o.total_declined_value ?? 0);
+            const strategy = String(o.recovery_strategy ?? o.recommended_action ?? "Smart Retry");
             return (
               <TableRow key={`${reason}-${i}`}>
                 <TableCell className="font-medium text-sm">{reason}</TableCell>
@@ -397,7 +397,7 @@ function CardNetworkPerformance() {
     params: { limit: 10 },
     query: { refetchInterval: REFRESH_ANALYTICS_MS },
   });
-  const networks = (resp?.data ?? []) as Array<Record<string, unknown>>;
+  const networks = resp?.data ?? [];
 
   if (networks.length === 0) {
     return (
@@ -410,9 +410,9 @@ function CardNetworkPerformance() {
   return (
     <div className="space-y-3">
       {networks.slice(0, 6).map((n, i) => {
-        const network = String(n.card_network ?? n.network ?? n.name ?? `Network ${i + 1}`);
-        const approvalRate = Number(n.approval_rate_pct ?? n.approval_rate ?? n.approval_pct ?? 0);
-        const volume = Number(n.transaction_count ?? n.total_transactions ?? n.volume ?? 0);
+        const network = String(n.card_network ?? `Network ${i + 1}`);
+        const approvalRate = Number(n.approval_rate_pct ?? n.approval_rate ?? 0);
+        const volume = Number(n.transaction_count ?? 0);
         const isTop = i === 0;
         return (
           <div key={`${network}-${i}`} className="space-y-1.5">

@@ -6,14 +6,14 @@ Databricks-powered payment approval optimization: **accelerate approval rates** 
 
 **Goal:** Reduce lost revenue from false declines, suboptimal routing, and missed retry opportunities.
 
-**How:** Real-time ML (4 HistGradientBoosting models with 14 engineered features), a ResponsesAgent (MLflow, OpenAI Responses API) with 10 UC tools + python_exec, Genie, rules engine, Vector Search, streaming features, and Lakebase — unified in a closed-loop decision engine and control panel. All compute is serverless. 4 ML model serving endpoints + 1 agent endpoint (`payment-response-agent`), 3 unified AI/BI dashboards (merged from 10 source dashboards), 24 gold views (including `v_retry_success_by_reason`) + 9 gold DLT tables, 7 orchestrated jobs, 8 resources bound to the app. Decision routes use `DecisionEngine` with parallel ML + Vector Search enrichment (asyncio.gather), streaming real-time features, thread-safe caching, and outcome recording for continuous improvement.
+**How:** Real-time ML (4 HistGradientBoosting models with 14 engineered features), a ResponsesAgent (MLflow, OpenAI Responses API) with 10 UC tools + python_exec, Genie, rules engine, Vector Search, streaming features, and Lakebase — unified in a closed-loop decision engine and control panel. All compute is serverless. 4 ML model serving endpoints + 1 agent endpoint (`payment-response-agent`), 3 unified AI/BI dashboards (merged from 10 source dashboards), 26 gold SQL views (including 3 metric views and `v_retry_success_by_reason`) + 9 gold DLT tables, 7 orchestrated jobs, 8 resources bound to the app. Decision routes use `DecisionEngine` with parallel ML + Vector Search enrichment (asyncio.gather), streaming real-time features, thread-safe caching, and outcome recording for continuous improvement.
 
 **AI Chat architecture (3-tier fallback):**
 1. **Path 1 — ResponsesAgent** (`payment-response-agent`): MLflow ResponsesAgent with 10 UC function tools + `python_exec`, served on Databricks Model Serving. Uses Claude Sonnet 4.5 for balanced speed/quality on multi-turn tool calling.
 2. **Path 2 — AI Gateway**: Direct LLM call via Foundation Model API (Claude Opus 4.6) when the agent endpoint is unavailable.
 3. **Path 3 — Job 6 Agent Framework**: Custom Python multi-agent orchestrator with 5 specialists (Smart Routing, Smart Retry, Decline Analyst, Risk Assessor, Performance Recommender). Runs as a Databricks Job.
 
-**Recent enhancements (20 QA recommendations + end-to-end verification):**
+**Recent enhancements (20 QA recommendations + end-to-end verification + March 2026 optimizations):**
 - **Closed feedback loop:** POST /api/decision/outcome records actual outcomes; policies use VS approval rates and agent confidence to adjust borderline decisions
 - **Feature parity:** ML features built with `_build_ml_features()` matching exact training schema (14 features including temporal, merchant/solution rates, network encoding, risk interactions)
 - **Parallel enrichment:** ML model calls and Vector Search run concurrently; thread-safe config caching with `threading.Lock`
@@ -23,6 +23,10 @@ Databricks-powered payment approval optimization: **accelerate approval rates** 
 - **Frontend resilience:** `Suspense` wrapper around root `Outlet` for lazy-loaded routes, auth loading state to prevent layout shifts, error retry fallback on ML Models page
 - **Data quality fix:** Merchant dimension (`merchants_dim_bronze`) corrected to generate 100 merchants with 8 segments, matching the transaction simulator
 - **Pinned dependencies:** All frontend package versions pinned (no `^` or `~`); exact version alignment verified across `pyproject.toml`, `uv.lock`, `requirements.txt`, `package.json`, `bun.lock`
+- **Backend field normalization (March 2026):** Pydantic `model_validator` on analytics models syncs field name variants (`approval_rate` ↔ `approval_rate_pct`, `total_transactions` ↔ `transaction_count`) so frontend always receives both
+- **Lakebase connection pooling (March 2026):** Apps Cookbook–aligned pool config (`pool_size=5`, `max_overflow=10`, `pool_timeout=10`), background daemon token refresh every 50 min, cached username
+- **Strongly typed API responses (March 2026):** All API routes use Pydantic `response_model` for OpenAPI-generated TypeScript types; no more `list[dict]` or `dict[str, Any]`
+- **Chart UX (March 2026):** Approval Rate Trend Y-axis auto-scales to data range for visible variation; context-specific error messages in AI Chatbot and Genie Assistant
 
 For use cases and impact on approval rates, see **[Business Requirements](docs/BUSINESS_REQUIREMENTS.md)**. For architecture and technical details, see **[Technical Solution](docs/TECHNICAL_SOLUTION.md)**. For deployment, schema reference, and troubleshooting, see **[Reference Guide](docs/REFERENCE_GUIDE.md)**.
 
@@ -75,8 +79,8 @@ Deployment is **two-phase**: first deploy all resources except the App, then dep
 - **Vector Search:** `similar_transactions_index` populated from `payments_enriched_silver` via MERGE, synced to `databricks-bge-large-en`.
 - **17 individual + 5 consolidated UC functions** serve as agent tools. The ResponsesAgent uses 5 consolidated + 5 shared operational functions (10 total, Databricks limit). `v_retry_success_by_reason` gold view added for granular retry analysis by decline reason.
 - **Actionable UI:** Top-3 actions on Command Center, 90% target reference lines, last-updated indicators, contextual Smart Checkout guidance, preset decisioning scenarios, actionable recommendation buttons, inline expert review, recovery gap analysis.
-- **Error resilience:** All UI routes have `ErrorBoundary` wrappers, `Suspense` on the root `Outlet` for lazy-loaded routes, auth loading state to prevent layout shifts, error retry fallbacks, and consistent `glass-card` styling.
-- **Data integrity:** Merchant dimension generates 100 merchants with 8 segments (`spark.range(100)`), matching the transaction simulator's full merchant set. All 24 gold views are verified to connect to the correct upstream tables.
+- **Error resilience:** All UI routes have `ErrorBoundary` wrappers, `Suspense` on the root `Outlet` for lazy-loaded routes, auth loading state to prevent layout shifts, error retry fallbacks, context-specific error messages (401/403/503/504) in AI Chatbot and Genie, and consistent `glass-card` styling.
+- **Data integrity:** Merchant dimension generates 100 merchants with 8 segments (`spark.range(100)`), matching the transaction simulator's full merchant set. All 26 gold views are verified to connect to the correct upstream tables.
 
 The project is deployed as a [Databricks Asset Bundle (DAB)](https://docs.databricks.com/aws/en/dev-tools/bundles/). See [Reference Guide](docs/REFERENCE_GUIDE.md) for full deploy steps and troubleshooting.
 

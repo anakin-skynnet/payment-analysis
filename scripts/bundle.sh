@@ -16,6 +16,20 @@
 #   - Phase 2: set SKIP_BUNDLE_VALIDATE=1 to skip "bundle validate" before deploy (~5–15s saved).
 set -e
 cd "$(dirname "$0")/.."
+
+# Restore databricks.yml from backup if the script exits unexpectedly (Ctrl+C, error, etc.)
+cleanup_on_exit() {
+  local exit_code=$?
+  if [[ -f "$DATABRICKS_YML.bundle_phase1.bak" && $exit_code -ne 0 ]]; then
+    echo ""
+    echo "⚠️  Restoring databricks.yml from backup after error (exit code $exit_code)..."
+    cp "$DATABRICKS_YML.bundle_phase1.bak" "$DATABRICKS_YML"
+    rm -f "$DATABRICKS_YML.bundle_phase1.bak"
+  fi
+}
+DATABRICKS_YML="databricks.yml"
+trap cleanup_on_exit EXIT
+
 if [[ -z "${1:-}" ]]; then
   echo "Usage: ./scripts/bundle.sh {validate|deploy|redeploy|deploy app|verify} [target]"
   echo "  deploy / redeploy: deploy all resources except the App; then run jobs 5 and 6 and run 'deploy app'"
@@ -35,7 +49,6 @@ else
   TARGET="${2:-dev}"
 fi
 
-DATABRICKS_YML="databricks.yml"
 BACKUP="${DATABRICKS_YML}.bundle_phase1.bak"
 
 prepare_dashboards() {
@@ -157,11 +170,17 @@ case "$CMD" in
     echo ""
     echo "Uncommenting model_serving and serving endpoint bindings..."
     ensure_app_and_serving_included
-    # Skip serving endpoints created by Jobs 5 & 6 if not run yet. Remove all --skip-endpoint after Jobs 5 and 6.
-    uv run python scripts/toggle_app_resources.py --enable-serving-endpoints \
-      --skip-endpoint payment-response-agent \
-      --skip-endpoint approval-propensity --skip-endpoint risk-scoring \
-      --skip-endpoint smart-routing --skip-endpoint smart-retry
+    # Enable all serving endpoint bindings (Jobs 5 & 6 should have run before this phase).
+    # To skip specific endpoints (e.g. if a job failed), set SKIP_SERVING_ENDPOINTS="endpoint1,endpoint2".
+    SKIP_ARGS=()
+    if [[ -n "${SKIP_SERVING_ENDPOINTS:-}" ]]; then
+      IFS=',' read -ra SKIP_LIST <<< "$SKIP_SERVING_ENDPOINTS"
+      for ep in "${SKIP_LIST[@]}"; do
+        SKIP_ARGS+=(--skip-endpoint "$ep")
+      done
+      echo "Skipping endpoints: ${SKIP_SERVING_ENDPOINTS}"
+    fi
+    uv run python scripts/toggle_app_resources.py --enable-serving-endpoints "${SKIP_ARGS[@]}"
     if [[ -z "${SKIP_DASHBOARD_PREPARE:-}" ]]; then
       wait "$PREPARE_PID" || exit $?
     else

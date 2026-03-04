@@ -107,13 +107,19 @@ export function GenieAssistant({
       scrollToBottom();
     } catch (e) {
       const raw = e instanceof Error ? e.message : String(e);
-      const is504 = raw.includes("504");
-      const err = is504
-        ? "The Genie service is warming up (cold start). Please try again in a minute."
-        : raw || "Genie unavailable.";
+      let err: string;
+      if (raw.includes("504")) {
+        err = "The Genie service is warming up (cold start). Please try again in a minute.";
+      } else if (raw.includes("503")) {
+        err = "Genie is not reachable. Please open the app from Compute \u2192 Apps and ensure the Genie Space ID is configured.";
+      } else if (raw.includes("403") || raw.includes("401")) {
+        err = "Authentication required. Open this app from Databricks (Compute \u2192 Apps \u2192 payment-analysis) so your token is forwarded.";
+      } else {
+        err = raw || "Genie unavailable.";
+      }
       setMessages((prev) => [
         ...prev,
-        { id: msgId(), role: "assistant", content: `Sorry, I couldn't process that. ${err}`, genieUrl: null },
+        { id: msgId(), role: "assistant", content: `Sorry, I couldn\u2019t process that. ${err}`, genieUrl: null },
       ]);
     } finally {
       setLoading(false);

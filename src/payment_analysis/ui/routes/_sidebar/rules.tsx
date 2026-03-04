@@ -300,7 +300,11 @@ function Rules() {
               </Button>
             </div>
             {createMut.isError && (
-              <p className="text-sm text-destructive">{String(createMut.error)}</p>
+              <p className="text-sm text-destructive">
+                {String(createMut.error).includes("502") || String(createMut.error).includes("503")
+                  ? "Cannot save — Lakebase is not reachable. Ensure Job 1 has been run and the app is opened from Databricks (Compute \u2192 Apps)."
+                  : String(createMut.error)}
+              </p>
             )}
           </CardContent>
         </Card>

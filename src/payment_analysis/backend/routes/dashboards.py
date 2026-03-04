@@ -353,53 +353,47 @@ async def list_dashboards(
     )
 
 
-@router.get("/categories/list", response_model=dict[str, Any], operation_id="listDashboardCategories")
-async def list_categories() -> dict[str, Any]:
-    """
-    List all dashboard categories with counts.
-    
-    Returns:
-        Dictionary mapping categories to dashboard counts
-    """
+class DashboardCategoryDetail(BaseModel):
+    name: str
+    count: int
+    dashboards: list[str]
+
+
+class DashboardCategoriesOut(BaseModel):
+    categories: dict[str, DashboardCategoryDetail]
+    total_dashboards: int
+
+
+class DashboardTagsOut(BaseModel):
+    tags: dict[str, int]
+    total_tags: int
+
+
+@router.get("/categories/list", response_model=DashboardCategoriesOut, operation_id="listDashboardCategories")
+async def list_categories() -> DashboardCategoriesOut:
+    """List all dashboard categories with counts."""
     dashboards = _get_dashboards()
-    category_info = {}
-    
+    categories: dict[str, DashboardCategoryDetail] = {}
     for category in DashboardCategory:
-        dashboards_in_category = [d for d in dashboards if d.category == category]
-        category_info[category.value] = {
-            "name": category.value.replace("_", " ").title(),
-            "count": len(dashboards_in_category),
-            "dashboards": [d.id for d in dashboards_in_category],
-        }
-    
-    return {
-        "categories": category_info,
-        "total_dashboards": len(dashboards),
-    }
+        in_cat = [d for d in dashboards if d.category == category]
+        categories[category.value] = DashboardCategoryDetail(
+            name=category.value.replace("_", " ").title(),
+            count=len(in_cat),
+            dashboards=[d.id for d in in_cat],
+        )
+    return DashboardCategoriesOut(categories=categories, total_dashboards=len(dashboards))
 
 
-@router.get("/tags/list", response_model=dict[str, Any], operation_id="listDashboardTags")
-async def list_tags() -> dict[str, Any]:
-    """
-    List all dashboard tags with counts.
-    
-    Returns:
-        Dictionary of tags and how many dashboards have each tag
-    """
+@router.get("/tags/list", response_model=DashboardTagsOut, operation_id="listDashboardTags")
+async def list_tags() -> DashboardTagsOut:
+    """List all dashboard tags with counts."""
     dashboards = _get_dashboards()
     tag_counts: dict[str, int] = {}
-    
     for dashboard in dashboards:
         for tag in dashboard.tags:
             tag_counts[tag] = tag_counts.get(tag, 0) + 1
-    
-    # Sort by count descending
     sorted_tags = dict(sorted(tag_counts.items(), key=lambda x: x[1], reverse=True))
-    
-    return {
-        "tags": sorted_tags,
-        "total_tags": len(sorted_tags),
-    }
+    return DashboardTagsOut(tags=sorted_tags, total_tags=len(sorted_tags))
 
 
 @router.get("/{dashboard_id}", response_model=DashboardInfo, operation_id="getDashboard")
@@ -439,13 +433,23 @@ def _resolve_workspace_id(config: Any) -> str:
     return workspace_id_from_workspace_url(raw_host) or ""
 
 
-@router.get("/{dashboard_id}/url", response_model=dict[str, Any], operation_id="getDashboardUrl")
+class DashboardUrlOut(BaseModel):
+    dashboard_id: str
+    url: str
+    full_url: str | None = None
+    embed: bool = False
+    embed_url: str | None = None
+    full_embed_url: str | None = None
+    instructions: str | None = None
+
+
+@router.get("/{dashboard_id}/url", response_model=DashboardUrlOut, operation_id="getDashboardUrl")
 async def get_dashboard_url(
     dashboard_id: str,
     config: ConfigDep,
     workspace_host: EffectiveWorkspaceUrlDep,
     embed: bool = Query(False, description="Return embed-friendly URL"),
-) -> dict[str, Any]:
+) -> DashboardUrlOut:
     """
     Get the Lakeview dashboard URL for embedding or opening in a new tab.
     All dashboards use the /dashboardsv3/<id>/published format.
@@ -486,22 +490,22 @@ async def get_dashboard_url(
         else:
             embed_path = embed_base
         full_embed_url = f"{workspace_host}{embed_path}" if workspace_host else None
-        return {
-            "dashboard_id": dashboard_id,
-            "url": url_path,
-            "full_url": full_url,
-            "embed_url": embed_path,
-            "full_embed_url": full_embed_url,
-            "embed": True,
-            "instructions": "Use full_embed_url in an iframe. Requires workspace admin to enable 'Allow embedding dashboards' in Settings → Security.",
-        }
+        return DashboardUrlOut(
+            dashboard_id=dashboard_id,
+            url=url_path,
+            full_url=full_url,
+            embed_url=embed_path,
+            full_embed_url=full_embed_url,
+            embed=True,
+            instructions="Use full_embed_url in an iframe. Requires workspace admin to enable 'Allow embedding dashboards' in Settings → Security.",
+        )
 
-    return {
-        "dashboard_id": dashboard_id,
-        "url": url_path,
-        "full_url": full_url,
-        "embed": False,
-    }
+    return DashboardUrlOut(
+        dashboard_id=dashboard_id,
+        url=url_path,
+        full_url=full_url,
+        embed=False,
+    )
 
 
 # =============================================================================

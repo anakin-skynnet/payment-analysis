@@ -152,6 +152,23 @@ def _get_obo_token(request: Request) -> str | None:
     return None
 
 
+def _resolve_host_and_creds(request: Request) -> tuple[str | None, str | None, str | None, str | None]:
+    """Resolve workspace host, OBO/PAT token, and SP credentials from request context.
+
+    Returns (host, token, client_id, client_secret). host and token may be None.
+    """
+    config = get_config(request)
+    raw = _config_raw_host(config) or workspace_url_from_apps_host(
+        _request_host_for_derivation(request), app_name
+    ).strip().rstrip("/")
+    host = ensure_absolute_workspace_url(raw) if raw else None
+    obo_token = _get_obo_token(request)
+    token = obo_token or os.environ.get("DATABRICKS_TOKEN")
+    client_id = os.environ.get("DATABRICKS_CLIENT_ID")
+    client_secret = os.environ.get("DATABRICKS_CLIENT_SECRET")
+    return host, token, client_id, client_secret
+
+
 def get_workspace_client(request: Request) -> WorkspaceClient:
     """
     Returns a Databricks Workspace client. Credentials, in order of precedence:
@@ -162,27 +179,16 @@ def get_workspace_client(request: Request) -> WorkspaceClient:
     Host is always absolute (https://...). When DATABRICKS_HOST is unset, derives host
     from the request when the app is served from a Databricks Apps URL.
     """
-    obo_token = _get_obo_token(request)
-    config = get_config(request)
-    raw = _config_raw_host(config) or workspace_url_from_apps_host(
-        _request_host_for_derivation(request), app_name
-    ).strip().rstrip("/")
-    if not raw:
+    host, token, client_id, client_secret = _resolve_host_and_creds(request)
+    if not host:
         raise HTTPException(
             status_code=503,
             detail="DATABRICKS_HOST is not set. Set it in the app environment or open the app from Compute → Apps so the workspace URL can be derived.",
         )
-    host = ensure_absolute_workspace_url(raw)
-
-    token = obo_token or os.environ.get("DATABRICKS_TOKEN")
     if token:
         return workspace_client_pat_only(host=host, token=token)
-
-    client_id = os.environ.get("DATABRICKS_CLIENT_ID")
-    client_secret = os.environ.get("DATABRICKS_CLIENT_SECRET")
     if client_id and client_secret:
         return workspace_client_service_principal(host=host, client_id=client_id, client_secret=client_secret)
-
     raise HTTPException(status_code=401, detail=AUTH_REQUIRED_DETAIL)
 
 
@@ -190,23 +196,12 @@ def get_workspace_client_optional(request: Request) -> WorkspaceClient | None:
     """
     Returns a Workspace client when credentials are available; otherwise None.
     Used by GET /setup/defaults to resolve job/pipeline IDs from the workspace when possible.
-    Credentials: OBO token (X-Forwarded-Access-Token), then DATABRICKS_TOKEN, then
-    service principal (DATABRICKS_CLIENT_ID + DATABRICKS_CLIENT_SECRET).
     """
-    obo_token = _get_obo_token(request)
-    config = get_config(request)
-    raw = _config_raw_host(config) or workspace_url_from_apps_host(
-        _request_host_for_derivation(request), app_name
-    ).strip().rstrip("/")
-    if not raw:
+    host, token, client_id, client_secret = _resolve_host_and_creds(request)
+    if not host:
         return None
-
-    host = ensure_absolute_workspace_url(raw)
-    token = obo_token or os.environ.get("DATABRICKS_TOKEN")
     if token:
         return workspace_client_pat_only(host=host, token=token)
-    client_id = os.environ.get("DATABRICKS_CLIENT_ID")
-    client_secret = os.environ.get("DATABRICKS_CLIENT_SECRET")
     if client_id and client_secret:
         return workspace_client_service_principal(host=host, client_id=client_id, client_secret=client_secret)
     return None

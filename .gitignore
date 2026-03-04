@@ -52,6 +52,7 @@ src/payment_analysis/__dist__/
 .ruff_cache/
 *.log
 *.bak
+*.png
 mlflow.db
 scripts/qa_*.py
 

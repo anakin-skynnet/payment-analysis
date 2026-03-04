@@ -308,31 +308,32 @@ async def get_folder_url(
     )
 
 
-@router.get("/notebooks/categories/summary", response_model=dict[str, Any], operation_id="getNotebookCategorySummary")
-async def get_category_summary() -> dict[str, Any]:
-    """
-    Get summary of notebooks by category with descriptions.
-    
-    Returns counts and notebook lists for each category.
-    """
-    summary = {}
-    
+class NotebookCategorySummaryItem(BaseModel):
+    id: str
+    name: str
+    job_name: str | None = None
+
+
+class NotebookCategoryDetail(BaseModel):
+    name: str
+    count: int
+    notebooks: list[NotebookCategorySummaryItem]
+
+
+class NotebookCategorySummaryOut(BaseModel):
+    categories: dict[str, NotebookCategoryDetail]
+    total_notebooks: int
+
+
+@router.get("/notebooks/categories/summary", response_model=NotebookCategorySummaryOut, operation_id="getNotebookCategorySummary")
+async def get_category_summary() -> NotebookCategorySummaryOut:
+    """Get summary of notebooks by category with descriptions."""
+    categories: dict[str, NotebookCategoryDetail] = {}
     for category in NotebookCategory:
-        notebooks_in_cat = [n for n in NOTEBOOKS if n.category == category]
-        summary[category.value] = {
-            "name": category.value.replace("_", " ").title(),
-            "count": len(notebooks_in_cat),
-            "notebooks": [
-                {
-                    "id": n.id,
-                    "name": n.name,
-                    "job_name": n.job_name,
-                }
-                for n in notebooks_in_cat
-            ],
-        }
-    
-    return {
-        "categories": summary,
-        "total_notebooks": len(NOTEBOOKS),
-    }
+        in_cat = [n for n in NOTEBOOKS if n.category == category]
+        categories[category.value] = NotebookCategoryDetail(
+            name=category.value.replace("_", " ").title(),
+            count=len(in_cat),
+            notebooks=[NotebookCategorySummaryItem(id=n.id, name=n.name, job_name=n.job_name) for n in in_cat],
+        )
+    return NotebookCategorySummaryOut(categories=categories, total_notebooks=len(NOTEBOOKS))

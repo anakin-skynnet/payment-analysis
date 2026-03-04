@@ -87,8 +87,8 @@ resources:
         # ResponsesAgent — AI Chat primary backend (Path 1)
         # PaymentAnalysisAgent with 10 UC tools + python_exec (created by Job 6).
         # Uncomment after running Job 6 so the endpoint exists; then redeploy app.
-        # - name: serving-response-agent
-        #   serving_endpoint: { name: "payment-response-agent", permission: CAN_QUERY }
+        - name: serving-response-agent
+          serving_endpoint: { name: "payment-response-agent", permission: CAN_QUERY }
 
         # ML Model Serving endpoints (4 models)
         # Used by: DecisionEngine parallel enrichment, ML predictions UI, /api/decision/ml/*

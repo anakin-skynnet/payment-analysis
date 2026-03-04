@@ -621,30 +621,6 @@ def _query_orchestrator_endpoint(ws: WorkspaceClient, endpoint_name: str, user_m
     return reply or "", ["ResponsesAgent (orchestrator)"] if reply else []
 
 
-def _parse_orchestrator_response(response: Any) -> tuple[str, list[str]]:
-    """Extract reply text and agents_used from a Model Serving query response."""
-    reply = ""
-    agents_used: list[str] = []
-    predictions = getattr(response, "predictions", None)
-    if not predictions:
-        return reply, agents_used
-    pred = predictions[0]
-    if isinstance(pred, dict):
-        # Messages list with last message content
-        msgs = pred.get("messages") or pred.get("output") or pred.get("outputs")
-        if isinstance(msgs, list) and msgs:
-            last = msgs[-1]
-            if isinstance(last, dict):
-                reply = (last.get("content") or last.get("text") or "").strip()
-        if not reply:
-            reply = (pred.get("content") or pred.get("text") or pred.get("synthesis") or "").strip()
-        raw_agents = pred.get("agents_used")
-        agents_used = list(raw_agents) if isinstance(raw_agents, (list, tuple)) else []
-    elif isinstance(pred, str):
-        reply = pred.strip()
-    return reply, agents_used
-
-
 def _ai_gateway_endpoint() -> str:
     """Return the foundation model endpoint name for direct AI Gateway chat."""
     return (os.getenv(AI_GATEWAY_ENDPOINT_ENV) or "").strip() or AI_GATEWAY_ENDPOINT_DEFAULT
@@ -865,31 +841,32 @@ async def get_agent_url(request: Request, agent_id: str) -> AgentUrlOut:
     )
 
 
-@router.get("/agents/types/summary", response_model=dict[str, Any], operation_id="getAgentTypeSummary")
-async def get_type_summary() -> dict[str, Any]:
-    """
-    Get summary of agents by type with descriptions.
-    
-    Returns counts and agent lists for each type.
-    """
-    summary = {}
-    
+class AgentTypeAgentSummary(BaseModel):
+    id: str
+    name: str
+    use_case: str
+
+
+class AgentTypeDetail(BaseModel):
+    name: str
+    count: int
+    agents: list[AgentTypeAgentSummary]
+
+
+class AgentTypeSummaryOut(BaseModel):
+    types: dict[str, AgentTypeDetail]
+    total_agents: int
+
+
+@router.get("/agents/types/summary", response_model=AgentTypeSummaryOut, operation_id="getAgentTypeSummary")
+async def get_type_summary() -> AgentTypeSummaryOut:
+    """Get summary of agents by type with descriptions."""
+    types: dict[str, AgentTypeDetail] = {}
     for agent_type in AgentType:
         agents_in_type = [a for a in AGENTS if a.agent_type == agent_type]
-        summary[agent_type.value] = {
-            "name": agent_type.value.replace("_", " ").title(),
-            "count": len(agents_in_type),
-            "agents": [
-                {
-                    "id": a.id,
-                    "name": a.name,
-                    "use_case": a.use_case,
-                }
-                for a in agents_in_type
-            ],
-        }
-    
-    return {
-        "types": summary,
-        "total_agents": len(AGENTS),
-    }
+        types[agent_type.value] = AgentTypeDetail(
+            name=agent_type.value.replace("_", " ").title(),
+            count=len(agents_in_type),
+            agents=[AgentTypeAgentSummary(id=a.id, name=a.name, use_case=a.use_case) for a in agents_in_type],
+        )
+    return AgentTypeSummaryOut(types=types, total_agents=len(AGENTS))

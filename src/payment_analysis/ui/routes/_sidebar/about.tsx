@@ -42,7 +42,7 @@ const HERO = {
     { label: "AI Agents", value: "8", detail: "1 ResponsesAgent, 2 Genie, 3 Serving, 2 Gateway" },
     { label: "ML Models", value: "4", detail: "Approval, Risk, Routing, Retry" },
     { label: "Dashboards", value: "3", detail: "Unified AI/BI Lakeview (13 pages, 57 widgets)" },
-    { label: "Gold Views", value: "26", detail: "Real-time streaming analytics" },
+    { label: "Gold Views", value: "26", detail: "Including 3 metric views + retry analytics" },
     { label: "Jobs", value: "7", detail: "Orchestration & setup (serverless)" },
     { label: "Pipelines", value: "2", detail: "Continuous Lakeflow (Bronze → Silver → Gold)" },
     { label: "Serving Endpoints", value: "5", detail: "4 ML + 1 Agent (serverless)" },
@@ -60,7 +60,7 @@ const SOLUTION_OVERVIEW = {
       label: "Data Foundation",
       title: "Lakehouse + Lakebase + Vector Search",
       description:
-        "Unity Catalog governs a full medallion architecture (Bronze → Silver → Gold) with 26 gold views. Two continuous Lakeflow pipelines (Pipeline 8: ETL, Pipeline 9: Real-time stream) process payment events in under 5 seconds. Lakebase (managed PostgreSQL) stores operational data — approval rules, experiments, incidents, decision logs, and agent proposals. Vector Search enables similarity lookup for experience replay in the DecisionEngine.",
+        "Unity Catalog governs a full medallion architecture (Bronze → Silver → Gold) with 26 gold SQL views (including 3 metric views) + 9 gold DLT tables. Two continuous Lakeflow pipelines (Pipeline 8: ETL, Pipeline 9: Real-time stream) process payment events in under 5 seconds. Lakebase (managed PostgreSQL) stores operational data — approval rules, experiments, incidents, decision logs, and agent proposals. Vector Search enables similarity lookup for experience replay in the DecisionEngine.",
       tech: ["Unity Catalog", "Delta Lake", "Lakeflow Pipelines (2)", "Lakebase (PostgreSQL)", "Vector Search", "Serverless SQL Warehouse"],
     },
     {
@@ -150,7 +150,7 @@ const RESOURCE_INVENTORY = {
       category: "Data Infrastructure",
       icon: Database,
       items: [
-        "Unity Catalog: ahs_demos_catalog.payment_analysis (26 gold views, 3 layers)",
+        "Unity Catalog: ahs_demos_catalog.payment_analysis (26 gold SQL views + 9 DLT tables, 3 layers)",
         "SQL Warehouse: Serverless, payment-optimized query engine",
         "Lakebase: Managed PostgreSQL (rules, experiments, incidents, decisions, proposals)",
         "Delta Lake: ACID tables with streaming + batch in medallion architecture",
@@ -176,7 +176,7 @@ const TECH_SUMMARY = [
   { label: "LLM Strategy", value: "Claude Opus 4.6 (orchestrator / fallback) + Claude Sonnet 4.5 (Genie / specialists)" },
   { label: "Lakebase", value: "Managed PostgreSQL — approval rules, experiments, incidents, decision logs, proposals" },
   { label: "Application", value: "Databricks App: FastAPI backend + React frontend + 2 floating AI chat dialogs" },
-  { label: "Dashboards", value: "3 unified AI/BI Lakeview dashboards (13 pages, 57 widgets) + 26 gold views" },
+  { label: "Dashboards", value: "3 unified AI/BI Lakeview dashboards (13 pages, 57 widgets) + 26 gold SQL views" },
   { label: "Decision Engine", value: "Parallel ML + VS enrichment, streaming features, thread-safe caching, outcome feedback" },
   { label: "Jobs & Pipelines", value: "7 serverless orchestration jobs + 2 continuous Lakeflow pipelines" },
   { label: "Infrastructure", value: "100% serverless compute — deployed via Databricks Asset Bundles (IaC)" },

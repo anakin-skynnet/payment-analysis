@@ -49,6 +49,23 @@ export const AgentType = {
 
 export type AgentType = (typeof AgentType)[keyof typeof AgentType];
 
+export interface AgentTypeAgentSummary {
+  id: string;
+  name: string;
+  use_case: string;
+}
+
+export interface AgentTypeDetail {
+  agents: AgentTypeAgentSummary[];
+  count: number;
+  name: string;
+}
+
+export interface AgentTypeSummaryOut {
+  total_agents: number;
+  types: Record<string, AgentTypeDetail>;
+}
+
 export interface AgentUrlOut {
   agent_id: string;
   agent_type: string;
@@ -146,6 +163,15 @@ export interface AuthorizationEvent {
   result: string;
 }
 
+export interface CardNetworkPerformanceOut {
+  approval_rate?: number | null;
+  approval_rate_pct?: number | null;
+  approved_count?: number | null;
+  card_network?: string | null;
+  total_value?: number | null;
+  transaction_count?: number | null;
+}
+
 export interface ChatIn {
   message: string;
 }
@@ -187,6 +213,21 @@ export interface CountryOut {
   name: string;
 }
 
+export interface DailyTrendOut {
+  approval_rate?: number | null;
+  approval_rate_pct?: number | null;
+  approved_count?: number | null;
+  event_date?: string | null;
+  total_transactions?: number | null;
+  total_value?: number | null;
+  transaction_count?: number | null;
+}
+
+export interface DashboardCategoriesOut {
+  categories: Record<string, DashboardCategoryDetail>;
+  total_dashboards: number;
+}
+
 export const DashboardCategory = {
   executive: "executive",
   operations: "operations",
@@ -195,6 +236,12 @@ export const DashboardCategory = {
 } as const;
 
 export type DashboardCategory = (typeof DashboardCategory)[keyof typeof DashboardCategory];
+
+export interface DashboardCategoryDetail {
+  count: number;
+  dashboards: string[];
+  name: string;
+}
 
 export interface DashboardDataOut {
   dashboard_id: string;
@@ -217,6 +264,21 @@ export interface DashboardList {
   categories: Record<string, number>;
   dashboards: DashboardInfo[];
   total: number;
+}
+
+export interface DashboardTagsOut {
+  tags: Record<string, number>;
+  total_tags: number;
+}
+
+export interface DashboardUrlOut {
+  dashboard_id: string;
+  embed?: boolean;
+  embed_url?: string | null;
+  full_embed_url?: string | null;
+  full_url?: string | null;
+  instructions?: string | null;
+  url: string;
 }
 
 export interface DataQualitySummaryOut {
@@ -300,11 +362,27 @@ export interface DeclineBucketOut {
   total_value?: number | null;
 }
 
+export interface DeclineRecoveryOpportunityOut {
+  decline_count?: number | null;
+  decline_reason?: string | null;
+  estimated_recovery_rate?: number | null;
+  recommended_action?: string | null;
+  recoverable_amount?: number | null;
+  recovery_strategy?: string | null;
+  total_declined_value?: number | null;
+  transaction_count?: number | null;
+}
+
 export interface DedupCollisionStatsOut {
   avg_entry_systems_per_key: number;
   avg_rows_per_key: number;
   avg_transaction_ids_per_key: number;
   colliding_keys: number;
+}
+
+export interface DeleteDeclineCodeOut {
+  code: string;
+  deleted: boolean;
 }
 
 export interface EntrySystemDistributionOut {
@@ -391,6 +469,8 @@ export interface HealthDatabricksOut {
 export interface HealthcheckOut {
   status: string;
   timestamp: string;
+  uptime_seconds?: number;
+  version?: string;
 }
 
 export interface Incident {
@@ -463,6 +543,15 @@ export interface MarkReadOut {
   marked: number;
 }
 
+export interface MerchantSegmentPerformanceOut {
+  approval_rate?: number | null;
+  approval_rate_pct?: number | null;
+  avg_transaction_amount?: number | null;
+  merchant_segment?: string | null;
+  total_value?: number | null;
+  transaction_count?: number | null;
+}
+
 export interface ModelMetricOut {
   name: string;
   value: string;
@@ -492,6 +581,23 @@ export const NotebookCategory = {
 } as const;
 
 export type NotebookCategory = (typeof NotebookCategory)[keyof typeof NotebookCategory];
+
+export interface NotebookCategoryDetail {
+  count: number;
+  name: string;
+  notebooks: NotebookCategorySummaryItem[];
+}
+
+export interface NotebookCategorySummaryItem {
+  id: string;
+  job_name?: string | null;
+  name: string;
+}
+
+export interface NotebookCategorySummaryOut {
+  categories: Record<string, NotebookCategoryDetail>;
+  total_notebooks: number;
+}
 
 export interface NotebookInfo {
   category: NotebookCategory;
@@ -1187,7 +1293,7 @@ export function useListAgentsSuspense<TData = { data: AgentList }>(options?: { p
   return useSuspenseQuery({ queryKey: listAgentsKey(options?.params), queryFn: () => listAgents(options?.params), ...options?.query });
 }
 
-export const getAgentTypeSummary = async (options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+export const getAgentTypeSummary = async (options?: RequestInit): Promise<{ data: AgentTypeSummaryOut }> => {
   const res = await fetch("/api/agents/agents/types/summary", { ...options, method: "GET" });
   if (!res.ok) {
     const body = await res.text();
@@ -1202,11 +1308,11 @@ export const getAgentTypeSummaryKey = () => {
   return ["/api/agents/agents/types/summary"] as const;
 };
 
-export function useGetAgentTypeSummary<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetAgentTypeSummary<TData = { data: AgentTypeSummaryOut }>(options?: { query?: Omit<UseQueryOptions<{ data: AgentTypeSummaryOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useQuery({ queryKey: getAgentTypeSummaryKey(), queryFn: () => getAgentTypeSummary(), ...options?.query });
 }
 
-export function useGetAgentTypeSummarySuspense<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetAgentTypeSummarySuspense<TData = { data: AgentTypeSummaryOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: AgentTypeSummaryOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getAgentTypeSummaryKey(), queryFn: () => getAgentTypeSummary(), ...options?.query });
 }
 
@@ -1313,7 +1419,7 @@ export function useGetActiveAlertsSuspense<TData = { data: ActiveAlertOut[] }>(o
   return useSuspenseQuery({ queryKey: getActiveAlertsKey(options?.params), queryFn: () => getActiveAlerts(options?.params), ...options?.query });
 }
 
-export const getCardNetworkPerformance = async (params?: GetCardNetworkPerformanceParams, options?: RequestInit): Promise<{ data: Record<string, unknown>[] }> => {
+export const getCardNetworkPerformance = async (params?: GetCardNetworkPerformanceParams, options?: RequestInit): Promise<{ data: CardNetworkPerformanceOut[] }> => {
   const searchParams = new URLSearchParams();
   if (params?.limit != null) searchParams.set("limit", String(params?.limit));
   const queryString = searchParams.toString();
@@ -1332,11 +1438,11 @@ export const getCardNetworkPerformanceKey = (params?: GetCardNetworkPerformanceP
   return ["/api/analytics/card-network-performance", params] as const;
 };
 
-export function useGetCardNetworkPerformance<TData = { data: Record<string, unknown>[] }>(options?: { params?: GetCardNetworkPerformanceParams; query?: Omit<UseQueryOptions<{ data: Record<string, unknown>[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetCardNetworkPerformance<TData = { data: CardNetworkPerformanceOut[] }>(options?: { params?: GetCardNetworkPerformanceParams; query?: Omit<UseQueryOptions<{ data: CardNetworkPerformanceOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useQuery({ queryKey: getCardNetworkPerformanceKey(options?.params), queryFn: () => getCardNetworkPerformance(options?.params), ...options?.query });
 }
 
-export function useGetCardNetworkPerformanceSuspense<TData = { data: Record<string, unknown>[] }>(options?: { params?: GetCardNetworkPerformanceParams; query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown>[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetCardNetworkPerformanceSuspense<TData = { data: CardNetworkPerformanceOut[] }>(options?: { params?: GetCardNetworkPerformanceParams; query?: Omit<UseSuspenseQueryOptions<{ data: CardNetworkPerformanceOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getCardNetworkPerformanceKey(options?.params), queryFn: () => getCardNetworkPerformance(options?.params), ...options?.query });
 }
 
@@ -1410,7 +1516,7 @@ export function useGetCountriesSuspense<TData = { data: CountryOut[] }>(options?
   return useSuspenseQuery({ queryKey: getCountriesKey(options?.params), queryFn: () => getCountries(options?.params), ...options?.query });
 }
 
-export const getDailyTrends = async (params?: GetDailyTrendsParams, options?: RequestInit): Promise<{ data: Record<string, unknown>[] }> => {
+export const getDailyTrends = async (params?: GetDailyTrendsParams, options?: RequestInit): Promise<{ data: DailyTrendOut[] }> => {
   const searchParams = new URLSearchParams();
   if (params?.days != null) searchParams.set("days", String(params?.days));
   const queryString = searchParams.toString();
@@ -1429,11 +1535,11 @@ export const getDailyTrendsKey = (params?: GetDailyTrendsParams) => {
   return ["/api/analytics/daily-trends", params] as const;
 };
 
-export function useGetDailyTrends<TData = { data: Record<string, unknown>[] }>(options?: { params?: GetDailyTrendsParams; query?: Omit<UseQueryOptions<{ data: Record<string, unknown>[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetDailyTrends<TData = { data: DailyTrendOut[] }>(options?: { params?: GetDailyTrendsParams; query?: Omit<UseQueryOptions<{ data: DailyTrendOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useQuery({ queryKey: getDailyTrendsKey(options?.params), queryFn: () => getDailyTrends(options?.params), ...options?.query });
 }
 
-export function useGetDailyTrendsSuspense<TData = { data: Record<string, unknown>[] }>(options?: { params?: GetDailyTrendsParams; query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown>[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetDailyTrendsSuspense<TData = { data: DailyTrendOut[] }>(options?: { params?: GetDailyTrendsParams; query?: Omit<UseSuspenseQueryOptions<{ data: DailyTrendOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getDailyTrendsKey(options?.params), queryFn: () => getDailyTrends(options?.params), ...options?.query });
 }
 
@@ -1511,7 +1617,7 @@ export function useGetDatabricksDeclinesSuspense<TData = { data: DeclineBucketOu
   return useSuspenseQuery({ queryKey: getDatabricksDeclinesKey(), queryFn: () => getDatabricksDeclines(), ...options?.query });
 }
 
-export const getDeclineRecoveryOpportunities = async (params?: GetDeclineRecoveryOpportunitiesParams, options?: RequestInit): Promise<{ data: Record<string, unknown>[] }> => {
+export const getDeclineRecoveryOpportunities = async (params?: GetDeclineRecoveryOpportunitiesParams, options?: RequestInit): Promise<{ data: DeclineRecoveryOpportunityOut[] }> => {
   const searchParams = new URLSearchParams();
   if (params?.limit != null) searchParams.set("limit", String(params?.limit));
   const queryString = searchParams.toString();
@@ -1530,11 +1636,11 @@ export const getDeclineRecoveryOpportunitiesKey = (params?: GetDeclineRecoveryOp
   return ["/api/analytics/declines/recovery-opportunities", params] as const;
 };
 
-export function useGetDeclineRecoveryOpportunities<TData = { data: Record<string, unknown>[] }>(options?: { params?: GetDeclineRecoveryOpportunitiesParams; query?: Omit<UseQueryOptions<{ data: Record<string, unknown>[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetDeclineRecoveryOpportunities<TData = { data: DeclineRecoveryOpportunityOut[] }>(options?: { params?: GetDeclineRecoveryOpportunitiesParams; query?: Omit<UseQueryOptions<{ data: DeclineRecoveryOpportunityOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useQuery({ queryKey: getDeclineRecoveryOpportunitiesKey(options?.params), queryFn: () => getDeclineRecoveryOpportunities(options?.params), ...options?.query });
 }
 
-export function useGetDeclineRecoveryOpportunitiesSuspense<TData = { data: Record<string, unknown>[] }>(options?: { params?: GetDeclineRecoveryOpportunitiesParams; query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown>[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetDeclineRecoveryOpportunitiesSuspense<TData = { data: DeclineRecoveryOpportunityOut[] }>(options?: { params?: GetDeclineRecoveryOpportunitiesParams; query?: Omit<UseSuspenseQueryOptions<{ data: DeclineRecoveryOpportunityOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getDeclineRecoveryOpportunitiesKey(options?.params), queryFn: () => getDeclineRecoveryOpportunities(options?.params), ...options?.query });
 }
 
@@ -1769,7 +1875,7 @@ export function useGetLastHourPerformanceSuspense<TData = { data: LastHourPerfor
   return useSuspenseQuery({ queryKey: getLastHourPerformanceKey(), queryFn: () => getLastHourPerformance(), ...options?.query });
 }
 
-export const getMerchantSegmentPerformance = async (params?: GetMerchantSegmentPerformanceParams, options?: RequestInit): Promise<{ data: Record<string, unknown>[] }> => {
+export const getMerchantSegmentPerformance = async (params?: GetMerchantSegmentPerformanceParams, options?: RequestInit): Promise<{ data: MerchantSegmentPerformanceOut[] }> => {
   const searchParams = new URLSearchParams();
   if (params?.limit != null) searchParams.set("limit", String(params?.limit));
   const queryString = searchParams.toString();
@@ -1788,11 +1894,11 @@ export const getMerchantSegmentPerformanceKey = (params?: GetMerchantSegmentPerf
   return ["/api/analytics/merchant-segment-performance", params] as const;
 };
 
-export function useGetMerchantSegmentPerformance<TData = { data: Record<string, unknown>[] }>(options?: { params?: GetMerchantSegmentPerformanceParams; query?: Omit<UseQueryOptions<{ data: Record<string, unknown>[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetMerchantSegmentPerformance<TData = { data: MerchantSegmentPerformanceOut[] }>(options?: { params?: GetMerchantSegmentPerformanceParams; query?: Omit<UseQueryOptions<{ data: MerchantSegmentPerformanceOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useQuery({ queryKey: getMerchantSegmentPerformanceKey(options?.params), queryFn: () => getMerchantSegmentPerformance(options?.params), ...options?.query });
 }
 
-export function useGetMerchantSegmentPerformanceSuspense<TData = { data: Record<string, unknown>[] }>(options?: { params?: GetMerchantSegmentPerformanceParams; query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown>[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetMerchantSegmentPerformanceSuspense<TData = { data: MerchantSegmentPerformanceOut[] }>(options?: { params?: GetMerchantSegmentPerformanceParams; query?: Omit<UseSuspenseQueryOptions<{ data: MerchantSegmentPerformanceOut[] }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getMerchantSegmentPerformanceKey(options?.params), queryFn: () => getMerchantSegmentPerformance(options?.params), ...options?.query });
 }
 
@@ -2354,7 +2460,7 @@ export function useListDashboardsSuspense<TData = { data: DashboardList }>(optio
   return useSuspenseQuery({ queryKey: listDashboardsKey(options?.params), queryFn: () => listDashboards(options?.params), ...options?.query });
 }
 
-export const listDashboardCategories = async (options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+export const listDashboardCategories = async (options?: RequestInit): Promise<{ data: DashboardCategoriesOut }> => {
   const res = await fetch("/api/dashboards/categories/list", { ...options, method: "GET" });
   if (!res.ok) {
     const body = await res.text();
@@ -2369,15 +2475,15 @@ export const listDashboardCategoriesKey = () => {
   return ["/api/dashboards/categories/list"] as const;
 };
 
-export function useListDashboardCategories<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useListDashboardCategories<TData = { data: DashboardCategoriesOut }>(options?: { query?: Omit<UseQueryOptions<{ data: DashboardCategoriesOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useQuery({ queryKey: listDashboardCategoriesKey(), queryFn: () => listDashboardCategories(), ...options?.query });
 }
 
-export function useListDashboardCategoriesSuspense<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useListDashboardCategoriesSuspense<TData = { data: DashboardCategoriesOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: DashboardCategoriesOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: listDashboardCategoriesKey(), queryFn: () => listDashboardCategories(), ...options?.query });
 }
 
-export const listDashboardTags = async (options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+export const listDashboardTags = async (options?: RequestInit): Promise<{ data: DashboardTagsOut }> => {
   const res = await fetch("/api/dashboards/tags/list", { ...options, method: "GET" });
   if (!res.ok) {
     const body = await res.text();
@@ -2392,11 +2498,11 @@ export const listDashboardTagsKey = () => {
   return ["/api/dashboards/tags/list"] as const;
 };
 
-export function useListDashboardTags<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useListDashboardTags<TData = { data: DashboardTagsOut }>(options?: { query?: Omit<UseQueryOptions<{ data: DashboardTagsOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useQuery({ queryKey: listDashboardTagsKey(), queryFn: () => listDashboardTags(), ...options?.query });
 }
 
-export function useListDashboardTagsSuspense<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useListDashboardTagsSuspense<TData = { data: DashboardTagsOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: DashboardTagsOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: listDashboardTagsKey(), queryFn: () => listDashboardTags(), ...options?.query });
 }
 
@@ -2446,7 +2552,7 @@ export function useGetDashboardDataSuspense<TData = { data: DashboardDataOut }>(
   return useSuspenseQuery({ queryKey: getDashboardDataKey(options.params), queryFn: () => getDashboardData(options.params), ...options?.query });
 }
 
-export const getDashboardUrl = async (params: GetDashboardUrlParams, options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+export const getDashboardUrl = async (params: GetDashboardUrlParams, options?: RequestInit): Promise<{ data: DashboardUrlOut }> => {
   const searchParams = new URLSearchParams();
   if (params?.embed != null) searchParams.set("embed", String(params?.embed));
   const queryString = searchParams.toString();
@@ -2465,11 +2571,11 @@ export const getDashboardUrlKey = (params?: GetDashboardUrlParams) => {
   return ["/api/dashboards/{dashboard_id}/url", params] as const;
 };
 
-export function useGetDashboardUrl<TData = { data: Record<string, unknown> }>(options: { params: GetDashboardUrlParams; query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetDashboardUrl<TData = { data: DashboardUrlOut }>(options: { params: GetDashboardUrlParams; query?: Omit<UseQueryOptions<{ data: DashboardUrlOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useQuery({ queryKey: getDashboardUrlKey(options.params), queryFn: () => getDashboardUrl(options.params), ...options?.query });
 }
 
-export function useGetDashboardUrlSuspense<TData = { data: Record<string, unknown> }>(options: { params: GetDashboardUrlParams; query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetDashboardUrlSuspense<TData = { data: DashboardUrlOut }>(options: { params: GetDashboardUrlParams; query?: Omit<UseSuspenseQueryOptions<{ data: DashboardUrlOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getDashboardUrlKey(options.params), queryFn: () => getDashboardUrl(options.params), ...options?.query });
 }
 
@@ -2549,7 +2655,7 @@ export function useCreateRetryableDeclineCode(options?: { mutation?: UseMutation
   return useMutation({ mutationFn: (data) => createRetryableDeclineCode(data), ...options?.mutation });
 }
 
-export const deleteRetryableDeclineCode = async (params: DeleteRetryableDeclineCodeParams, options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+export const deleteRetryableDeclineCode = async (params: DeleteRetryableDeclineCodeParams, options?: RequestInit): Promise<{ data: DeleteDeclineCodeOut }> => {
   const res = await fetch(`/api/decision/admin/decline-codes/${params.code}`, { ...options, method: "DELETE" });
   if (!res.ok) {
     const body = await res.text();
@@ -2560,7 +2666,7 @@ export const deleteRetryableDeclineCode = async (params: DeleteRetryableDeclineC
   return { data: await res.json() };
 };
 
-export function useDeleteRetryableDeclineCode(options?: { mutation?: UseMutationOptions<{ data: Record<string, unknown> }, ApiError, { params: DeleteRetryableDeclineCodeParams }> }) {
+export function useDeleteRetryableDeclineCode(options?: { mutation?: UseMutationOptions<{ data: DeleteDeclineCodeOut }, ApiError, { params: DeleteRetryableDeclineCodeParams }> }) {
   return useMutation({ mutationFn: (vars) => deleteRetryableDeclineCode(vars.params), ...options?.mutation });
 }
 
@@ -3009,7 +3115,7 @@ export function useListNotebooksSuspense<TData = { data: NotebookList }>(options
   return useSuspenseQuery({ queryKey: listNotebooksKey(options?.params), queryFn: () => listNotebooks(options?.params), ...options?.query });
 }
 
-export const getNotebookCategorySummary = async (options?: RequestInit): Promise<{ data: Record<string, unknown> }> => {
+export const getNotebookCategorySummary = async (options?: RequestInit): Promise<{ data: NotebookCategorySummaryOut }> => {
   const res = await fetch("/api/notebooks/notebooks/categories/summary", { ...options, method: "GET" });
   if (!res.ok) {
     const body = await res.text();
@@ -3024,11 +3130,11 @@ export const getNotebookCategorySummaryKey = () => {
   return ["/api/notebooks/notebooks/categories/summary"] as const;
 };
 
-export function useGetNotebookCategorySummary<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetNotebookCategorySummary<TData = { data: NotebookCategorySummaryOut }>(options?: { query?: Omit<UseQueryOptions<{ data: NotebookCategorySummaryOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useQuery({ queryKey: getNotebookCategorySummaryKey(), queryFn: () => getNotebookCategorySummary(), ...options?.query });
 }
 
-export function useGetNotebookCategorySummarySuspense<TData = { data: Record<string, unknown> }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: Record<string, unknown> }, ApiError, TData>, "queryKey" | "queryFn"> }) {
+export function useGetNotebookCategorySummarySuspense<TData = { data: NotebookCategorySummaryOut }>(options?: { query?: Omit<UseSuspenseQueryOptions<{ data: NotebookCategorySummaryOut }, ApiError, TData>, "queryKey" | "queryFn"> }) {
   return useSuspenseQuery({ queryKey: getNotebookCategorySummaryKey(), queryFn: () => getNotebookCategorySummary(), ...options?.query });
 }
 

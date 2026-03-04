@@ -12,7 +12,7 @@ Architecture, data flow, ML models, AI agents, control panel, and project struct
 
 **Data flow:** Ingestion → Processing (Bronze → Silver → Gold, <5s) → Intelligence (ML + ResponsesAgent + Vector Search) → Analytics (3 unified dashboards, Genie) → Application (FastAPI + React).
 
-Medallion: Bronze `payments_raw_bronze`, `merchants_dim_bronze` (100 merchants, 8 segments), Silver `payments_enriched_silver`, Gold 24 SQL views + 9 DLT tables. Lakehouse bootstrap creates `app_config`, rules, recommendations, and related views. Vector Search delta-sync index `similar_transactions_index` on `transaction_summaries_for_search` for similar-transaction lookup (populated from silver via MERGE, synced to embedding model `databricks-bge-large-en`).
+Medallion: Bronze `payments_raw_bronze`, `merchants_dim_bronze` (100 merchants, 8 segments), Silver `payments_enriched_silver`, Gold 26 SQL views + 9 DLT tables. Lakehouse bootstrap creates `app_config`, rules, recommendations, and related views. Vector Search delta-sync index `similar_transactions_index` on `transaction_summaries_for_search` for similar-transaction lookup (populated from silver via MERGE, synced to embedding model `databricks-bge-large-en`).
 
 ---
 
@@ -172,7 +172,7 @@ All UI data goes through the FastAPI backend. No direct Lakebase or Databricks c
 
 ## 6. Control panel & UI
 
-All data is **fetched from the Databricks backend** and is **interactive**. 16 pages in total.
+All data is **fetched from the Databricks backend** and is **interactive**. 21 pages + 2 floating AI dialogs.
 
 ### Setup & Run (Operations)
 
@@ -249,10 +249,11 @@ The solution is Databricks-native and aligned with current product naming (Lakef
 
 **References:** [Apps Cookbook](https://apps-cookbook.dev/docs/intro), [apx](https://github.com/databricks-solutions/apx), [AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit).
 
-- **API:** All routes use `response_model` and `operation_id` for OpenAPI client generation. API prefix `/api`. Health: `/api/v1/healthcheck`, `/api/v1/health/database`.
-- **Cookbook:** FastAPI layout, `/api` prefix, healthcheck at `/api/v1/healthcheck`, OAuth2/token auth.
+- **API:** All routes use strongly typed Pydantic `response_model` (no `list[dict]` or `dict[str, Any]`) and `operation_id` for OpenAPI client generation. API prefix `/api`. Health: `/api/v1/healthcheck` (with `version` and `uptime_seconds`), `/api/v1/health/database`.
+- **Cookbook:** FastAPI layout, `/api` prefix, healthcheck at `/api/v1/healthcheck`, OAuth2/token auth, Lakebase connection pooling (`pool_size=5`, `max_overflow=10`, `pool_timeout=10`), background token refresh daemon (every 50 min), cached username.
 - **apx:** Full-stack (React + FastAPI), OpenAPI client at build time, `apx dev check` / `apx build`, shadcn/ui under `src/payment_analysis/ui/components/`, uv for Python, Bun for frontend.
 - **AI Dev Kit:** Databricks SDK usage (no guessing API), MCP tools, Asset Bundles, Apps as first-class.
+- **Data normalization:** Pydantic `model_validator` syncs field name variants (`approval_rate` ↔ `approval_rate_pct`, `total_transactions` ↔ `transaction_count`) so frontend always receives both, regardless of data source (mock or Databricks).
 
 ---
 
@@ -296,15 +297,31 @@ The solution is Databricks-native and aligned with current product naming (Lakef
 | V-4 | **Merchant dimension fix** — `spark.range(100)` with 8 segments | Full coverage: all 100 simulator merchants have dimension data |
 | V-5 | **Pinned frontend deps** — removed all `^` from `package.json` | Reproducible builds; exact version alignment |
 
+### Code quality & infrastructure optimizations (March 2026)
+
+| # | Enhancement | Impact |
+|---|-------------|--------|
+| M-1 | **Pydantic model_validator** — `MerchantSegmentPerformanceOut`, `DailyTrendOut`, `CardNetworkPerformanceOut` sync field name variants | Frontend always receives both `approval_rate` and `approval_rate_pct` regardless of data source |
+| M-2 | **Strongly typed API responses** — all 10 previously untyped endpoints now use custom Pydantic models | OpenAPI client generates full TypeScript types; no more `as Record<string, unknown>[]` casts |
+| M-3 | **Lakebase connection pooling** — `pool_size=5`, `max_overflow=10`, `pool_timeout=10`, `connect_timeout=30` | Apps Cookbook–aligned; reduced cold-connect latency |
+| M-4 | **Background token refresh** — daemon thread refreshes Lakebase credential every 50 min | No synchronous SDK calls on each new connection |
+| M-5 | **Cached username** — `client_id` / `DATABRICKS_CLIENT_ID` preferred; `current_user.me()` only as fallback | Avoids expensive HTTP call during engine construction |
+| M-6 | **WorkspaceClient dedup** — `_resolve_host_and_creds()` helper | Single code path for host/token/SP resolution |
+| M-7 | **Healthcheck** — `version` and `uptime_seconds` fields added | Runtime observability |
+| M-8 | **Chart Y-axis** — approval trend uses `["dataMin - 5", "dataMax + 3"]` | Trend variation visible instead of flat line |
+| M-9 | **Context-specific chat errors** — 401/403/503/504 display actionable guidance | Users know exactly how to fix: open from Compute → Apps, run Job 6, etc. |
+| M-10 | **React Query tuning** — `staleTime: 30s`, `gcTime: 10min`, smart retry skips 401/403/404 | Fewer redundant refetches; no retry on permanent errors |
+| M-11 | **Rules save error UX** — 502/503 shows "Lakebase not reachable" with guidance | Actionable instead of raw HTTP status |
+
 All enhancements are verified with `uv run apx dev check` (zero errors) and `uv run apx build` (production build passes).
 
 ---
 
 ## 9. Testing & Validation
 
-**Status:** ✅ **PRODUCTION-READY** (February 17, 2026)
+**Status:** ✅ **PRODUCTION-READY** (March 4, 2026)
 
-All components have been thoroughly tested and validated by expert QA testing.
+All components have been thoroughly tested and validated by expert QA testing. Most recent deep QA session: March 4, 2026 — automated browser testing of all 21 pages + 2 floating dialogs with console error monitoring and data validation.
 
 ### 9.1 Databricks Resource Validation
 
@@ -319,28 +336,44 @@ All components have been thoroughly tested and validated by expert QA testing.
 
 **SQL Warehouse & Gold Views:** ✅ **VERIFIED**
 - SQL Warehouse operational
-- All 24 gold views accessible via Unity Catalog
+- All 26 gold views accessible via Unity Catalog
 - Average query time: 4.4 seconds (acceptable for analytics)
 
 **App Resources:** ✅ **CONFIGURED**
-- 19 resources properly bound (SQL Warehouse, UC Volume, Genie Space, 5 Model Serving endpoints)
+- 8 resources properly bound (SQL Warehouse, UC Volume, Genie Space, 5 Model Serving endpoints)
 
 ### 9.2 Frontend Component Validation
 
-**Status:** ✅ **ALL VALIDATED**
+**Status:** ✅ **ALL VALIDATED** (March 4, 2026 — automated browser testing)
 
-- ✅ Command Center: KPIs, charts, real-time data, data source indicators
-- ✅ AI Chatbot (ResponsesAgent): End-to-end flow verified with UC tools
-- ✅ Genie Assistant: Natural language analytics verified
-- ✅ Dashboard Integration: Native widget rendering verified
-- ✅ Decision Engine: ML predictions and decision logic verified
-- ✅ All other UI pages: Functional and connected to Databricks
+- ✅ Landing page: Hero, CTAs, "Where to act" cards, navigation
+- ✅ Command Center: KPIs, approval trend chart (auto-scaling Y-axis), merchant segment table (real approval rates), decline reasons chart, data source indicators
+- ✅ Dashboards: Dashboard cards, embed links
+- ✅ Declines: KPIs, decline summary, recovery opportunities, card network performance bars
+- ✅ Reason Codes: Insights table, entry system distribution, false insights, expert review form
+- ✅ Smart Checkout: Service path cards, 3DS funnel, path performance comparison
+- ✅ Smart Retry: KPIs (148K transactions, 57.2% success, $655K recovered), retry cohorts, performance charts
+- ✅ Decisioning: Preset scenarios, context form, ML decisions, recommendations, approval simulator
+- ✅ AI Agents: Agent cards, type filter, capabilities overview
+- ✅ Models: Model cards with catalog paths, features, metrics
+- ✅ Experiments: Create form, empty state
+- ✅ Data Quality: Live metrics, alerts, incident form
+- ✅ Rules: Rule table, add/edit/delete, type filter
+- ✅ Notebooks: Category grid
+- ✅ Setup: Jobs 1–7, pipelines, config, connection status
+- ✅ Profile: Error boundary with graceful fallback
+- ✅ About: Solution overview, resource inventory
+- ✅ AI Chatbot: Chat dialog, sample prompts, context-specific error messages
+- ✅ Genie Assistant: Data chat, context-specific error messages
 
 **Features Verified:**
-- React Query caching and Suspense boundaries
-- Error handling with fallback UI
+- React Query caching (30s staleTime, 10min gcTime) and Suspense boundaries
+- Smart retry: skips 401/403/404, retries transient errors up to 2 times
+- Error handling with fallback UI and "Try again" buttons on all routes
 - Data source headers (`X-Data-Source: lakehouse`)
+- Pydantic field normalization (approval_rate ↔ approval_rate_pct)
 - Session persistence and loading states
+- Context-specific error messages (401/403/503/504) in both chat dialogs
 
 ### 9.3 Backend API Validation
 
@@ -372,16 +405,40 @@ All components have been thoroughly tested and validated by expert QA testing.
 
 **Issue 1: Missing X-Data-Source Header**
 - **Problem:** `entry_system_distribution` endpoint didn't set `X-Data-Source` header
-- **Impact:** Frontend couldn't display data source indicator
 - **Fix:** Added `response: Response` parameter and `_set_data_source_header()` call
-- **File:** `src/payment_analysis/backend/routes/analytics.py`
 - **Status:** ✅ **FIXED**
 
 **Issue 2: Approval Rate Display Formatting**
 - **Problem:** Reason Codes page showed `0.88%` instead of `88%`
-- **Root Cause:** Mock data used 0-1 scale (0.8887) while Databricks returns 0-100 scale (88.87)
 - **Fix:** Updated all mock functions to use 0-100 percentage scale
-- **Files:** `src/payment_analysis/backend/mock_analytics.py`
+- **Status:** ✅ **FIXED**
+
+**Issue 3: Merchant Segment 0.0% Approval Rates (March 2026)**
+- **Problem:** Command Center showed 0.0% for all merchant segments
+- **Root Cause:** Mock data returns `approval_rate` but frontend read `approval_rate_pct` (null)
+- **Fix:** Pydantic `model_validator` syncs both fields; frontend uses `??` fallback chain
+- **Files:** `analytics.py`, `command-center.tsx`
+- **Status:** ✅ **FIXED**
+
+**Issue 4: Daily Trend Transaction Count Zero (March 2026)**
+- **Problem:** Daily trend chart showed zero transactions
+- **Root Cause:** Mock returns `total_transactions`, frontend read `transaction_count`
+- **Fix:** `DailyTrendOut` model_validator syncs both fields
+- **Status:** ✅ **FIXED**
+
+**Issue 5: Approval Rate Trend Chart Flat (March 2026)**
+- **Problem:** Hourly chart appeared as thin line (Y-axis 0–100 for ~85–92% data)
+- **Fix:** Changed Y-axis domain to auto-scaling with padding
+- **Status:** ✅ **FIXED**
+
+**Issue 6: AI Chat/Genie Raw Error Messages (March 2026)**
+- **Problem:** 503/401/403 showed raw HTTP text
+- **Fix:** Context-specific messages guiding users to open from Compute → Apps
+- **Status:** ✅ **FIXED**
+
+**Issue 7: Untyped API Response Models (March 2026)**
+- **Problem:** 10 endpoints used `list[dict]` or `dict[str, Any]` — no TypeScript types generated
+- **Fix:** Custom Pydantic models for all endpoints; OpenAPI client regenerated
 - **Status:** ✅ **FIXED**
 
 ### 9.6 Performance Metrics
@@ -418,16 +475,17 @@ All components have been thoroughly tested and validated by expert QA testing.
 - ✅ All Databricks resources verified and accessible
 - ✅ All ML endpoints in READY state
 - ✅ All dashboards accessible
-- ✅ All UI components functional
+- ✅ All 21 UI pages + 2 floating dialogs functional
 - ✅ Data source headers properly set
-- ✅ Mock data consistent with Databricks format
-- ✅ Code quality verified (TypeScript + Python)
+- ✅ Mock data consistent with Databricks format (field normalization via model_validator)
+- ✅ Code quality verified (TypeScript + Python, zero errors)
 - ✅ No critical linting issues
-- ✅ Error handling implemented
-- ✅ Performance optimizations applied
+- ✅ Error handling implemented (ErrorBoundary on all routes, context-specific chat errors)
+- ✅ Performance optimizations applied (connection pooling, token refresh, React Query tuning)
 - ✅ Security & authorization verified
+- ✅ Deep browser-automated QA testing passed (March 2026)
 
-**Conclusion:** The solution is **APPROVED FOR PRODUCTION USE**. All critical components are operational, all issues have been fixed, and the solution is optimized for production use.
+**Conclusion:** The solution is **APPROVED FOR PRODUCTION USE** (March 4, 2026). All critical components are operational, all issues have been fixed, and the solution is optimized for production use.
 
 ---
 

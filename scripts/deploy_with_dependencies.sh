@@ -15,6 +15,17 @@ TARGET="${1:-dev}"
 DATABRICKS_YML="databricks.yml"
 BACKUP="${DATABRICKS_YML}.deploy_with_deps.bak"
 
+cleanup_on_exit() {
+  local exit_code=$?
+  if [[ -f "$BACKUP" && $exit_code -ne 0 ]]; then
+    echo ""
+    echo "⚠️  Restoring databricks.yml from backup after error (exit code $exit_code)..."
+    cp "$BACKUP" "$DATABRICKS_YML"
+    rm -f "$BACKUP"
+  fi
+}
+trap cleanup_on_exit EXIT
+
 prepare_dashboards() {
   echo "Preparing dashboards for target=$TARGET..."
   if [[ "$TARGET" == "prod" ]]; then
@@ -61,23 +72,39 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "--- Phase 1: Deploy all resources except the App ---"
 comment_out_app_and_serving
-echo "Building web UI..."
-uv run apx build
-echo "Cleaning workspace dashboards..."
-WORKSPACE_PATH=$(databricks bundle validate -t "$TARGET" 2>/dev/null | sed -n 's/.*Path:[[:space:]]*\([^[:space:]]*\).*/\1/p' | head -1)
+
+# Resolve workspace path in background
+WORKSPACE_PATH_FILE=$(mktemp)
+WORKSPACE_FOLDER="${BUNDLE_VAR_workspace_folder:-payment-analysis}"
+(
+  PATH_VAL=$(databricks current-user me -o json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); u=d.get('userName',''); print(f'/Workspace/Users/{u}/${WORKSPACE_FOLDER}' if u else '')" 2>/dev/null || true)
+  [[ -z "$PATH_VAL" ]] && PATH_VAL=$(databricks bundle validate -t "$TARGET" 2>/dev/null | sed -n 's/.*Path:[[:space:]]*\([^[:space:]]*\).*/\1/p' | head -1)
+  echo "$PATH_VAL" > "$WORKSPACE_PATH_FILE"
+) &
+PATH_PID=$!
+
+echo "Building web UI and preparing dashboards (and resolving workspace path) in parallel..."
+uv run apx build &
+BUILD_PID=$!
+prepare_dashboards &
+PREPARE_PID=$!
+wait "$BUILD_PID" || exit $?
+wait "$PREPARE_PID" || exit $?
+wait "$PATH_PID" 2>/dev/null || true
+WORKSPACE_PATH=$(cat "$WORKSPACE_PATH_FILE" 2>/dev/null || true)
+rm -f "$WORKSPACE_PATH_FILE"
+
+echo "Cleaning workspace dashboards (except dbdemos*)..."
 if [[ -n "$WORKSPACE_PATH" ]]; then
   uv run python scripts/dashboards.py clean-workspace-except-dbdemos --path "$WORKSPACE_PATH" 2>/dev/null || true
 else
   uv run python scripts/dashboards.py clean-workspace-except-dbdemos 2>/dev/null || true
 fi
-prepare_dashboards
 echo "Deploying bundle (phase 1)..."
 EXTRA_VARS=()
 [[ -n "${LAKEBASE_INSTANCE_NAME:-}" ]] && EXTRA_VARS+=(--var "lakebase_instance_name=${LAKEBASE_INSTANCE_NAME}")
-databricks bundle deploy -t "$TARGET" --force --auto-approve "${EXTRA_VARS[@]}"
+databricks bundle deploy -t "$TARGET" --force --auto-approve --force-lock "${EXTRA_VARS[@]}"
 echo "Phase 1 deploy complete."
-echo ""
-echo "all resources deployed except the App. Run jobs 5 and 6. After completion, write the prompt \"deploy app\""
 echo ""
 
 # ---------------------------------------------------------------------------
@@ -111,20 +138,21 @@ restore_app_and_serving
 echo "Uncommenting serving endpoint bindings in fastapi_app.yml..."
 uv run python scripts/toggle_app_resources.py --enable-serving-endpoints
 echo "Deploying bundle (phase 2: model serving + app with bindings)..."
-databricks bundle deploy -t "$TARGET" --force --auto-approve "${EXTRA_VARS[@]}"
+echo "(Skipping dashboard prepare — already done in phase 1.)"
+databricks bundle deploy -t "$TARGET" --force --auto-approve --force-lock "${EXTRA_VARS[@]}"
 echo ""
 echo "================================================================================"
 echo "App deployed with all dependencies and resources assigned and uncommented."
 echo "================================================================================"
 echo ""
 
-echo "Publishing dashboards..."
-if uv run python scripts/dashboards.py publish 2>/dev/null; then
-  echo "Dashboards published."
-else
-  echo "Dashboard publish skipped or failed."
-fi
+echo "Publishing dashboards and granting SP permissions in parallel..."
+uv run python scripts/dashboards.py publish 2>/dev/null || echo "Dashboard publish skipped or failed." &
+PUBLISH_PID=$!
+(uv run python scripts/grant_sp_permissions.py 2>&1 || echo "⚠️  SP permission grant had issues (non-fatal). Check logs.") &
+GRANT_PID=$!
+wait "$PUBLISH_PID" 2>/dev/null || true
+wait "$GRANT_PID" 2>/dev/null || true
 
 rm -f "$BACKUP"
 echo "=== Two-phase deploy finished ==="
-echo "Set ORCHESTRATOR_SERVING_ENDPOINT=payment-analysis-orchestrator in app.yml or App Environment to use AgentBricks chat."
