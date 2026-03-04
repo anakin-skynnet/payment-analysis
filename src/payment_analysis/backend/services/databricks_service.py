@@ -1212,7 +1212,9 @@ class DatabricksService:
         """
         catalog_path_prefix = f"{self.config.catalog}.{self.config.schema}."
 
-        # Try to fetch live metrics from UC model registry
+        # Try to fetch live metrics from UC model registry.
+        # system.ml.model_versions / model_version_tags may not exist in all workspaces
+        # (e.g. TABLE_OR_VIEW_NOT_FOUND). Use internal execute and catch so we don't log as error.
         uc_metrics: dict[str, list[dict[str, str]]] = {}
         uc_versions: dict[str, dict[str, Any]] = {}
         if self.is_available:
@@ -1226,7 +1228,7 @@ class DatabricksService:
                     WHERE full_name IN ({model_names})
                     ORDER BY full_name, version DESC
                 """
-                version_rows = await self.execute_query(version_query)
+                version_rows = await self._execute_query_internal(version_query)
                 # Keep latest version per model
                 for row in version_rows:
                     fname = str(row.get("full_name", ""))
@@ -1247,7 +1249,7 @@ class DatabricksService:
                                     WHERE full_name = '{safe_fname}' AND version = {safe_version}
                                     AND key LIKE 'metric.%'
                                 """
-                                tag_rows = await self.execute_query(metric_query)
+                                tag_rows = await self._execute_query_internal(metric_query)
                                 metrics_list = [
                                     {"name": str(r["key"]).replace("metric.", ""), "value": str(r["value"])}
                                     for r in tag_rows

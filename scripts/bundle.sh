@@ -9,9 +9,10 @@
 #   target: dev (default) or prod
 #
 # Performance (faster deploys):
-#   - Phase 1: apx build and dashboards prepare run in parallel; workspace path resolved in parallel (~20–60s saved).
-#   - Phase 1: after deploy, dashboard publish and check-app-deployable run in parallel.
-#   - Phase 2: dashboard prepare runs in parallel with YAML toggles; set SKIP_DASHBOARD_PREPARE=1 when right after phase 1 (~20–50s saved).
+#   - Phase 1: apx build, dashboards prepare, and workspace path resolution run in parallel (~20–60s saved).
+#   - Phase 1: after deploy, dashboard publish and check-app-deployable run in parallel (~10–30s saved).
+#   - Phase 2: dashboard prepare runs in parallel with check-app-deployable and YAML toggles (~20–50s saved).
+#   - Phase 2: set SKIP_DASHBOARD_PREPARE=1 when running "deploy app" right after phase 1 (dashboards already prepared).
 #   - Phase 2: set SKIP_BUNDLE_VALIDATE=1 to skip "bundle validate" before deploy (~5–15s saved).
 set -e
 cd "$(dirname "$0")/.."
@@ -101,19 +102,25 @@ case "$CMD" in
   deploy)
     echo "=== Phase 1: Deploy all resources EXCEPT the App ==="
     comment_out_app_and_serving
-    echo "Building web UI and preparing dashboards in parallel..."
+    WORKSPACE_PATH_FILE=$(mktemp)
+    WORKSPACE_FOLDER="${BUNDLE_VAR_workspace_folder:-payment-analysis}"
+    (
+      PATH_VAL=$(databricks current-user me -o json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); u=d.get('userName',''); print(f'/Workspace/Users/{u}/${WORKSPACE_FOLDER}' if u else '')" 2>/dev/null || true)
+      [[ -z "$PATH_VAL" ]] && PATH_VAL=$(databricks bundle validate -t "$TARGET" 2>/dev/null | sed -n 's/.*Path:[[:space:]]*\([^[:space:]]*\).*/\1/p' | head -1)
+      echo "$PATH_VAL" > "$WORKSPACE_PATH_FILE"
+    ) &
+    PATH_PID=$!
+    echo "Building web UI and preparing dashboards (and resolving workspace path) in parallel..."
     uv run apx build &
     BUILD_PID=$!
     prepare_dashboards &
     PREPARE_PID=$!
     wait "$BUILD_PID" || exit $?
     wait "$PREPARE_PID" || exit $?
+    wait "$PATH_PID" 2>/dev/null || true
+    WORKSPACE_PATH=$(cat "$WORKSPACE_PATH_FILE" 2>/dev/null || true)
+    rm -f "$WORKSPACE_PATH_FILE"
     echo "Cleaning workspace dashboards (except dbdemos*)..."
-    WORKSPACE_FOLDER="${BUNDLE_VAR_workspace_folder:-payment-analysis}"
-    WORKSPACE_PATH=$(databricks current-user me -o json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); u=d.get('userName',''); print(f'/Workspace/Users/{u}/${WORKSPACE_FOLDER}' if u else '')" 2>/dev/null || true)
-    if [[ -z "$WORKSPACE_PATH" ]]; then
-      WORKSPACE_PATH=$(databricks bundle validate -t "$TARGET" 2>/dev/null | sed -n 's/.*Path:[[:space:]]*\([^[:space:]]*\).*/\1/p' | head -1)
-    fi
     if [[ -n "$WORKSPACE_PATH" ]]; then
       uv run python scripts/dashboards.py clean-workspace-except-dbdemos --path "$WORKSPACE_PATH" 2>/dev/null || true
     else
@@ -126,11 +133,13 @@ case "$CMD" in
     restore_fastapi_app_only
     rm -f "$BACKUP"
     echo ""
-    echo "Publishing dashboards..."
-    uv run python scripts/dashboards.py publish 2>/dev/null || true
-    echo ""
-    echo "--- Validation: app can be deployed with all dependencies and resources ---"
-    uv run python scripts/toggle_app_resources.py --check-app-deployable || true
+    echo "Publishing dashboards and checking app deployability in parallel..."
+    uv run python scripts/dashboards.py publish 2>/dev/null || true &
+    PUBLISH_PID=$!
+    uv run python scripts/toggle_app_resources.py --check-app-deployable || true &
+    CHECK_PID=$!
+    wait "$PUBLISH_PID" 2>/dev/null || true
+    wait "$CHECK_PID" 2>/dev/null || true
     echo ""
     echo "================================================================================"
     echo "all resources deployed except the App. Run jobs 5 and 6. After completion, write the prompt \"deploy app\""
@@ -138,6 +147,11 @@ case "$CMD" in
     ;;
   deploy-app)
     echo "=== Phase 2: Deploy the App with all dependencies and resources ==="
+    if [[ -z "${SKIP_DASHBOARD_PREPARE:-}" ]]; then
+      echo "Preparing dashboards in background (while running YAML checks)..."
+      prepare_dashboards &
+      PREPARE_PID=$!
+    fi
     echo "Validating that the App can be deployed with all dependencies and resources assigned and uncommented..."
     uv run python scripts/toggle_app_resources.py --check-app-deployable
     echo ""
@@ -148,13 +162,17 @@ case "$CMD" in
       --skip-endpoint payment-response-agent \
       --skip-endpoint approval-propensity --skip-endpoint risk-scoring \
       --skip-endpoint smart-routing --skip-endpoint smart-retry
-    echo "Validating bundle (-t $TARGET)..."
     if [[ -z "${SKIP_DASHBOARD_PREPARE:-}" ]]; then
-      prepare_dashboards
+      wait "$PREPARE_PID" || exit $?
     else
       echo "Skipping dashboard prepare (SKIP_DASHBOARD_PREPARE=1)."
     fi
-    databricks bundle validate -t "$TARGET"
+    if [[ -z "${SKIP_BUNDLE_VALIDATE:-}" ]]; then
+      echo "Validating bundle (-t $TARGET)..."
+      databricks bundle validate -t "$TARGET"
+    else
+      echo "Skipping bundle validate (SKIP_BUNDLE_VALIDATE=1)."
+    fi
     echo "Deploying bundle (-t $TARGET) with App and model serving..."
     EXTRA_VARS=()
     [[ -n "${LAKEBASE_INSTANCE_NAME:-}" ]] && EXTRA_VARS+=(--var "lakebase_instance_name=${LAKEBASE_INSTANCE_NAME}")
