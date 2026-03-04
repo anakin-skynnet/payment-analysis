@@ -13,6 +13,7 @@ Usage:
   uv run python scripts/dashboards.py validate-assets [--catalog X] [--schema Y]
   uv run python scripts/dashboards.py publish [--path /Workspace/Users/.../payment-analysis] [--dry-run]
   uv run python scripts/dashboards.py dedupe-keep-latest [--path ...] [--dry-run]
+  uv run python scripts/dashboards.py search-duplicates [--path ...] [--lakeview]
   uv run python scripts/dashboards.py check-widgets
   uv run python scripts/dashboards.py best-widgets
   uv run python scripts/dashboards.py fix-widget-settings
@@ -1503,6 +1504,86 @@ def cmd_dedupe_keep_latest(path: str | None, dry_run: bool) -> int:
     return 0
 
 
+def cmd_search_duplicates(path: str | None, use_lakeview: bool) -> int:
+    """Search for duplicate payment-analysis dashboards (same logical name, multiple instances)."""
+    by_key: dict[str, list[dict]] = {}
+
+    if use_lakeview:
+        try:
+            result = subprocess.run(
+                ["databricks", "lakeview", "list", "-o", "json"],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            result.check_returncode()
+            data = json.loads(result.stdout)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError) as e:
+            print(f"Error: lakeview list failed: {e}", file=sys.stderr)
+            return 1
+        for d in data if isinstance(data, list) else []:
+            name = (d.get("display_name") or "").strip()
+            key = _DEDUPE_LOGICAL_KEYS.get(name)
+            if key:
+                by_key.setdefault(key, []).append({
+                    "path": name,
+                    "resource_id": d.get("dashboard_id"),
+                    "modified_at": d.get("update_time") or d.get("create_time") or "",
+                })
+        print("Search scope: Lakeview (all dashboards in workspace)")
+    else:
+        root = path or get_workspace_root()
+        if not root:
+            print("Error: could not get workspace path. Pass --path or use --lakeview.", file=sys.stderr)
+            return 1
+        dashboards_path = f"{root.rstrip('/')}/dashboards"
+        try:
+            result = subprocess.run(
+                ["databricks", "workspace", "list", dashboards_path, "-o", "json"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            result.check_returncode()
+            objects = json.loads(result.stdout)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError) as e:
+            print(f"Error: workspace list failed: {e}", file=sys.stderr)
+            return 1
+        all_objs = objects if isinstance(objects, list) else []
+        for o in all_objs:
+            if o.get("object_type") != "DASHBOARD":
+                continue
+            p = (o.get("path") or "").strip()
+            key = _logical_key_from_path(p)
+            if key:
+                by_key.setdefault(key, []).append({
+                    "path": p,
+                    "resource_id": o.get("resource_id"),
+                    "modified_at": o.get("modified_at") or 0,
+                })
+        print(f"Search scope: workspace path {dashboards_path}")
+
+    print("")
+    duplicates_found = False
+    for key in sorted(by_key.keys()):
+        group = by_key[key]
+        if len(group) > 1:
+            duplicates_found = True
+            print(f"Duplicate(s) for '{key}' ({len(group)} total):")
+            for g in sorted(group, key=lambda x: (x.get("modified_at") or ""), reverse=True):
+                rid = g.get("resource_id") or ""
+                loc = (g.get("path") or "").split("/")[-1] if "/" in (g.get("path") or "") else (g.get("path") or "")
+                mod = g.get("modified_at", "")
+                print(f"  - {rid}  {loc}  (modified: {mod})")
+            print("")
+    if not duplicates_found:
+        if by_key:
+            print("No duplicates: at most one dashboard per logical name.")
+        else:
+            print("No payment-analysis dashboards found in search scope.")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Dashboard operations: prepare, validate-assets, publish, link-widgets")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -1553,6 +1634,10 @@ def main() -> int:
     p_dedupe = sub.add_parser("dedupe-keep-latest", help="Under .../dashboards keep only latest per logical name (by modified_at), delete older duplicates.")
     p_dedupe.add_argument("--path", default=None, help="Workspace root path (e.g. /Workspace/Users/<you>/payment-analysis)")
     p_dedupe.add_argument("--dry-run", action="store_true", help="Only list dashboards that would be deleted")
+    # search-duplicates
+    p_search = sub.add_parser("search-duplicates", help="Search for duplicate payment-analysis dashboards (by logical name).")
+    p_search.add_argument("--path", default=None, help="Workspace root path (default: bundle root). Ignored if --lakeview.")
+    p_search.add_argument("--lakeview", action="store_true", help="Search via Lakeview API (all dashboards in workspace)")
     args = parser.parse_args()
 
     if args.cmd == "merge":
@@ -1589,6 +1674,8 @@ def main() -> int:
         return cmd_clean_all_my_dashboards_except_dbdemos(args.path, dry_run=getattr(args, "dry_run", False))
     if args.cmd == "dedupe-keep-latest":
         return cmd_dedupe_keep_latest(getattr(args, "path", None), dry_run=getattr(args, "dry_run", False))
+    if args.cmd == "search-duplicates":
+        return cmd_search_duplicates(getattr(args, "path", None), use_lakeview=getattr(args, "lakeview", False))
     return 1
 
 
