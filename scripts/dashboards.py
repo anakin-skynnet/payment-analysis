@@ -1274,24 +1274,30 @@ def cmd_clean_non_dbdemos_dashboards(path: str | None, dry_run: bool) -> int:
     if dry_run:
         print("Dry run: no changes made.")
         return 0
-    failed = []
-    for p in to_delete:
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def _delete_one(ws_path: str) -> tuple[bool, str]:
         try:
             subprocess.run(
-                ["databricks", "workspace", "delete", p],
-                check=True,
-                capture_output=True,
-                text=True,
-                timeout=30,
+                ["databricks", "workspace", "delete", ws_path],
+                check=True, capture_output=True, text=True, timeout=30,
             )
-            print(f"Deleted: {p.split('/')[-1]}")
+            return True, f"Deleted: {ws_path.split('/')[-1]}"
         except subprocess.CalledProcessError as e:
             err = (e.stderr or e.stdout or str(e)).strip()
             if "RESOURCE_DOES_NOT_EXIST" in err or "does not exist" in err.lower():
-                pass
-            else:
-                print(f"Failed: {p} — {err}", file=sys.stderr)
-                failed.append(p)
+                return True, ""
+            return False, f"Failed: {ws_path} — {err}"
+
+    failed = []
+    with ThreadPoolExecutor(max_workers=len(to_delete)) as pool:
+        futures = {pool.submit(_delete_one, p): p for p in to_delete}
+        for fut in as_completed(futures):
+            ok, msg = fut.result()
+            if msg:
+                print(msg, file=sys.stderr if not ok else sys.stdout)
+            if not ok:
+                failed.append(futures[fut])
     if failed:
         print(f"Failed to delete {len(failed)} dashboard(s).", file=sys.stderr)
         return 1
@@ -1337,13 +1343,10 @@ def cmd_publish(path: str | None, dry_run: bool) -> int:
     if dry_run:
         print("Dry run: skipping publish.")
         return 0
-    failed = []
-    for o in dashboards:
-        did, name = o.get("resource_id"), (o.get("path", "") or "").split("/")[-1]
-        if not did:
-            continue
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def _publish_one(did: str, name: str) -> tuple[bool, str]:
         try:
-            # CLI: databricks lakeview (AI/BI Dashboards backend)
             subprocess.run(
                 ["databricks", "lakeview", "publish", did, "--embed-credentials"],
                 check=True,
@@ -1351,10 +1354,21 @@ def cmd_publish(path: str | None, dry_run: bool) -> int:
                 text=True,
                 timeout=PUBLISH_TIMEOUT,
             )
-            print(f"Published: {name}")
+            return True, f"Published: {name}"
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-            print(f"Failed: {name} — {getattr(e, 'stderr', e) or e}", file=sys.stderr)
-            failed.append(name)
+            return False, f"Failed: {name} — {getattr(e, 'stderr', e) or e}"
+
+    items = [(o.get("resource_id"), (o.get("path", "") or "").split("/")[-1]) for o in dashboards if o.get("resource_id")]
+    failed = []
+    with ThreadPoolExecutor(max_workers=len(items)) as pool:
+        futures = {pool.submit(_publish_one, did, name): name for did, name in items}
+        for fut in as_completed(futures):
+            ok, msg = fut.result()
+            if ok:
+                print(msg)
+            else:
+                print(msg, file=sys.stderr)
+                failed.append(futures[fut])
     if failed:
         print(f"Failed: {len(failed)} dashboard(s).", file=sys.stderr)
         return 1

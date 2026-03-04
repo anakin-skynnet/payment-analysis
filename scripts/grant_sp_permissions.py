@@ -11,8 +11,10 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from databricks.sdk import WorkspaceClient
 
@@ -28,18 +30,14 @@ def main() -> None:
 
     print(f"App SP: {sp}")
 
-    # Discover the warehouse ID from the app's environment or the bundle config
-    import os
     wh_id = os.environ.get("DATABRICKS_WAREHOUSE_ID", "")
     if not wh_id:
-        # Fallback: list warehouses and pick the payment-analysis one
         try:
             for wh in w.warehouses.list():
                 if "payment" in (wh.name or "").lower():
                     wh_id = wh.id or ""
                     break
             if not wh_id:
-                # Use first available warehouse
                 for wh in w.warehouses.list():
                     if wh.id:
                         wh_id = wh.id
@@ -50,34 +48,41 @@ def main() -> None:
         print("  Could not discover warehouse ID. Set DATABRICKS_WAREHOUSE_ID env var.")
         return
 
-    # 1. Unity Catalog grants
+    # 1. Unity Catalog grants + Warehouse CAN_USE — run concurrently
     uc_grants = [
         f"GRANT USE CATALOG ON CATALOG ahs_demos_catalog TO `{sp}`",
         f"GRANT USE SCHEMA ON SCHEMA ahs_demos_catalog.payment_analysis TO `{sp}`",
         f"GRANT SELECT ON SCHEMA ahs_demos_catalog.payment_analysis TO `{sp}`",
         f"GRANT EXECUTE ON SCHEMA ahs_demos_catalog.payment_analysis TO `{sp}`",
     ]
-    for sql in uc_grants:
-        r = w.statement_execution.execute_statement(statement=sql, warehouse_id=wh_id)
+
+    def _run_uc_grant(sql_stmt: str) -> str:
+        r = w.statement_execution.execute_statement(statement=sql_stmt, warehouse_id=wh_id, wait_timeout="30s")
         state = r.status.state if r.status else "unknown"
         err = (r.status.error.message if r.status and r.status.error else "") or ""
         tag = "OK" if "SUCCEEDED" in str(state) else f"WARN({state} {err})"
-        print(f"  UC: {tag} — {sql[:70]}")
+        return f"  UC: {tag} — {sql_stmt[:70]}"
 
-    # 2. SQL Warehouse CAN_USE
-    try:
-        w.api_client.do(
-            "PATCH",
-            f"/api/2.0/permissions/sql/warehouses/{wh_id}",
-            body={
-                "access_control_list": [
-                    {"service_principal_name": sp, "permission_level": "CAN_USE"}
-                ]
-            },
-        )
-        print(f"  Warehouse CAN_USE granted to {sp}")
-    except Exception as e:
-        print(f"  Warehouse grant issue (non-fatal): {e}")
+    def _run_warehouse_grant() -> str:
+        try:
+            w.api_client.do(
+                "PATCH",
+                f"/api/2.0/permissions/sql/warehouses/{wh_id}",
+                body={
+                    "access_control_list": [
+                        {"service_principal_name": sp, "permission_level": "CAN_USE"}
+                    ]
+                },
+            )
+            return f"  Warehouse CAN_USE granted to {sp}"
+        except Exception as e:
+            return f"  Warehouse grant issue (non-fatal): {e}"
+
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        futures = {pool.submit(_run_uc_grant, sql): sql for sql in uc_grants}
+        futures[pool.submit(_run_warehouse_grant)] = "warehouse"
+        for fut in as_completed(futures):
+            print(fut.result())
 
     # 3. Lakebase Postgres role + grants
     try:
