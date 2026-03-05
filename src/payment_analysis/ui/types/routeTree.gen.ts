@@ -52,7 +52,9 @@ const SidebarSmartCheckoutRoute = SidebarSmartCheckoutRouteImport.update({
   id: '/smart-checkout',
   path: '/smart-checkout',
   getParentRoute: () => SidebarRouteRoute,
-} as any)
+} as any).lazy(() =>
+  import('./../routes/_sidebar/smart-checkout.lazy').then((d) => d.Route),
+)
 const SidebarSetupRoute = SidebarSetupRouteImport.update({
   id: '/setup',
   path: '/setup',
@@ -64,12 +66,16 @@ const SidebarRulesRoute = SidebarRulesRouteImport.update({
   id: '/rules',
   path: '/rules',
   getParentRoute: () => SidebarRouteRoute,
-} as any)
+} as any).lazy(() =>
+  import('./../routes/_sidebar/rules.lazy').then((d) => d.Route),
+)
 const SidebarReasonCodesRoute = SidebarReasonCodesRouteImport.update({
   id: '/reason-codes',
   path: '/reason-codes',
   getParentRoute: () => SidebarRouteRoute,
-} as any)
+} as any).lazy(() =>
+  import('./../routes/_sidebar/reason-codes.lazy').then((d) => d.Route),
+)
 const SidebarProfileRoute = SidebarProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -84,7 +90,9 @@ const SidebarModelsRoute = SidebarModelsRouteImport.update({
   id: '/models',
   path: '/models',
   getParentRoute: () => SidebarRouteRoute,
-} as any)
+} as any).lazy(() =>
+  import('./../routes/_sidebar/models.lazy').then((d) => d.Route),
+)
 const SidebarInitiativesRoute = SidebarInitiativesRouteImport.update({
   id: '/initiatives',
   path: '/initiatives',
@@ -118,7 +126,9 @@ const SidebarDataQualityRoute = SidebarDataQualityRouteImport.update({
   id: '/data-quality',
   path: '/data-quality',
   getParentRoute: () => SidebarRouteRoute,
-} as any)
+} as any).lazy(() =>
+  import('./../routes/_sidebar/data-quality.lazy').then((d) => d.Route),
+)
 const SidebarDashboardsRoute = SidebarDashboardsRouteImport.update({
   id: '/dashboards',
   path: '/dashboards',
@@ -148,7 +158,9 @@ const SidebarAiAgentsRoute = SidebarAiAgentsRouteImport.update({
   id: '/ai-agents',
   path: '/ai-agents',
   getParentRoute: () => SidebarRouteRoute,
-} as any)
+} as any).lazy(() =>
+  import('./../routes/_sidebar/ai-agents.lazy').then((d) => d.Route),
+)
 const SidebarAboutRoute = SidebarAboutRouteImport.update({
   id: '/about',
   path: '/about',
